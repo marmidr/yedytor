@@ -1,0 +1,9 @@
+*.~*
+*.py[cod]
+*.coverage
+*dump*
+TODO.*
+
+__pycache__/
+htmlcov/
+
