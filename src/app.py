@@ -11,6 +11,7 @@ import logging
 import os
 import configparser
 import sys
+import time
 
 import xls_reader
 import xlsx_reader
@@ -18,18 +19,20 @@ import csv_reader
 import ods_reader
 import text_grid
 import ui_helpers
+import tou_scanner
 
 from msg_box import MessageBox
+from tkhtmlview import HTMLLabel
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.1.0"
+APP_NAME = "Yedytor v0.2.0"
 
 # -----------------------------------------------------------------------------
 
 class Project:
     CONFIG_FILE_NAME = "yedytor.ini"
-    pnp_path: str = "<pnp_fname>"
+    pnp_path: str = "<pnp_fpath>"
     pnp2_path: str = ""
     pnp_separator: str = ""
     __config: configparser.ConfigParser
@@ -89,7 +92,7 @@ proj = Project()
 
 # -----------------------------------------------------------------------------
 
-class ProjectFrame(customtkinter.CTkFrame):
+class HomeFrame(customtkinter.CTkFrame):
     pnp_config = None
     pnp_view = None
 
@@ -110,8 +113,7 @@ class ProjectFrame(customtkinter.CTkFrame):
         btn_browse = customtkinter.CTkButton(self, text="Browse...", command=self.button_browse_event)
         btn_browse.grid(row=0, column=3, pady=5, padx=5, sticky="e")
 
-        # ---
-
+        #
         lbl_pnp2_path = customtkinter.CTkLabel(self, text="PnP2 (optional):")
         lbl_pnp2_path.grid(row=2, column=0, pady=5, padx=5, sticky="w")
 
@@ -177,6 +179,32 @@ class ProjectFrame(customtkinter.CTkFrame):
             self.pnp_config.opt_separator.configure(state=tkinter.DISABLED)
         else:
             self.pnp_config.opt_separator.configure(state=tkinter.NORMAL)
+
+# -----------------------------------------------------------------------------
+
+class ComponentsFrame(customtkinter.CTkFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+        now = time.strftime("%Y-%m-%d, %H:%M:%S")
+        self.database_summary_html = ''\
+            '<h5>Components database summary</h5>'\
+            '<pre>'\
+            'Items total: <span style="color: Blue">123</span>\n'\
+            f'Last update: <span style="color: Blue">{now}</span>\n'\
+            '</pre>'
+
+        self.lblhtml_dbsummary = HTMLLabel(self, wrap='none', html=self.database_summary_html, height=10)
+        self.lblhtml_dbsummary.grid(row=0, column=0, padx=5, pady=5, sticky="we")
+
+        btn_scanner = customtkinter.CTkButton(self, text="Tou scanner...", command=self.btn_scanner_event)
+        btn_scanner.grid(row=0, column=1, pady=5, padx=5, sticky="e")
+
+        self.grid_columnconfigure(0, weight=1)
+        # self.grid_rowconfigure(0, weight=1)
+
+    def btn_scanner_event(self):
+        wnd_scanner = tou_scanner.TouScanner()
 
 # -----------------------------------------------------------------------------
 
@@ -316,29 +344,32 @@ class CtkApp(customtkinter.CTk):
         self.geometry("1200x600")
         self.grid_columnconfigure(0, weight=1)
 
-        # panel with Proj/PnP
+        # tabular panel with Home/Preview/Editor
         tabview = customtkinter.CTkTabview(self)
         tabview.grid(row=1, column=0, padx=5, pady=5, sticky="wens")
         self.grid_rowconfigure(1, weight=1) # set row 1 height to all remaining space
-        tab_prj = tabview.add("Project")
-        tab_pnp = tabview.add("PnP Editor")
+        tab_home = tabview.add("Start")
+        tab_preview = tabview.add("PnP Preview")
+        tab_editor = tabview.add("PnP Editor")
+        tab_db_preview = tabview.add("DB Components")
 
-        # panel with predefined configs
-        proj_frame = ProjectFrame(tab_prj)
-        proj_frame.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
-        tab_prj.grid_columnconfigure(0, weight=1)
-        tab_prj.grid_rowconfigure(0, weight=1)
+        # home panel
+        home_frame = HomeFrame(tab_home)
+        home_frame.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
+        components_frame = ComponentsFrame(tab_home)
+        components_frame.grid(row=1, column=0, padx=5, pady=5, sticky="we")
+        tab_home.grid_columnconfigure(0, weight=1)
+        # tab_home.grid_rowconfigure(0, weight=1)
 
         # panel with the PnP
-        self.pnp_view = PnPView(tab_pnp)
+        self.pnp_view = PnPView(tab_preview)
         self.pnp_view.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
-        self.pnp_config = PnPConfig(tab_pnp, pnp_view=self.pnp_view)
+        self.pnp_config = PnPConfig(tab_preview, pnp_view=self.pnp_view)
         self.pnp_config.grid(row=1, column=0, padx=5, pady=5, sticky="we")
-        proj_frame.pnp_config = self.pnp_config
-        proj_frame.pnp_view = self.pnp_view
-
-        tab_pnp.grid_columnconfigure(0, weight=1)
-        tab_pnp.grid_rowconfigure(0, weight=1)
+        home_frame.pnp_config = self.pnp_config
+        home_frame.pnp_view = self.pnp_view
+        tab_preview.grid_columnconfigure(0, weight=1)
+        tab_preview.grid_rowconfigure(0, weight=1)
 
         # UI ready
         logging.info('Application ready.')

@@ -3,8 +3,9 @@
 [x] szablon aplikacji w tkinter
 [x] podgląd pliku PnP
 [ ] okienko wyszukiwania i skanowania plików *.Tou
-    [ ] wybór katalogu i skanowanie plików
-    [ ] parsowanie pliku Tou
+    [x] wybór katalogu i skanowanie plików
+    [x] parsowanie pliku Tou
+    [x] podgląd listy unikalnych komponentów
     [ ] klasa trzymająca komponenty z Yamahy w pliku CSV
     [ ] w CSV trzymamy nazwę bieżącą i oryginalną (znalezioną w pliku Tou)
     [ ] przed dodaniem do lokalnej bazy, zatwierdzamy

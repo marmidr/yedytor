@@ -2,7 +2,8 @@
 
 PnP files editor, using a footprints defined in the Yamaha .Tou files.
 
-TODO: sshots
+![ss2](doc/sshot2.png)
+![ss3](doc/sshot3.png)
 
 ## Supported formats
 
