@@ -1,6 +1,6 @@
 # Yedytor
 
-PnP files editor, using footprints defined in Yamaha .Tou files.
+PnP files editor, using a footprints defined in the Yamaha .Tou files.
 
 TODO: sshots
 

@@ -1,0 +1,18 @@
+# Plan prac
+[x] skopiować z Boomer kod czytający pliki PnP
+[x] szablon aplikacji w tkinter
+[x] podgląd pliku PnP
+[ ] okienko wyszukiwania i skanowania plików *.Tou
+    [ ] wybór katalogu i skanowanie plików
+    [ ] parsowanie pliku Tou
+    [ ] klasa trzymająca komponenty z Yamahy w pliku CSV
+    [ ] w CSV trzymamy nazwę bieżącą i oryginalną (znalezioną w pliku Tou)
+    [ ] przed dodaniem do lokalnej bazy, zatwierdzamy
+        (np ignorujemy R0603_1K jak już mamy R0603_1k, oznaczamy jako zignorowany,
+        żeby przy kolejnym skanowaniu nie pokazywać jako nowego)
+[ ] okno edycji wczytanego PnP
+    [ ] dodawanie nowej kolumny
+    [ ] lista z komponentami z Tou
+    [ ] mechanizm wyszukiwania komponentu regex, case-insensitive
+    [ ] mechanizm automatycznego wyboru komponentu na podstawie footprint+wartość
+[ ] zapis nowego PnP zawsze jako CSV

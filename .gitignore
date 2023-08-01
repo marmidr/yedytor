@@ -2,8 +2,9 @@
 *.py[cod]
 *.coverage
 *dump*
-TODO.*
+yedytor.ini
 
+examples/tou/
 __pycache__/
 htmlcov/
 
