@@ -11,6 +11,7 @@ from tou_reader import TouFile
 
 class TouScanner(customtkinter.CTkToplevel):
     callback: typing.Callable[[str], None]
+    components: dict[str, set[str]] = {}
     TAB_SCAN_RESULTS = "Scan results"
     TAB_COMPONENTS = "Components"
 
@@ -22,11 +23,7 @@ class TouScanner(customtkinter.CTkToplevel):
         # self.callback = kwargs.pop("callback")
 
         super().__init__(*args, **kwargs)
-        self.geometry("700x500")
-
-        lbl_title = customtkinter.CTkLabel(self,
-                                           text="Select the folder where *.Tou files are stored and hit SCAN to find all components")
-        lbl_title.grid(row=0, column=0, pady=5, padx=5, columnspan=2, sticky="we")
+        self.geometry("700x600")
 
         #
         self.btn_browse = customtkinter.CTkButton(self, text="Browse...", command=self.button_browse_event)
@@ -71,9 +68,14 @@ class TouScanner(customtkinter.CTkToplevel):
                                                 wrap='none')
         self.textbox_components.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
 
+        self.btn_savecomponents = customtkinter.CTkButton(tab_components,
+                                                          text="Save components as CSV...",
+                                                          command=self.btn_savecomponents_event)
+        self.btn_savecomponents.grid(row=1, column=0, pady=2, padx=5, sticky="e")
+
         #
-        lbl_hline = customtkinter.CTkLabel(self, text="―" * 100)
-        lbl_hline.grid(row=4, column=0, columnspan=4, pady=1, padx=5, sticky="we",)
+        sep_h = tkinter.ttk.Separator(self, orient='horizontal')
+        sep_h.grid(row=4, column=0, columnspan=4, pady=1, padx=5, sticky="we",)
 
         self.btn_ok = customtkinter.CTkButton(self, text="Save new components", command=self.button_ok_event)
         self.btn_ok.grid(row=5, column=1, pady=5, padx=5, sticky="we")
@@ -81,6 +83,10 @@ class TouScanner(customtkinter.CTkToplevel):
 
         self.btn_cancel = customtkinter.CTkButton(self, text="Cancel", command=self.button_cancel_event)
         self.btn_cancel.grid(row=5, column=2, pady=5, padx=5, sticky="we")
+
+        #
+        sizegrip = tkinter.ttk.Sizegrip(self)
+        sizegrip.grid(row=5, column=3, pady=3, padx=3, sticky="es")
 
         #
         self.grid_columnconfigure(1, weight=1)
@@ -99,7 +105,29 @@ class TouScanner(customtkinter.CTkToplevel):
         # self.callback("c")
         self.destroy()
 
-    def button_browse_event(self):  # sourcery skip: de-morgan, extract-method
+    def btn_savecomponents_event(self):
+        if self.components:
+            logging.debug("Saving an CSV")
+            self.attributes('-topmost', False)
+            with tkinter.filedialog.asksaveasfile(
+                    title="Save components in a CSV file",
+                    initialdir=None,
+                    filetypes = [("Comma separated values", ".csv")],
+                    defaultextension = ".csv"
+                ) as file:
+                components_keys_sorted = list(self.components)
+                components_keys_sorted.sort()
+
+                for component_key in components_keys_sorted:
+                    components_str = ""
+                    for cmp_name in self.components[component_key]:
+                        components_str += cmp_name + ";"
+                    components_str += "\n"
+                    file.write(components_str)
+
+            self.attributes('-topmost', True)
+
+    def button_browse_event(self):
         # https://docs.python.org/3/library/dialog.html
         # TODO: get the initial dir from the app settings
         self.attributes('-topmost', False)
@@ -172,24 +200,24 @@ class TouScanner(customtkinter.CTkToplevel):
 
     def components_report(self, tou_files: list[TouFile]):
         logging.debug("Merge components from all Tou files")
-        components: dict[str, set[str]] = {}
+        self.components = {}
 
         for tf in tou_files:
             for key in tf.items:
                 # make the items under each key unique thanks to the set{}
-                if items := components.get(key):
+                if items := self.components.get(key):
                     items |= set(tf.items[key])
                 else:
-                    components[key] = set(tf.items[key])
+                    self.components[key] = set(tf.items[key])
 
         logging.debug("Prepare report")
         components_report = ""
-        components_sorted = list(components)
-        components_sorted.sort()
+        components_keys_sorted = list(self.components)
+        components_keys_sorted.sort()
 
-        for i, component_key in enumerate(components_sorted):
-            components_str = f"{components[component_key]}".strip("{}")
-            components_report += f"{(i+1):3}. {components_str}" + "\n"
+        for i, component_key in enumerate(components_keys_sorted):
+            components_str = f"{self.components[component_key]}".strip("{}")
+            components_report += f"{(i+1):3}. {components_str}\n"
 
-        logging.info(f"Total {len(components)} components")
+        logging.info(f"Total {len(self.components)} components")
         self.textbox_components.insert("0.0", components_report)

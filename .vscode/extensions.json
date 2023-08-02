@@ -6,6 +6,6 @@
         "shardulm94.trailing-spaces",
         "gruntfuggly.todo-tree",
         "ms-python.vscode-pylance",
-        // "sourcery.sourcery" - commercial
+        "ms-python.pylint"
     ]
 }

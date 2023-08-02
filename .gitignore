@@ -4,7 +4,8 @@
 *dump*
 yedytor.ini
 
-examples/tou/
+examples/tou*/
+examples/tou*/*.csv
 __pycache__/
 htmlcov/
 

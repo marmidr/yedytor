@@ -21,12 +21,13 @@ import text_grid
 import ui_helpers
 import tou_scanner
 
+from column_selector import ColumnsSelector, ColumnsSelectorResult
 from msg_box import MessageBox
 from tkhtmlview import HTMLLabel
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.2.0"
+APP_NAME = "Yedytor v0.2.1"
 
 # -----------------------------------------------------------------------------
 
@@ -38,10 +39,12 @@ class Project:
     __config: configparser.ConfigParser
     pnp_grid: text_grid.TextGrid = None
     pnp_grid_dirty: bool = False
+    pnp_footprint_col: int = 0
+    pnp_comment_col: int = 0
     loading: bool = False
 
     def __init__(self):
-        self.pnp_separator = self.get_separator_names()[0]
+        self.pnp_separator = "SPACES"
         # https://docs.python.org/3/library/configparser.html
         self.__config = configparser.ConfigParser()
 
@@ -127,7 +130,7 @@ class HomeFrame(customtkinter.CTkFrame):
         self.var_pnp2.set("")
         self.pnp_view.clear_preview()
 
-    def button_browse_event(self):  # sourcery skip: de-morgan, extract-method
+    def button_browse_event(self):
         logging.debug("Browse for PnP")
         self.clear_previews()
 
@@ -136,6 +139,9 @@ class HomeFrame(customtkinter.CTkFrame):
         pnp_paths = tkinter.filedialog.askopenfilenames(
             title="Select PnP file(s)",
             initialdir=None,
+            filetypes = [
+                ("All text files", ".*")
+            ],
         )
         logging.info(f"Selected PnP(s): {pnp_paths}")
 
@@ -198,7 +204,7 @@ class ComponentsFrame(customtkinter.CTkFrame):
         self.lblhtml_dbsummary.grid(row=0, column=0, padx=5, pady=5, sticky="we")
 
         btn_scanner = customtkinter.CTkButton(self, text="Tou scanner...", command=self.btn_scanner_event)
-        btn_scanner.grid(row=0, column=1, pady=5, padx=5, sticky="e")
+        btn_scanner.grid(row=0, column=1, pady=5, padx=5, sticky="ne")
 
         self.grid_columnconfigure(0, weight=1)
         # self.grid_rowconfigure(0, weight=1)
@@ -230,7 +236,6 @@ class PnPView(customtkinter.CTkFrame):
         self.lbl_occurences.grid(row=1, column=2, pady=5, padx=5, sticky="")
 
     def load_pnp(self, path: str, path2: str):
-        # sourcery skip: extract-method, use-fstring-for-formatting
         self.clear_preview()
 
         if not os.path.isfile(path):
@@ -297,6 +302,7 @@ class PnPView(customtkinter.CTkFrame):
 
 class PnPConfig(customtkinter.CTkFrame):
     pnp_view: PnPView = None
+    column_selector: ColumnsSelector = None
 
     def __init__(self, master, **kwargs):
         assert "pnp_view" in kwargs
@@ -309,7 +315,7 @@ class PnPConfig(customtkinter.CTkFrame):
         lbl_separator = customtkinter.CTkLabel(self, text="CSV\nSeparator:")
         lbl_separator.grid(row=0, column=0, pady=5, padx=5, sticky="")
 
-        self.opt_separator_var = customtkinter.StringVar(value="")
+        self.opt_separator_var = customtkinter.StringVar(value=proj.pnp_separator)
         self.opt_separator = customtkinter.CTkOptionMenu(self, values=Project.get_separator_names(),
                                                     command=self.opt_separator_event,
                                                     variable=self.opt_separator_var)
@@ -319,7 +325,16 @@ class PnPConfig(customtkinter.CTkFrame):
         #
         self.btn_load = customtkinter.CTkButton(self, text="Reload PnP",
                                                 command=self.button_load_event)
-        self.btn_load.grid(row=0, column=6, pady=5, padx=5, sticky="e")
+        self.btn_load.grid(row=0, column=2, pady=5, padx=5, sticky="e")
+
+        #
+        self.lbl_columns = customtkinter.CTkLabel(self, text="", justify="left")
+        self.lbl_columns.grid(row=0, column=4, pady=5, padx=(15,5), sticky="w")
+        self.update_lbl_columns()
+        #
+        self.btn_columns = customtkinter.CTkButton(self, text="Select\ncolumns...",
+                                                   command=self.button_columns_event)
+        self.btn_columns.grid(row=0, column=5, pady=5, padx=5, sticky="")
 
     def opt_separator_event(self, new_sep: str):
         logging.info(f"  PnP separator: {new_sep}")
@@ -332,6 +347,26 @@ class PnPConfig(customtkinter.CTkFrame):
             self.pnp_view.load_pnp(proj.pnp_path, proj.pnp2_path)
         except Exception as e:
             logging.error(f"Cannot load PnP: {e}")
+
+    def update_lbl_columns(self):
+        self.lbl_columns.configure(text=f"COLUMNS:\n• Footprint: {proj.pnp_footprint_col}\n• Comment: {proj.pnp_comment_col}")
+
+    def button_columns_event(self):
+        logging.debug("Select PnP columns...")
+        if proj.pnp_grid:
+            columns = list.copy(proj.pnp_grid.rows[0])
+        else:
+            columns = ["..."]
+
+        if self.column_selector:
+            self.column_selector.destroy()
+        self.column_selector = ColumnsSelector(self, columns=columns, callback=self.column_selector_callback)
+
+    def column_selector_callback(self, result: ColumnsSelectorResult):
+        logging.debug(f"Selected PnP columns: ftprnt={result.footprint_col}, cmnt={result.comment_col}")
+        proj.pnp_footprint_col = result.footprint_col
+        proj.pnp_comment_col = result.comment_col
+        self.update_lbl_columns()
 
 # -----------------------------------------------------------------------------
 
@@ -346,8 +381,8 @@ class CtkApp(customtkinter.CTk):
 
         # tabular panel with Home/Preview/Editor
         tabview = customtkinter.CTkTabview(self)
-        tabview.grid(row=1, column=0, padx=5, pady=5, sticky="wens")
-        self.grid_rowconfigure(1, weight=1) # set row 1 height to all remaining space
+        tabview.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
+        self.grid_rowconfigure(0, weight=1) # set row 1 height to all remaining space
         tab_home = tabview.add("Start")
         tab_preview = tabview.add("PnP Preview")
         tab_editor = tabview.add("PnP Editor")

@@ -2,6 +2,18 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.2.1 - 2023-08-02
+
+* Added
+  * saving components list as a CSV file
+  * PnP columns selector
+* Changed
+* Deprecated
+* Removed
+* Fixed
+  * extracted component name stripped on NUL character if occured in the middle:
+    `'evo4<NUL>ucial_' -> 'evo4'`
+
 ## 0.2.0 - 2023-08-02
 
 * Added

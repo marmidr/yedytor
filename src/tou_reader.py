@@ -29,7 +29,9 @@ class TouFile:
                 name_bytes = f.read(TOU_COMPONENT_NAME_SIZE)
 
                 if len(name_bytes) == TOU_COMPONENT_NAME_SIZE:
-                    name_bytes = name_bytes.rstrip(b"\x00 ")
+                    # name_bytes = name_bytes.rstrip(b"\x00 ")
+                    if (nul_idx := name_bytes.find(0)) >= 0:
+                        name_bytes = name_bytes[0:nul_idx]
 
                     try:
                         # "SOT23_BSS138\x00\x00\x00\x00\x00\x00\x00" -> "SOT23_BSS138"
