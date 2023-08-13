@@ -6,24 +6,25 @@ import os
 import time
 
 from tou_reader import TouFile
+from components import Component, ComponentDB
 
 # -----------------------------------------------------------------------------
 
 class TouScanner(customtkinter.CTkToplevel):
-    callback: typing.Callable[[str], None]
-    components: dict[str, set[str]] = {}
     TAB_SCAN_RESULTS = "Scan results"
     TAB_COMPONENTS = "Components"
 
     def __init__(self, *args, **kwargs):
         """
-        callback=typing.Callable[[str], None] - function receiving "y", "n", "o", "c"
+        callback=typing.Callable[[str, ComponentDB], None] - function receiving "y", "n", "o", "c"
         """
         # assert "callback" in kwargs
-        # self.callback = kwargs.pop("callback")
+        # self.callback: typing.Callable[[str, ComponentDB], None] = kwargs.pop("callback")
 
         super().__init__(*args, **kwargs)
         self.geometry("700x600")
+
+        self.components_dict: dict[str, set[str]] = {}
 
         #
         self.btn_browse = customtkinter.CTkButton(self, text="Browse...", command=self.button_browse_event)
@@ -77,7 +78,7 @@ class TouScanner(customtkinter.CTkToplevel):
         sep_h = tkinter.ttk.Separator(self, orient='horizontal')
         sep_h.grid(row=4, column=0, columnspan=4, pady=1, padx=5, sticky="we",)
 
-        self.btn_ok = customtkinter.CTkButton(self, text="Save new components", command=self.button_ok_event)
+        self.btn_ok = customtkinter.CTkButton(self, text="Save new components to DB", command=self.button_ok_event)
         self.btn_ok.grid(row=5, column=1, pady=5, padx=5, sticky="we")
         self.btn_ok.configure(state=tkinter.DISABLED)
 
@@ -97,7 +98,22 @@ class TouScanner(customtkinter.CTkToplevel):
 
     def button_ok_event(self):
         logging.debug("Ok")
-        # self.callback("o")
+
+        # components_keys_sorted = list(self.components_dict)
+        # components_keys_sorted.sort()
+
+        # for component_key in components_keys_sorted:
+        #     components_str = ""
+        #     for cmp_name in self.components_dict[component_key]:
+        #         components_str += cmp_name + ";"
+        #     components_str += "\n"
+
+        # if self.components_dict:
+            # TODO: make DB from self.components_dict
+            # components = ComponentDB()
+            # self.callback("o", components)
+        # else:
+            # self.callback("c")
         self.destroy()
 
     def button_cancel_event(self):
@@ -106,21 +122,22 @@ class TouScanner(customtkinter.CTkToplevel):
         self.destroy()
 
     def btn_savecomponents_event(self):
-        if self.components:
+        if self.components_dict:
             logging.debug("Saving an CSV")
             self.attributes('-topmost', False)
-            with tkinter.filedialog.asksaveasfile(
+            file = tkinter.filedialog.asksaveasfile(
                     title="Save components in a CSV file",
                     initialdir=None,
                     filetypes = [("Comma separated values", ".csv")],
                     defaultextension = ".csv"
-                ) as file:
-                components_keys_sorted = list(self.components)
+                )
+            if file:
+                components_keys_sorted = list(self.components_dict)
                 components_keys_sorted.sort()
 
                 for component_key in components_keys_sorted:
                     components_str = ""
-                    for cmp_name in self.components[component_key]:
+                    for cmp_name in self.components_dict[component_key]:
                         components_str += cmp_name + ";"
                     components_str += "\n"
                     file.write(components_str)
@@ -200,24 +217,24 @@ class TouScanner(customtkinter.CTkToplevel):
 
     def components_report(self, tou_files: list[TouFile]):
         logging.debug("Merge components from all Tou files")
-        self.components = {}
+        self.components_dict = {}
 
         for tf in tou_files:
             for key in tf.items:
                 # make the items under each key unique thanks to the set{}
-                if items := self.components.get(key):
+                if items := self.components_dict.get(key):
                     items |= set(tf.items[key])
                 else:
-                    self.components[key] = set(tf.items[key])
+                    self.components_dict[key] = set(tf.items[key])
 
         logging.debug("Prepare report")
         components_report = ""
-        components_keys_sorted = list(self.components)
+        components_keys_sorted = list(self.components_dict)
         components_keys_sorted.sort()
 
         for i, component_key in enumerate(components_keys_sorted):
-            components_str = f"{self.components[component_key]}".strip("{}")
+            components_str = f"{self.components_dict[component_key]}".strip("{}")
             components_report += f"{(i+1):3}. {components_str}\n"
 
-        logging.info(f"Total {len(self.components)} components")
+        logging.info(f"Total {len(self.components_dict)} components")
         self.textbox_components.insert("0.0", components_report)
