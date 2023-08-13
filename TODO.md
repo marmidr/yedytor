@@ -8,7 +8,6 @@
     [x] parsowanie pliku Tou
     [x] podgląd listy unikalnych komponentów
     [ ] klasa trzymająca komponenty z Yamahy w pliku CSV
-    [ ] w CSV trzymamy nazwę bieżącą i oryginalną (znalezioną w pliku Tou)
     [ ] przed dodaniem do lokalnej bazy, zatwierdzamy
         (np ignorujemy R0603_1K jak już mamy R0603_1k, oznaczamy jako zignorowany,
         żeby przy kolejnym skanowaniu nie pokazywać jako nowego)

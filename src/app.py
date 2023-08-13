@@ -24,6 +24,7 @@ import tou_scanner
 from column_selector import ColumnsSelector, ColumnsSelectorResult
 from msg_box import MessageBox
 from tkhtmlview import HTMLLabel
+from components import Component, ComponentsDB
 
 # -----------------------------------------------------------------------------
 
@@ -41,7 +42,7 @@ class Project:
     pnp_grid_dirty: bool = False
     pnp_footprint_col: int = 0
     pnp_comment_col: int = 0
-    loading: bool = False
+    components: ComponentsDB = None
 
     def __init__(self):
         self.pnp_separator = "SPACES"
@@ -162,7 +163,6 @@ class HomeFrame(customtkinter.CTkFrame):
                 global proj
                 sep_backup = proj.pnp_separator
                 proj = Project()
-                proj.loading = True
 
                 proj.pnp_separator = sep_backup
                 proj.pnp_path = pnp_paths[0]
@@ -173,8 +173,6 @@ class HomeFrame(customtkinter.CTkFrame):
                 self.activate_csv_separator()
             except Exception as e:
                 logging.error(f"Cannot open file: {e}")
-            finally:
-                proj.loading = False
         else:
             if len(pnp_paths):
                 logging.error(f"Cannot access the file '{pnp_paths[0]}'")
@@ -192,15 +190,7 @@ class ComponentsFrame(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
 
-        now = time.strftime("%Y-%m-%d, %H:%M:%S")
-        self.database_summary_html = ''\
-            '<h5>Components database summary</h5>'\
-            '<pre>'\
-            'Items total: <span style="color: Blue">123</span>\n'\
-            f'Last update: <span style="color: Blue">{now}</span>\n'\
-            '</pre>'
-
-        self.lblhtml_dbsummary = HTMLLabel(self, wrap='none', html=self.database_summary_html, height=10)
+        self.lblhtml_dbsummary = HTMLLabel(self, wrap='none', height=10)
         self.lblhtml_dbsummary.grid(row=0, column=0, padx=5, pady=5, sticky="we")
 
         btn_scanner = customtkinter.CTkButton(self, text="Tou scanner...", command=self.btn_scanner_event)
@@ -210,7 +200,28 @@ class ComponentsFrame(customtkinter.CTkFrame):
         # self.grid_rowconfigure(0, weight=1)
 
     def btn_scanner_event(self):
-        wnd_scanner = tou_scanner.TouScanner()
+        wnd_scanner = tou_scanner.TouScanner(callback=self.touscanner_callback)
+
+    def touscanner_callback(self, action: str, components: ComponentsDB):
+        logging.debug(f"TouScanner: {action}")
+        if action == "o":
+            # save to a CSV file
+            if not os.path.isdir("db"):
+                os.mkdir("db")
+            components.save("db")
+            proj.components = components
+            self.update_components_info(proj.components.db_date, len(proj.components.items))
+            # TODO: refresh preview
+
+    def update_components_info(self, date: str, count: int):
+        self.database_summary_html = ''\
+            '<h5>Components database</h5>'\
+            '<pre>'\
+            f'Items total: <span style="color: Blue">{count}</span>\n'\
+            f'Created: <span style="color: Blue">{date}</span>\n'\
+            '</pre>'
+
+        self.lblhtml_dbsummary.set_html(self.database_summary_html)
 
 # -----------------------------------------------------------------------------
 
@@ -391,8 +402,8 @@ class CtkApp(customtkinter.CTk):
         # home panel
         home_frame = HomeFrame(tab_home)
         home_frame.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
-        components_frame = ComponentsFrame(tab_home)
-        components_frame.grid(row=1, column=0, padx=5, pady=5, sticky="we")
+        self.components_frame = ComponentsFrame(tab_home)
+        self.components_frame.grid(row=1, column=0, padx=5, pady=5, sticky="we")
         tab_home.grid_columnconfigure(0, weight=1)
         # tab_home.grid_rowconfigure(0, weight=1)
 
@@ -405,6 +416,16 @@ class CtkApp(customtkinter.CTk):
         home_frame.pnp_view = self.pnp_view
         tab_preview.grid_columnconfigure(0, weight=1)
         tab_preview.grid_rowconfigure(0, weight=1)
+
+        try:
+            proj.components = ComponentsDB()
+            proj.components.load("db")
+
+            logging.info(f"  Date: {proj.components.db_date}")
+            logging.info(f"  Items: {len(proj.components.items)}")
+            self.components_frame.update_components_info(proj.components.db_date, len(proj.components.items))
+        except Exception as e:
+            logging.error(f"Error loading database: {e}")
 
         # UI ready
         logging.info('Application ready.')

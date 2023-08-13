@@ -6,7 +6,7 @@ import os
 import time
 
 from tou_reader import TouFile
-from components import Component, ComponentDB
+from components import Component, ComponentsDB
 
 # -----------------------------------------------------------------------------
 
@@ -18,8 +18,8 @@ class TouScanner(customtkinter.CTkToplevel):
         """
         callback=typing.Callable[[str, ComponentDB], None] - function receiving "y", "n", "o", "c"
         """
-        # assert "callback" in kwargs
-        # self.callback: typing.Callable[[str, ComponentDB], None] = kwargs.pop("callback")
+        assert "callback" in kwargs
+        self.callback: typing.Callable[[str, ComponentsDB], None] = kwargs.pop("callback")
 
         super().__init__(*args, **kwargs)
         self.geometry("700x600")
@@ -99,26 +99,17 @@ class TouScanner(customtkinter.CTkToplevel):
     def button_ok_event(self):
         logging.debug("Ok")
 
-        # components_keys_sorted = list(self.components_dict)
-        # components_keys_sorted.sort()
-
-        # for component_key in components_keys_sorted:
-        #     components_str = ""
-        #     for cmp_name in self.components_dict[component_key]:
-        #         components_str += cmp_name + ";"
-        #     components_str += "\n"
-
-        # if self.components_dict:
-            # TODO: make DB from self.components_dict
-            # components = ComponentDB()
-            # self.callback("o", components)
-        # else:
-            # self.callback("c")
+        if self.components_dict:
+            # make DB from self.components_dict
+            components = ComponentsDB(components_dict=self.components_dict)
+            self.callback("o", components)
+        else:
+            self.callback("c")
         self.destroy()
 
     def button_cancel_event(self):
         logging.debug("Cancel")
-        # self.callback("c")
+        self.callback("c")
         self.destroy()
 
     def btn_savecomponents_event(self):
@@ -134,7 +125,6 @@ class TouScanner(customtkinter.CTkToplevel):
             if file:
                 components_keys_sorted = list(self.components_dict)
                 components_keys_sorted.sort()
-
                 for component_key in components_keys_sorted:
                     components_str = ""
                     for cmp_name in self.components_dict[component_key]:

@@ -5,10 +5,13 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 ## 0.3.0 - 2023-08-14
 
 * Added
+  * keeping list of components in db/components__<date_time>.csv
+  * DB info on home screen
 * Changed
 * Deprecated
 * Removed
 * Fixed
+  * handle situation when user selects no file in SaveDialog
 
 ## 0.2.1 - 2023-08-02
 
