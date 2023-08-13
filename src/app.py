@@ -190,8 +190,8 @@ class ComponentsFrame(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
 
-        self.lblhtml_dbsummary = HTMLLabel(self, wrap='none', height=10)
-        self.lblhtml_dbsummary.grid(row=0, column=0, padx=5, pady=5, sticky="we")
+        self.lblhtml_dbsummary = HTMLLabel(self, wrap='none', height=5)
+        self.lblhtml_dbsummary.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
 
         btn_scanner = customtkinter.CTkButton(self, text="Tou scanner...", command=self.btn_scanner_event)
         btn_scanner.grid(row=0, column=1, pady=5, padx=5, sticky="ne")
@@ -208,6 +208,7 @@ class ComponentsFrame(customtkinter.CTkFrame):
             # save to a CSV file
             if not os.path.isdir("db"):
                 os.mkdir("db")
+            # TODO: scan present DB and apply 'hidden' attribute to a new DB
             components.save("db")
             proj.components = components
             self.update_components_info(proj.components.db_date, len(proj.components.items))
@@ -215,8 +216,8 @@ class ComponentsFrame(customtkinter.CTkFrame):
 
     def update_components_info(self, date: str, count: int):
         self.database_summary_html = ''\
-            '<h5>Components database</h5>'\
-            '<pre>'\
+            '<h6>Components database</h6>'\
+            '<pre style="font-family: Consolas, monospace; font-size: 80%">'\
             f'Items total: <span style="color: Blue">{count}</span>\n'\
             f'Created: <span style="color: Blue">{date}</span>\n'\
             '</pre>'
@@ -403,9 +404,9 @@ class CtkApp(customtkinter.CTk):
         home_frame = HomeFrame(tab_home)
         home_frame.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
         self.components_frame = ComponentsFrame(tab_home)
-        self.components_frame.grid(row=1, column=0, padx=5, pady=5, sticky="we")
+        self.components_frame.grid(row=1, column=0, padx=5, pady=5, sticky="wens")
         tab_home.grid_columnconfigure(0, weight=1)
-        # tab_home.grid_rowconfigure(0, weight=1)
+        # tab_home.grid_rowconfigure(1, weight=1)
 
         # panel with the PnP
         self.pnp_view = PnPView(tab_preview)

@@ -7,54 +7,59 @@ import csv
 
 class Component:
     def __init__(self, **kwargs) -> None:
-        self.names = ""
-        """Semicolon-separated variants of component name, eg "R0603_1k;R0603_1K" """
-        if "names" in kwargs:
-            self.names = kwargs.pop("names")
+        self.name = ""
+        """Original component name, eg "R0603_1k" """
+        if "name" in kwargs:
+            self.name = kwargs.pop("name")
 
-        self.ignored = False
+        self.hidden = False
         """Known, but don't show on the list"""
-        if "ignored" in kwargs:
-            self.ignored = kwargs.pop("ignored")
+        if "hidden" in kwargs:
+            self.hidden = kwargs.pop("hidden")
 
     def __lt__(self, other) -> bool:
         # required by sort()
-        return self.names < other.names
+        return self.name < other.name
 
 # -----------------------------------------------------------------------------
 
 class ComponentsDB:
     FILENAME_DATE_FMT = "%Y%m%d_%H%M%S"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.db_date = ""
         self.items: list[Component] = []
         if "components_dict" in kwargs:
             components_dict = kwargs.pop("components_dict")
             assert type(components_dict) is dict
             # https://docs.python.org/3/library/stdtypes.html?#dict.items
-            self.items = [Component(names=";".join(item[1])) for item in components_dict.items()]
+            for item in components_dict.items():
+                # add all component variants into the same flat list
+                self.items.extend([Component(name=subitem) for subitem in item[1]])
             self.items.sort()
 
     """Load latest database version"""
     def load(self, db_folder: str):
         logging.info(f"Initialize components database: {db_folder}")
-        db_list = []
+        db_path_list = []
         for de in os.scandir(db_folder):
-            logging.debug("DB path: " + de.path)
-            # take only the file name
-            db_list.append(de.path)
+            db_fname: str = os.path.basename(de.path)
+            if db_fname.startswith("components__") and db_fname.endswith(".csv"):
+                logging.debug("DB path: " + de.path)
+                db_path_list.append(de.path)
 
-        if db_list:
+        # if not empty
+        if db_path_list:
             # sort files list to get the latest version
-            db_list.sort(reverse=True)
-            last_db_path = db_list[0]
+            db_path_list.sort(reverse=True)
+            last_db_path = db_path_list[0]
             # extract filename from path
-            dbname: str = os.path.basename(last_db_path)
-            logging.info(f"Loading components from: {dbname}")
+            db_fname: str = os.path.basename(last_db_path)
+            logging.info(f"Loading components from: {db_fname}")
             # extract date part from filename
             try:
-                self.db_date = dbname.split("__")[1].split(".")[0]
+                # throw away the extension
+                self.db_date = db_fname.split("__")[1].split(".")[0]
                 time_tuple = time.strptime(self.db_date, self.FILENAME_DATE_FMT)
                 self.db_date = time.strftime("%Y-%m-%d, %H:%M:%S", time_tuple)
             except Exception as e:
@@ -67,7 +72,7 @@ class ComponentsDB:
                 reader = csv.reader(f, delimiter="\t")
                 for row in reader:
                     row_cells = [cell.strip() for cell in row]
-                    self.items.append(Component(names=row_cells[0], ignored=row_cells[1] == "x"))
+                    self.items.append(Component(name=row_cells[0], hidden=row_cells[1] == "x"))
         else:
             logging.warning(f"No DB files found in {db_folder}")
 
@@ -78,8 +83,8 @@ class ComponentsDB:
         try:
             with open(db_file_path, "w") as f:
                 for item in self.items:
-                    ignored="x" if item.ignored else "_"
-                    f.write(f"\"{item.names}\"\t{ignored}\n")
+                    hidden="x" if item.hidden else "_"
+                    f.write(f"\"{item.name}\"\t{hidden}\n")
         except Exception as e:
             logging.error(f"Error saving to file '{db_file_path}: {e}'")
 
