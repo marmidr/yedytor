@@ -4,14 +4,10 @@ class TextGrid:
     Represents data read from the XLS/XLSX/ODS/CSV
     """
 
-    nrows: int
-    ncols: int
-    rows: list[list[str]]
-
     def __init__(self):
         self.nrows = 0
         self.ncols = 0
-        self.rows = []
+        self.rows: list[list[str]] = []
 
     @staticmethod
     def format_cell(cell) -> str:

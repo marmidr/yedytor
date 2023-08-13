@@ -7,11 +7,11 @@
 
 import customtkinter
 import tkinter
+from tkinter import tix
 import logging
 import os
 import configparser
 import sys
-import time
 
 import xls_reader
 import xlsx_reader
@@ -42,7 +42,6 @@ class Project:
     pnp_grid_dirty: bool = False
     pnp_footprint_col: int = 0
     pnp_comment_col: int = 0
-    components: ComponentsDB = None
 
     def __init__(self):
         self.pnp_separator = "SPACES"
@@ -93,6 +92,7 @@ class Project:
 
 # global instance
 proj = Project()
+components = ComponentsDB()
 
 # -----------------------------------------------------------------------------
 
@@ -202,17 +202,17 @@ class ComponentsFrame(customtkinter.CTkFrame):
     def btn_scanner_event(self):
         wnd_scanner = tou_scanner.TouScanner(callback=self.touscanner_callback)
 
-    def touscanner_callback(self, action: str, components: ComponentsDB):
+    def touscanner_callback(self, action: str, new_components: ComponentsDB):
         logging.debug(f"TouScanner: {action}")
         if action == "o":
             # save to a CSV file
             if not os.path.isdir("db"):
                 os.mkdir("db")
             # TODO: scan present DB and apply 'hidden' attribute to a new DB
-            components.save("db")
-            proj.components = components
-            self.update_components_info(proj.components.db_date, len(proj.components.items))
-            # TODO: refresh preview
+            new_components.save("db")
+            global components
+            components = new_components
+            self.update_components_info(components.db_date, len(components.items))
 
     def update_components_info(self, date: str, count: int):
         self.database_summary_html = ''\
@@ -300,6 +300,8 @@ class PnPView(customtkinter.CTkFrame):
         pnp_txt_grid = proj.pnp_grid.format_grid(0)
         self.textbox.insert("0.0", pnp_txt_grid)
         proj.pnp_grid_dirty = False
+        # refresh preview
+        self.pnp_editor.load()
 
     def clear_preview(self):
         self.textbox.delete("0.0", tkinter.END)
@@ -382,6 +384,41 @@ class PnPConfig(customtkinter.CTkFrame):
 
 # -----------------------------------------------------------------------------
 
+class PnPEditor(customtkinter.CTkScrollableFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+    #
+    def load(self):
+        if proj.pnp_grid:
+            component_list = list(item.name for item in components.items if not item.hidden)
+
+            for idx, row in enumerate(proj.pnp_grid.rows):
+                lbl_rowno = tkinter.ttk.Label(self, text=f"{idx+1}.")
+                lbl_rowno.grid(row=idx, column=0, padx=5, pady=1, sticky="w")
+
+                entry_pnp = tkinter.ttk.Entry(self)
+                entry_pnp.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
+                entry_txt = " • ".join(row)
+                ui_helpers.entry_set_text(entry_pnp, entry_txt)
+                entry_pnp.configure(state=tkinter.DISABLED)
+
+                # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
+                # https://www.pythontutorial.net/tkinter/tkinter-combobox/
+                combo_footprint = tkinter.ttk.Combobox(self, values=component_list)
+                combo_footprint.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
+                combo_footprint.bind('<<ComboboxSelected>>', self.combobox_event)
+
+            self.grid_columnconfigure(1, weight=3)
+            self.grid_columnconfigure(2, weight=1)
+        else:
+            logging.warning("PnP project not loaded")
+
+    def combobox_event(self, event):
+        print(f"CB event: {event}")
+
+# -----------------------------------------------------------------------------
+
 class CtkApp(customtkinter.CTk):
     def __init__(self):
         logging.info('Ctk app is starting')
@@ -401,32 +438,43 @@ class CtkApp(customtkinter.CTk):
         tab_db_preview = tabview.add("DB Components")
 
         # home panel
-        home_frame = HomeFrame(tab_home)
-        home_frame.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
+        self.home_frame = HomeFrame(tab_home)
+        self.home_frame.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
         self.components_frame = ComponentsFrame(tab_home)
         self.components_frame.grid(row=1, column=0, padx=5, pady=5, sticky="wens")
         tab_home.grid_columnconfigure(0, weight=1)
         # tab_home.grid_rowconfigure(1, weight=1)
+
+        #
+        try:
+            global components
+            components = ComponentsDB()
+            components.load("db")
+            logging.info(f"  Date: {components.db_date}")
+            logging.info(f"  Items: {len(components.items)}")
+            self.components_frame.update_components_info(components.db_date, len(components.items))
+        except Exception as e:
+            logging.error(f"Error loading database: {e}")
 
         # panel with the PnP
         self.pnp_view = PnPView(tab_preview)
         self.pnp_view.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
         self.pnp_config = PnPConfig(tab_preview, pnp_view=self.pnp_view)
         self.pnp_config.grid(row=1, column=0, padx=5, pady=5, sticky="we")
-        home_frame.pnp_config = self.pnp_config
-        home_frame.pnp_view = self.pnp_view
+        self.home_frame.pnp_config = self.pnp_config
+        self.home_frame.pnp_view = self.pnp_view
+
+        # panel to edit the PnP footprints
+        self.pnp_editor = PnPEditor(tab_editor)
+        self.pnp_editor.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
+        tab_editor.grid_columnconfigure(0, weight=1)
+        tab_editor.grid_rowconfigure(0, weight=1)
+
+        self.pnp_view.pnp_editor = self.pnp_editor
+
+        #
         tab_preview.grid_columnconfigure(0, weight=1)
         tab_preview.grid_rowconfigure(0, weight=1)
-
-        try:
-            proj.components = ComponentsDB()
-            proj.components.load("db")
-
-            logging.info(f"  Date: {proj.components.db_date}")
-            logging.info(f"  Items: {len(proj.components.items)}")
-            self.components_frame.update_components_info(proj.components.db_date, len(proj.components.items))
-        except Exception as e:
-            logging.error(f"Error loading database: {e}")
 
         # UI ready
         logging.info('Application ready.')

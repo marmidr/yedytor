@@ -5,8 +5,10 @@ import typing
 import os
 import time
 
+import ui_helpers
 from tou_reader import TouFile
 from components import Component, ComponentsDB
+
 
 # -----------------------------------------------------------------------------
 
@@ -145,10 +147,7 @@ class TouScanner(customtkinter.CTkToplevel):
         )
         self.attributes('-topmost', True)
         logging.info(f"Selected folder: {tou_folder}")
-        self.entry_tou_folder.configure(state=tkinter.NORMAL) # delete/insert are not working on disabled widget
-        self.entry_tou_folder.delete(0, tkinter.END)
-        self.entry_tou_folder.insert(0, tou_folder)
-        self.entry_tou_folder.configure(state=tkinter.DISABLED)
+        ui_helpers.entry_set_text(self.entry_tou_folder, tou_folder)
         self.btn_scan.configure(state=tkinter.NORMAL)
 
     def button_scan_event(self):

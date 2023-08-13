@@ -25,3 +25,11 @@ def textbox_find_text(textbox: customtkinter.CTkTextbox, needle: str) -> int:
             pos = textbox.search(pattern=needle, index=start, stopindex=tkinter.END, nocase=True)
 
     return found_cnt
+
+def entry_set_text(entry: customtkinter.CTkEntry, text: str):
+    # delete/insert are not working on disabled widget
+    entry_disabled = entry.cget("state") == tkinter.DISABLED
+    if entry_disabled: entry.configure(state=tkinter.NORMAL)
+    entry.delete(0, tkinter.END)
+    entry.insert(0, text)
+    if entry_disabled: entry.configure(state=tkinter.DISABLED)

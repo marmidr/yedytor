@@ -14,8 +14,8 @@
     [x] zapisywanie wyciągniętej listy komponentów do CSV
 [ ] okno edycji wczytanego PnP
     [ ] okienko wyboru kolumn: footprint i wartość
-    [ ] dodawanie nowej kolumny
-    [ ] lista z komponentami z Tou
+    [x] dodawanie nowej kolumny
+    [x] lista z komponentami z Tou
     [ ] mechanizm wyszukiwania komponentu regex, case-insensitive
     [ ] mechanizm automatycznego wyboru komponentu na podstawie footprint+wartość
 [ ] zapis nowego PnP zawsze jako CSV
