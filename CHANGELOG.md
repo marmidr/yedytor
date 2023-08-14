@@ -7,10 +7,13 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Added
   * keeping list of components in db/components__<date_time>.csv
   * DB info on home screen
+  * PnP preview: columns selector
+  * PnP editor: Value + Footprint | ComboBox with known Yamaha components (footprints)
 * Changed
 * Deprecated
 * Removed
 * Fixed
+  * "db" folder correctly located no matter from where (cwd) the app was started
   * handle situation when user selects no file in SaveDialog
 
 ## 0.2.1 - 2023-08-02

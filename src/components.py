@@ -45,7 +45,7 @@ class ComponentsDB:
         for de in os.scandir(db_folder):
             db_fname: str = os.path.basename(de.path)
             if db_fname.startswith("components__") and db_fname.endswith(".csv"):
-                logging.debug("DB path: " + de.path)
+                logging.debug("  DB path: " + de.path)
                 db_path_list.append(de.path)
 
         # if not empty
@@ -75,6 +75,13 @@ class ComponentsDB:
                     self.items.append(Component(name=row_cells[0], hidden=row_cells[1] == "x"))
         else:
             logging.warning(f"No DB files found in {db_folder}")
+
+    """Iterate over components and apply 'hidden' attribute from an old components"""
+    def copy_attributes(self, old_items: list[Component]):
+        old_items_dict = dict([(v.name, v) for v in old_items])
+        for item in self.items:
+            if old_item := old_items_dict.get(item.name):
+                item.hidden = old_item.hidden
 
     """Save local DB to a CSV file with date-time"""
     def save(self, db_folder: str):

@@ -32,6 +32,15 @@ APP_NAME = "Yedytor v0.3.0"
 
 # -----------------------------------------------------------------------------
 
+def get_db_directory() -> str:
+    db_path = os.path.dirname(__file__)
+    db_path = os.path.join(db_path, "..")
+    db_path = os.path.abspath(db_path)
+    db_path = os.path.join(db_path, "db")
+    return db_path
+
+# -----------------------------------------------------------------------------
+
 class Project:
     CONFIG_FILE_NAME = "yedytor.ini"
     pnp_path: str = "<pnp_fpath>"
@@ -97,9 +106,6 @@ components = ComponentsDB()
 # -----------------------------------------------------------------------------
 
 class HomeFrame(customtkinter.CTkFrame):
-    pnp_config = None
-    pnp_view = None
-
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
 
@@ -206,11 +212,13 @@ class ComponentsFrame(customtkinter.CTkFrame):
         logging.debug(f"TouScanner: {action}")
         if action == "o":
             # save to a CSV file
-            if not os.path.isdir("db"):
-                os.mkdir("db")
-            # TODO: scan present DB and apply 'hidden' attribute to a new DB
-            new_components.save("db")
+            db_directory = get_db_directory()
+
+            if not os.path.isdir(db_directory):
+                os.mkdir(db_directory)
             global components
+            new_components.copy_attributes(components.items)
+            new_components.save(db_directory)
             components = new_components
             self.update_components_info(components.db_date, len(components.items))
 
@@ -300,8 +308,9 @@ class PnPView(customtkinter.CTkFrame):
         pnp_txt_grid = proj.pnp_grid.format_grid(0)
         self.textbox.insert("0.0", pnp_txt_grid)
         proj.pnp_grid_dirty = False
-        # refresh preview
-        self.pnp_editor.load()
+        # refresh editor (if columns were selected)
+        if proj.pnp_footprint_col > 0 or proj.pnp_comment_col > 0:
+            self.pnp_editor.load()
 
     def clear_preview(self):
         self.textbox.delete("0.0", tkinter.END)
@@ -315,15 +324,15 @@ class PnPView(customtkinter.CTkFrame):
 # -----------------------------------------------------------------------------
 
 class PnPConfig(customtkinter.CTkFrame):
-    pnp_view: PnPView = None
-    column_selector: ColumnsSelector = None
-
     def __init__(self, master, **kwargs):
         assert "pnp_view" in kwargs
-        self.pnp_view = kwargs.pop("pnp_view")
+        self.pnp_view: PnPView = kwargs.pop("pnp_view")
         assert isinstance(self.pnp_view, PnPView)
 
         super().__init__(master, **kwargs)
+
+        # initial value
+        self.column_selector = None
 
         #
         lbl_separator = customtkinter.CTkLabel(self, text="CSV\nSeparator:")
@@ -342,6 +351,10 @@ class PnPConfig(customtkinter.CTkFrame):
         self.btn_load.grid(row=0, column=2, pady=5, padx=5, sticky="e")
 
         #
+        sep_v = tkinter.ttk.Separator(self, orient='vertical')
+        sep_v.grid(row=0, column=3, pady=2, padx=5, sticky="ns")
+
+        #
         self.lbl_columns = customtkinter.CTkLabel(self, text="", justify="left")
         self.lbl_columns.grid(row=0, column=4, pady=5, padx=(15,5), sticky="w")
         self.update_lbl_columns()
@@ -349,6 +362,10 @@ class PnPConfig(customtkinter.CTkFrame):
         self.btn_columns = customtkinter.CTkButton(self, text="Select\ncolumns...",
                                                    command=self.button_columns_event)
         self.btn_columns.grid(row=0, column=5, pady=5, padx=5, sticky="")
+        #
+        self.btn_edit = customtkinter.CTkButton(self, text="Go to\nEditor →", state=tkinter.DISABLED,
+                                                command=self.button_edit_event)
+        self.btn_edit.grid(row=0, column=6, pady=5, padx=5, sticky="")
 
     def opt_separator_event(self, new_sep: str):
         logging.info(f"  PnP separator: {new_sep}")
@@ -381,6 +398,13 @@ class PnPConfig(customtkinter.CTkFrame):
         proj.pnp_footprint_col = result.footprint_col
         proj.pnp_comment_col = result.comment_col
         self.update_lbl_columns()
+        self.btn_edit.configure(state=tkinter.NORMAL)
+
+    def button_edit_event(self):
+        logging.debug(f"Go to Edit page")
+        # refresh editor
+        self.pnp_editor.load()
+        self.select_editor()
 
 # -----------------------------------------------------------------------------
 
@@ -390,52 +414,75 @@ class PnPEditor(customtkinter.CTkScrollableFrame):
 
     #
     def load(self):
-        if proj.pnp_grid:
-            component_list = list(item.name for item in components.items if not item.hidden)
-
-            for idx, row in enumerate(proj.pnp_grid.rows):
-                lbl_rowno = tkinter.ttk.Label(self, text=f"{idx+1}.")
-                lbl_rowno.grid(row=idx, column=0, padx=5, pady=1, sticky="w")
-
-                entry_pnp = tkinter.ttk.Entry(self)
-                entry_pnp.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
-                entry_txt = " • ".join(row)
-                ui_helpers.entry_set_text(entry_pnp, entry_txt)
-                entry_pnp.configure(state=tkinter.DISABLED)
-
-                # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
-                # https://www.pythontutorial.net/tkinter/tkinter-combobox/
-                combo_footprint = tkinter.ttk.Combobox(self, values=component_list)
-                combo_footprint.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
-                combo_footprint.bind('<<ComboboxSelected>>', self.combobox_event)
-
-            self.grid_columnconfigure(1, weight=3)
-            self.grid_columnconfigure(2, weight=1)
-        else:
+        if (not proj.pnp_grid) or (proj.pnp_grid.nrows == 0):
             logging.warning("PnP project not loaded")
+        else:
+            if not self.check_selected_columns():
+                logging.warning("Select proper Footprint and Comment columns before editing")
+            else:
+                component_list = list(item.name for item in components.items if not item.hidden)
+                # find the max comment width
+                comment_max_w = 0
+                for row in proj.pnp_grid.rows:
+                    comment_max_w = max(comment_max_w, len(row[proj.pnp_comment_col]))
 
-    def combobox_event(self, event):
-        print(f"CB event: {event}")
+                for idx, row in enumerate(proj.pnp_grid.rows):
+                    entry_pnp = tkinter.ttk.Entry(self, font=customtkinter.CTkFont(family="Consolas"),)
+                    entry_pnp.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
+                    entry_txt = "{idx:03} | {cmnt:{cmnt_w}} | {ftprint}".format(
+                        idx=idx+1, cmnt=row[proj.pnp_comment_col], cmnt_w=comment_max_w,
+                        ftprint=row[proj.pnp_footprint_col])
+                    ui_helpers.entry_set_text(entry_pnp, entry_txt)
+                    # entry_pnp.configure(state=tkinter.DISABLED)
+
+                    # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
+                    # https://www.pythontutorial.net/tkinter/tkinter-combobox/
+                    combo_footprint = tkinter.ttk.Combobox(self, values=component_list)
+                    combo_footprint.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
+                    combo_footprint.bind('<<ComboboxSelected>>', self.combobox_selected)
+                    combo_footprint.bind('<Key>', self.combobox_key)
+                    combo_footprint.bind("<Return>", self.combobox_enter)
+
+                self.grid_columnconfigure(1, weight=2)
+                self.grid_columnconfigure(2, weight=1)
+
+    def check_selected_columns(self, ) -> bool:
+        return proj.pnp_footprint_col < proj.pnp_grid.ncols \
+            and proj.pnp_comment_col < proj.pnp_grid.ncols
+
+    def combobox_selected(self, event):
+        logging.debug(f"CB selected: {event}")
+
+    def combobox_key(self, event):
+        logging.debug(f"CB key: {event}")
+
+    def combobox_enter(self, event):
+        logging.debug(f"CB enter: {event}")
 
 # -----------------------------------------------------------------------------
 
 class CtkApp(customtkinter.CTk):
+    TAB_HOME = "Start"
+    TAB_PREVIEW = "PnP Preview"
+    TAB_EDITOR = "PnP Editor"
+    TAB_COMPONENTS = "DB Components"
+
     def __init__(self):
         logging.info('Ctk app is starting')
         super().__init__()
 
         self.title(f"{APP_NAME}")
-        self.geometry("1200x600")
+        self.geometry("1000x600")
         self.grid_columnconfigure(0, weight=1)
 
         # tabular panel with Home/Preview/Editor
-        tabview = customtkinter.CTkTabview(self)
-        tabview.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
+        self.tabview = customtkinter.CTkTabview(self)
+        self.tabview.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
         self.grid_rowconfigure(0, weight=1) # set row 1 height to all remaining space
-        tab_home = tabview.add("Start")
-        tab_preview = tabview.add("PnP Preview")
-        tab_editor = tabview.add("PnP Editor")
-        tab_db_preview = tabview.add("DB Components")
+        tab_home = self.tabview.add(self.TAB_HOME)
+        tab_preview = self.tabview.add(self.TAB_PREVIEW)
+        tab_editor = self.tabview.add(self.TAB_EDITOR)
+        tab_db_preview = self.tabview.add(self.TAB_COMPONENTS)
 
         # home panel
         self.home_frame = HomeFrame(tab_home)
@@ -449,7 +496,11 @@ class CtkApp(customtkinter.CTk):
         try:
             global components
             components = ComponentsDB()
-            components.load("db")
+            db_directory = get_db_directory()
+            if os.path.isdir(db_directory):
+                components.load(db_directory)
+            else:
+                logging.warning(f"DB folder not found at {db_directory}")
             logging.info(f"  Date: {components.db_date}")
             logging.info(f"  Items: {len(components.items)}")
             self.components_frame.update_components_info(components.db_date, len(components.items))
@@ -461,6 +512,7 @@ class CtkApp(customtkinter.CTk):
         self.pnp_view.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
         self.pnp_config = PnPConfig(tab_preview, pnp_view=self.pnp_view)
         self.pnp_config.grid(row=1, column=0, padx=5, pady=5, sticky="we")
+        self.pnp_config.select_editor = self.tab_select_editor()
         self.home_frame.pnp_config = self.pnp_config
         self.home_frame.pnp_view = self.pnp_view
 
@@ -471,6 +523,7 @@ class CtkApp(customtkinter.CTk):
         tab_editor.grid_rowconfigure(0, weight=1)
 
         self.pnp_view.pnp_editor = self.pnp_editor
+        self.pnp_config.pnp_editor = self.pnp_editor
 
         #
         tab_preview.grid_columnconfigure(0, weight=1)
@@ -478,6 +531,11 @@ class CtkApp(customtkinter.CTk):
 
         # UI ready
         logging.info('Application ready.')
+
+    def tab_select_editor(self):
+        # return a closure
+        appwnd = self
+        return lambda: appwnd.tabview.set(appwnd.TAB_EDITOR)
 
 # -----------------------------------------------------------------------------
 
