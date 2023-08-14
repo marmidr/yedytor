@@ -5,8 +5,6 @@ import typing
 # -----------------------------------------------------------------------------
 
 class MessageBox(customtkinter.CTkToplevel):
-    callback: typing.Callable[[str], None]
-
     def __init__(self, *args, **kwargs):
         """
         Opens a new MessageBox popup:
@@ -19,7 +17,7 @@ class MessageBox(customtkinter.CTkToplevel):
         assert "message" in kwargs
         self.message = kwargs.pop("message")
         assert "callback" in kwargs
-        self.callback = kwargs.pop("callback")
+        self.callback: typing.Callable[[str], None] = kwargs.pop("callback")
 
         super().__init__(*args, **kwargs)
         self.geometry("400x150")

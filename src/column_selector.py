@@ -6,9 +6,6 @@ import typing
 # -----------------------------------------------------------------------------
 
 class ColumnsSelectorResult:
-    footprint_col: str
-    comment_col: str
-
     def __init__(self):
         self.footprint_col = ""
         self.comment_col = ""
@@ -16,8 +13,6 @@ class ColumnsSelectorResult:
 # -----------------------------------------------------------------------------
 
 class ColumnsSelector(customtkinter.CTkToplevel):
-    callback: typing.Callable
-
     def __init__(self, *args, **kwargs):
         assert "columns" in kwargs
         columns = kwargs.pop("columns")
@@ -25,7 +20,7 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         assert type(columns) is list
         # logging.debug("columns: {}".format(self.columns))
         assert "callback" in kwargs
-        self.callback = kwargs.pop("callback")
+        self.callback: typing.Callable = kwargs.pop("callback")
 
         super().__init__(*args, **kwargs)
         self.geometry("400x140")

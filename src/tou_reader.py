@@ -12,13 +12,11 @@ TOU_COMPONENT_SIZE = 320
 TOU_COMPONENT_NAME_SIZE = 40
 
 class TouFile:
-    file_name: str = ""
-    """dictionary with lower-case component name : list of component names"""
-    items: dict[str, list[str]] = None
-
     def __init__(self, path: str):
         self.file_name = os.path.basename(path)
-        self.items = {}
+        """Tou filename"""
+        self.items: dict[str, list[str]] = {}
+        """dictionary with lower-case component name : list of component names"""
 
         with open(path, "rb") as f:
             n = 0
