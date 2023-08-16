@@ -384,12 +384,23 @@ class PnPConfig(customtkinter.CTkFrame):
 
 # -----------------------------------------------------------------------------
 
-class PnPEditor(customtkinter.CTkScrollableFrame):
+class PnPEditor(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
 
+        self.btn_save = customtkinter.CTkButton(self, text="Save PnP as new CSV", command=self.button_save_event)
+        self.btn_save.grid(row=2, column=0, pady=5, padx=5, sticky="e")
+        self.btn_save.configure(state=tkinter.DISABLED)
+
     #
     def load(self):
+        self.btn_save.configure(state=tkinter.DISABLED)
+        self.scrollableframe = customtkinter.CTkScrollableFrame(self)
+        self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, sticky="wens")
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.cb_footprint_list = []
+
         if (not proj.pnp_grid) or (proj.pnp_grid.nrows == 0):
             logging.warning("PnP project not loaded")
         else:
@@ -406,7 +417,7 @@ class PnPEditor(customtkinter.CTkScrollableFrame):
                     comment_max_w = max(comment_max_w, len(row[proj.pnp_comment_col]))
 
                 for idx, row in enumerate(proj.pnp_grid.rows[first_row:]):
-                    entry_pnp = tkinter.ttk.Entry(self, font=customtkinter.CTkFont(family="Consolas"),)
+                    entry_pnp = tkinter.ttk.Entry(self.scrollableframe, font=customtkinter.CTkFont(family="Consolas"))
                     entry_pnp.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
                     entry_txt = "{idx:03} | {cmnt:{cmnt_w}} | {ftprint}".format(
                         idx=idx+1, cmnt=row[proj.pnp_comment_col], cmnt_w=comment_max_w,
@@ -416,27 +427,55 @@ class PnPEditor(customtkinter.CTkScrollableFrame):
 
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
                     # https://www.pythontutorial.net/tkinter/tkinter-combobox/
-                    combo_footprint = tkinter.ttk.Combobox(self, values=component_list)
+                    combo_footprint = tkinter.ttk.Combobox(self.scrollableframe, values=component_list)
+                    self.cb_footprint_list.append(combo_footprint)
                     combo_footprint.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
                     combo_footprint.bind('<<ComboboxSelected>>', self.combobox_selected)
                     combo_footprint.bind('<Key>', self.combobox_key)
                     combo_footprint.bind("<Return>", self.combobox_enter)
+                    combo_footprint.bind("<MouseWheel>", self.combobox_wheel)
 
-                self.grid_columnconfigure(1, weight=2)
-                self.grid_columnconfigure(2, weight=1)
+                self.scrollableframe.grid_columnconfigure(1, weight=2)
+                self.scrollableframe.grid_columnconfigure(2, weight=1)
 
     def check_selected_columns(self, ) -> bool:
         return proj.pnp_footprint_col < proj.pnp_grid.ncols \
             and proj.pnp_comment_col < proj.pnp_grid.ncols
 
     def combobox_selected(self, event):
-        logging.debug(f"CB selected: {event}")
+        # logging.debug(f"CB selected: {event}")
+        self.btn_save.configure(state=tkinter.NORMAL)
 
     def combobox_key(self, event):
         logging.debug(f"CB key: {event}")
+        self.btn_save.configure(state=tkinter.NORMAL)
 
     def combobox_enter(self, event):
         logging.debug(f"CB enter: {event}")
+        self.btn_save.configure(state=tkinter.NORMAL)
+
+    def combobox_wheel(self, event):
+        # logging.debug(f"CB wheel: {event}")
+        # block changing value when the list is hidden to avoid accidental modification
+        return 'break'
+        # pass
+
+    def button_save_event(self):
+        logging.debug("Save PnP")
+        self.btn_save.configure(state=tkinter.DISABLED)
+        # TODO: support for two separate files
+        csv_path = os.path.splitext(proj.pnp_path)[0]
+        csv_path += "_edited.csv"
+        with open(csv_path, "w") as f:
+            first_row = max(0, proj.pnp_first_row)
+            first_row += 1 if proj.pnp_has_column_headers else 0
+
+            for i, row in enumerate(proj.pnp_grid.rows[first_row:]):
+                row_str = ";".join([f'"{item}"' for item in row])
+                sel_component = self.cb_footprint_list[i].get()
+                row_str += f';"{sel_component}"\n'
+                f.write(row_str)
+        logging.info(f"PnP saved to {csv_path}")
 
 # -----------------------------------------------------------------------------
 
@@ -523,13 +562,11 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.btn_save.grid(row=2, column=0, pady=5, padx=5, sticky="e")
         self.btn_save.configure(state=tkinter.DISABLED)
 
-
     def chkbttn_event(self):
-        logging.debug("checked")
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def button_save_event(self):
-        logging.debug("save db")
+        logging.debug("Save DB")
         for idx, component in enumerate(components.items):
             component.hidden = self.vars_hidden[idx].get() == 1
         components.save_changes()

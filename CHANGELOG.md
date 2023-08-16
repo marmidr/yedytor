@@ -2,7 +2,7 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
-## 0.3.0 - 2023-08-14
+## 0.3.0 - 2023-08-16
 
 * Added
   * keeping list of components in db/components__<date_time>.csv
@@ -10,6 +10,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
   * PnP preview: columns selector
   * PnP preview: first row number entry
   * PnP editor: Value + Footprint | ComboBox with known Yamaha components (footprints)
+  * PnP editor: saving as a new CSV
   * DB editor: list of the available components, ability to mark as 'Hidden'
 * Changed
 * Deprecated
