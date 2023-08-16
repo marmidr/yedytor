@@ -43,17 +43,18 @@ def get_db_directory() -> str:
 
 class Project:
     CONFIG_FILE_NAME = "yedytor.ini"
-    pnp_path: str = "<pnp_fpath>"
-    pnp2_path: str = ""
-    pnp_separator: str = ""
-    __config: configparser.ConfigParser
-    pnp_grid: text_grid.TextGrid = None
-    pnp_grid_dirty: bool = False
-    pnp_footprint_col: int = 0
-    pnp_comment_col: int = 0
 
     def __init__(self):
+        self.pnp_path = "<pnp_fpath>"
+        self.pnp2_path = ""
         self.pnp_separator = "SPACES"
+        self.pnp_grid: text_grid.TextGrid = None
+        self.pnp_grid_dirty = False
+        self.pnp_footprint_col = 0
+        self.pnp_comment_col = 0
+        self.pnp_first_row = 0
+        self.pnp_has_column_headers = False
+
         # https://docs.python.org/3/library/configparser.html
         self.__config = configparser.ConfigParser()
 
@@ -263,7 +264,7 @@ class PnPView(customtkinter.CTkFrame):
             proj.pnp_grid.nrows += pnp2_grid.nrows
             proj.pnp_grid.rows.extend(pnp2_grid.rows)
 
-        pnp_txt_grid = proj.pnp_grid.format_grid(0)
+        pnp_txt_grid = proj.pnp_grid.format_grid(proj.pnp_first_row)
         self.textbox.insert("0.0", pnp_txt_grid)
         proj.pnp_grid_dirty = False
         # refresh editor (if columns were selected)
@@ -304,31 +305,47 @@ class PnPConfig(customtkinter.CTkFrame):
         # self.opt_separator.configure(state=tkinter.DISABLED)
 
         #
+        # https://stackoverflow.com/questions/6548837/how-do-i-get-an-event-callback-when-a-tkinter-entry-widget-is-modified
+        self.entry_first_row_var = customtkinter.StringVar(value="1")
+        self.entry_first_row_var.trace_add("write", lambda n, i, m, sv=self.entry_first_row_var: self.var_first_row_event(sv))
+        self.entry_first_row = customtkinter.CTkEntry(self, width=60, placeholder_text="first row", textvariable=self.entry_first_row_var)
+        self.entry_first_row.grid(row=0, column=2, padx=5, pady=5, sticky="w")
+
+        #
         self.btn_load = customtkinter.CTkButton(self, text="Reload PnP",
                                                 command=self.button_load_event)
-        self.btn_load.grid(row=0, column=2, pady=5, padx=5, sticky="e")
+        self.btn_load.grid(row=0, column=3, pady=5, padx=5, sticky="e")
 
         #
         sep_v = tkinter.ttk.Separator(self, orient='vertical')
-        sep_v.grid(row=0, column=3, pady=2, padx=5, sticky="ns")
+        sep_v.grid(row=0, column=5, pady=2, padx=5, sticky="ns")
 
         #
         self.lbl_columns = customtkinter.CTkLabel(self, text="", justify="left")
-        self.lbl_columns.grid(row=0, column=4, pady=5, padx=(15,5), sticky="w")
+        self.lbl_columns.grid(row=0, column=6, pady=5, padx=(15,5), sticky="w")
         self.update_lbl_columns()
         #
         self.btn_columns = customtkinter.CTkButton(self, text="Select\ncolumns...",
                                                    command=self.button_columns_event)
-        self.btn_columns.grid(row=0, column=5, pady=5, padx=5, sticky="")
+        self.btn_columns.grid(row=0, column=7, pady=5, padx=5, sticky="")
         #
         self.btn_edit = customtkinter.CTkButton(self, text="Go to\nEditor →", state=tkinter.DISABLED,
                                                 command=self.button_edit_event)
-        self.btn_edit.grid(row=0, column=6, pady=5, padx=5, sticky="")
+        self.btn_edit.grid(row=0, column=8, pady=5, padx=5, sticky="")
 
     def opt_separator_event(self, new_sep: str):
         logging.info(f"  PnP separator: {new_sep}")
         proj.pnp_separator = new_sep
         self.button_load_event()
+
+    def var_first_row_event(self, sv: customtkinter.StringVar):
+        new_first_row = sv.get().strip()
+        try:
+            proj.pnp_first_row = int(new_first_row) - 1
+            logging.info(f"  PnP 1st row: {proj.pnp_first_row+1}")
+            self.button_load_event()
+        except Exception as e:
+            logging.error(f"  Invalid row number: {e}")
 
     def button_load_event(self):
         logging.debug("Load PnP...")
@@ -343,7 +360,7 @@ class PnPConfig(customtkinter.CTkFrame):
     def button_columns_event(self):
         logging.debug("Select PnP columns...")
         if proj.pnp_grid:
-            columns = list.copy(proj.pnp_grid.rows[0])
+            columns = list.copy(proj.pnp_grid.rows[proj.pnp_first_row])
         else:
             columns = ["..."]
 
@@ -355,6 +372,7 @@ class PnPConfig(customtkinter.CTkFrame):
         logging.debug(f"Selected PnP columns: ftprnt={result.footprint_col}, cmnt={result.comment_col}")
         proj.pnp_footprint_col = result.footprint_col
         proj.pnp_comment_col = result.comment_col
+        proj.pnp_has_column_headers = result.has_column_headers
         self.update_lbl_columns()
         self.btn_edit.configure(state=tkinter.NORMAL)
 
@@ -381,10 +399,13 @@ class PnPEditor(customtkinter.CTkScrollableFrame):
                 component_list = list(item.name for item in components.items if not item.hidden)
                 # find the max comment width
                 comment_max_w = 0
-                for row in proj.pnp_grid.rows:
+                first_row = max(0, proj.pnp_first_row)
+                first_row += 1 if proj.pnp_has_column_headers else 0
+
+                for row in proj.pnp_grid.rows[first_row:]:
                     comment_max_w = max(comment_max_w, len(row[proj.pnp_comment_col]))
 
-                for idx, row in enumerate(proj.pnp_grid.rows):
+                for idx, row in enumerate(proj.pnp_grid.rows[first_row:]):
                     entry_pnp = tkinter.ttk.Entry(self, font=customtkinter.CTkFont(family="Consolas"),)
                     entry_pnp.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
                     entry_txt = "{idx:03} | {cmnt:{cmnt_w}} | {ftprint}".format(

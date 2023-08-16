@@ -3,7 +3,8 @@
 [x] skopiować z Boomer kod czytający pliki PnP
 [x] szablon aplikacji w tkinter
 [x] podgląd pliku PnP
-    [ ] entry do wpisania pierwszego wiersza
+    [x] entry do wpisania pierwszego wiersza
+    [x] zaznaczenie że PnP na wiersz nagłówka
 [x] okienko wyszukiwania i skanowania plików *.Tou
     [x] wybór katalogu i skanowanie plików
     [x] parsowanie pliku Tou

@@ -8,6 +8,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
   * keeping list of components in db/components__<date_time>.csv
   * DB info on home screen
   * PnP preview: columns selector
+  * PnP preview: first row number entry
   * PnP editor: Value + Footprint | ComboBox with known Yamaha components (footprints)
   * DB editor: list of the available components, ability to mark as 'Hidden'
 * Changed
