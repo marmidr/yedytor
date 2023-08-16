@@ -21,4 +21,4 @@
 [x] okno podglądu i edycji bazy komponentów
   [x] podgląd
   [x] możliwość oznaczenia jako Hidden
-  [ ] przeniesienie z Home info o bazie i przycisku do skanera
+  [x] przeniesienie z Home info o bazie i przycisku do skanera

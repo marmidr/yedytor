@@ -192,52 +192,6 @@ class HomeFrame(customtkinter.CTkFrame):
 
 # -----------------------------------------------------------------------------
 
-class ComponentsFrame(customtkinter.CTkFrame):
-    def __init__(self, master, **kwargs):
-        super().__init__(master, **kwargs)
-
-        self.lblhtml_dbsummary = HTMLLabel(self, wrap='none', height=5)
-        self.lblhtml_dbsummary.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
-
-        btn_scanner = customtkinter.CTkButton(self, text="Tou scanner...", command=self.btn_scanner_event)
-        btn_scanner.grid(row=0, column=1, pady=5, padx=5, sticky="ne")
-
-        self.grid_columnconfigure(0, weight=1)
-        # self.grid_rowconfigure(0, weight=1)
-
-    def btn_scanner_event(self):
-        wnd_scanner = tou_scanner.TouScanner(callback=self.touscanner_callback)
-
-    def touscanner_callback(self, action: str, new_components: ComponentsDB):
-        logging.debug(f"TouScanner: {action}")
-        if action == "o":
-            # save to a CSV file
-            db_directory = get_db_directory()
-
-            if not os.path.isdir(db_directory):
-                os.mkdir(db_directory)
-            global components
-            new_components.copy_attributes(components.items)
-            new_components.save_new(db_directory)
-            components = new_components
-            self.update_components_info()
-
-    def update_components_info(self):
-        global components
-        count = components.count_visible()
-        hidden = components.count_hidden()
-
-        self.database_summary_html = ''\
-            '<h6>Components database</h6>'\
-            '<pre style="font-family: Consolas, monospace; font-size: 80%">'\
-            f'Items:   <span style="color: Blue">{count}</span> (hidden: {hidden})\n'\
-            f'Created: <span style="color: Blue">{components.db_date}</span>\n'\
-            '</pre>'
-
-        self.lblhtml_dbsummary.set_html(self.database_summary_html)
-
-# -----------------------------------------------------------------------------
-
 class PnPView(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
@@ -465,20 +419,70 @@ class PnPEditor(customtkinter.CTkScrollableFrame):
 
 # -----------------------------------------------------------------------------
 
+class ComponentsInfo(customtkinter.CTkFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+        self.lblhtml_dbsummary = HTMLLabel(self, wrap='none', height=5)
+        self.lblhtml_dbsummary.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
+
+        btn_scanner = customtkinter.CTkButton(self, text="Tou scanner...", command=self.btn_scanner_event)
+        btn_scanner.grid(row=0, column=1, pady=5, padx=5, sticky="ne")
+
+        self.grid_columnconfigure(0, weight=1)
+        # self.grid_rowconfigure(0, weight=1)
+
+    def btn_scanner_event(self):
+        wnd_scanner = tou_scanner.TouScanner(callback=self.touscanner_callback)
+
+    def touscanner_callback(self, action: str, new_components: ComponentsDB):
+        logging.debug(f"TouScanner: {action}")
+        if action == "o":
+            # save to a CSV file
+            db_directory = get_db_directory()
+
+            if not os.path.isdir(db_directory):
+                os.mkdir(db_directory)
+            global components
+            new_components.copy_attributes(components.items)
+            new_components.save_new(db_directory)
+            components = new_components
+            self.update_components_info()
+
+    def update_components_info(self):
+        global components
+        count = components.count_visible()
+        hidden = components.count_hidden()
+
+        self.database_summary_html = ''\
+            '<h6>Components database</h6>'\
+            '<pre style="font-family: Consolas, monospace; font-size: 80%">'\
+            f'Items:   <span style="color: Blue">{count}</span> (hidden: {hidden})\n'\
+            f'Created: <span style="color: Blue">{components.db_date}</span>\n'\
+            '</pre>'
+
+        self.lblhtml_dbsummary.set_html(self.database_summary_html)
+
+# -----------------------------------------------------------------------------
+
 class ComponentsEditor(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
 
+        self.components_info = ComponentsInfo(self)
+        self.components_info.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
+
+        #
         global components
         if not components or len(components.items) == 0:
             logging.info("DB editor: components DB is empty")
         else:
             self.vars_hidden = []
             self.scrollableframe = customtkinter.CTkScrollableFrame(self)
-            self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, sticky="wens")
+            self.scrollableframe.grid(row=1, column=0, padx=5, pady=1, sticky="wens")
             self.scrollableframe.grid_columnconfigure(1, weight=2)
             self.scrollableframe.grid_columnconfigure(2, weight=1)
-            self.grid_rowconfigure(0, weight=1)
+            self.grid_rowconfigure(1, weight=1)
             self.grid_columnconfigure(0, weight=1)
 
             for idx, component in enumerate(components.items):
@@ -495,7 +499,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
                 chkbttn_hidden.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
 
         self.btn_save = customtkinter.CTkButton(self, text="Save DB", command=self.button_save_event)
-        self.btn_save.grid(row=1, column=0, pady=5, padx=5, sticky="e")
+        self.btn_save.grid(row=2, column=0, pady=5, padx=5, sticky="e")
         self.btn_save.configure(state=tkinter.DISABLED)
 
 
@@ -509,7 +513,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
             component.hidden = self.vars_hidden[idx].get() == 1
         components.save_changes()
         self.btn_save.configure(state=tkinter.DISABLED)
-        self.components_frame.update_components_info()
+        self.components_info.update_components_info()
 
 # -----------------------------------------------------------------------------
 
@@ -539,8 +543,6 @@ class CtkApp(customtkinter.CTk):
         # home panel
         self.home_frame = HomeFrame(tab_home)
         self.home_frame.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
-        self.components_frame = ComponentsFrame(tab_home)
-        self.components_frame.grid(row=1, column=0, padx=5, pady=5, sticky="wens")
         tab_home.grid_columnconfigure(0, weight=1)
         # tab_home.grid_rowconfigure(1, weight=1)
 
@@ -553,7 +555,6 @@ class CtkApp(customtkinter.CTk):
                 components.load(db_directory)
                 logging.info(f"  Date: {components.db_date}")
                 logging.info(f"  Items: {len(components.items)}")
-                self.components_frame.update_components_info()
             else:
                 logging.warning(f"DB folder not found at {db_directory}")
         except Exception as e:
@@ -579,7 +580,7 @@ class CtkApp(customtkinter.CTk):
         # panel with DB editor
         self.components_editor = ComponentsEditor(tab_db_editor)
         self.components_editor.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
-        self.components_editor.components_frame = self.components_frame
+        self.components_editor.components_info.update_components_info()
 
         tab_db_editor.grid_columnconfigure(0, weight=1)
         tab_db_editor.grid_rowconfigure(0, weight=1)
