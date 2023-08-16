@@ -218,16 +218,20 @@ class ComponentsFrame(customtkinter.CTkFrame):
                 os.mkdir(db_directory)
             global components
             new_components.copy_attributes(components.items)
-            new_components.save(db_directory)
+            new_components.save_new(db_directory)
             components = new_components
-            self.update_components_info(components.db_date, len(components.items))
+            self.update_components_info()
 
-    def update_components_info(self, date: str, count: int):
+    def update_components_info(self):
+        global components
+        count = components.count_visible()
+        hidden = components.count_hidden()
+
         self.database_summary_html = ''\
             '<h6>Components database</h6>'\
             '<pre style="font-family: Consolas, monospace; font-size: 80%">'\
-            f'Items total: <span style="color: Blue">{count}</span>\n'\
-            f'Created: <span style="color: Blue">{date}</span>\n'\
+            f'Items:   <span style="color: Blue">{count}</span> (hidden: {hidden})\n'\
+            f'Created: <span style="color: Blue">{components.db_date}</span>\n'\
             '</pre>'
 
         self.lblhtml_dbsummary.set_html(self.database_summary_html)
@@ -461,6 +465,54 @@ class PnPEditor(customtkinter.CTkScrollableFrame):
 
 # -----------------------------------------------------------------------------
 
+class ComponentsEditor(customtkinter.CTkFrame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+        global components
+        if not components or len(components.items) == 0:
+            logging.info("DB editor: components DB is empty")
+        else:
+            self.vars_hidden = []
+            self.scrollableframe = customtkinter.CTkScrollableFrame(self)
+            self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, sticky="wens")
+            self.scrollableframe.grid_columnconfigure(1, weight=2)
+            self.scrollableframe.grid_columnconfigure(2, weight=1)
+            self.grid_rowconfigure(0, weight=1)
+            self.grid_columnconfigure(0, weight=1)
+
+            for idx, component in enumerate(components.items):
+                lbl_rowno = tkinter.ttk.Label(self.scrollableframe, text=f"{idx+1}.", justify="right")
+                lbl_rowno.grid(row=idx, column=0, padx=5, pady=1, sticky="w")
+
+                entry_name = tkinter.ttk.Entry(self.scrollableframe, font=customtkinter.CTkFont(family="Consolas"),)
+                entry_name.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
+                ui_helpers.entry_set_text(entry_name, component.name)
+
+                var = tkinter.IntVar(self.scrollableframe, value=component.hidden)
+                self.vars_hidden.append(var)
+                chkbttn_hidden = tkinter.ttk.Checkbutton(self.scrollableframe, text="Hidden", variable=var, command=self.chkbttn_event)
+                chkbttn_hidden.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
+
+        self.btn_save = customtkinter.CTkButton(self, text="Save DB", command=self.button_save_event)
+        self.btn_save.grid(row=1, column=0, pady=5, padx=5, sticky="e")
+        self.btn_save.configure(state=tkinter.DISABLED)
+
+
+    def chkbttn_event(self):
+        logging.debug("checked")
+        self.btn_save.configure(state=tkinter.NORMAL)
+
+    def button_save_event(self):
+        logging.debug("save db")
+        for idx, component in enumerate(components.items):
+            component.hidden = self.vars_hidden[idx].get() == 1
+        components.save_changes()
+        self.btn_save.configure(state=tkinter.DISABLED)
+        self.components_frame.update_components_info()
+
+# -----------------------------------------------------------------------------
+
 class CtkApp(customtkinter.CTk):
     TAB_HOME = "Start"
     TAB_PREVIEW = "PnP Preview"
@@ -481,8 +533,8 @@ class CtkApp(customtkinter.CTk):
         self.grid_rowconfigure(0, weight=1) # set row 1 height to all remaining space
         tab_home = self.tabview.add(self.TAB_HOME)
         tab_preview = self.tabview.add(self.TAB_PREVIEW)
-        tab_editor = self.tabview.add(self.TAB_EDITOR)
-        tab_db_preview = self.tabview.add(self.TAB_COMPONENTS)
+        tab_pnp_editor = self.tabview.add(self.TAB_EDITOR)
+        tab_db_editor = self.tabview.add(self.TAB_COMPONENTS)
 
         # home panel
         self.home_frame = HomeFrame(tab_home)
@@ -499,11 +551,11 @@ class CtkApp(customtkinter.CTk):
             db_directory = get_db_directory()
             if os.path.isdir(db_directory):
                 components.load(db_directory)
+                logging.info(f"  Date: {components.db_date}")
+                logging.info(f"  Items: {len(components.items)}")
+                self.components_frame.update_components_info()
             else:
                 logging.warning(f"DB folder not found at {db_directory}")
-            logging.info(f"  Date: {components.db_date}")
-            logging.info(f"  Items: {len(components.items)}")
-            self.components_frame.update_components_info(components.db_date, len(components.items))
         except Exception as e:
             logging.error(f"Error loading database: {e}")
 
@@ -516,14 +568,21 @@ class CtkApp(customtkinter.CTk):
         self.home_frame.pnp_config = self.pnp_config
         self.home_frame.pnp_view = self.pnp_view
 
-        # panel to edit the PnP footprints
-        self.pnp_editor = PnPEditor(tab_editor)
+        # panel with PnP footprints editor
+        self.pnp_editor = PnPEditor(tab_pnp_editor)
         self.pnp_editor.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
-        tab_editor.grid_columnconfigure(0, weight=1)
-        tab_editor.grid_rowconfigure(0, weight=1)
-
+        tab_pnp_editor.grid_columnconfigure(0, weight=1)
+        tab_pnp_editor.grid_rowconfigure(0, weight=1)
         self.pnp_view.pnp_editor = self.pnp_editor
         self.pnp_config.pnp_editor = self.pnp_editor
+
+        # panel with DB editor
+        self.components_editor = ComponentsEditor(tab_db_editor)
+        self.components_editor.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
+        self.components_editor.components_frame = self.components_frame
+
+        tab_db_editor.grid_columnconfigure(0, weight=1)
+        tab_db_editor.grid_rowconfigure(0, weight=1)
 
         #
         tab_preview.grid_columnconfigure(0, weight=1)

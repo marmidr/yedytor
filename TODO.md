@@ -4,7 +4,7 @@
 [x] szablon aplikacji w tkinter
 [x] podgląd pliku PnP
     [ ] entry do wpisania pierwszego wiersza
-[ ] okienko wyszukiwania i skanowania plików *.Tou
+[x] okienko wyszukiwania i skanowania plików *.Tou
     [x] wybór katalogu i skanowanie plików
     [x] parsowanie pliku Tou
     [x] podgląd listy unikalnych komponentów
@@ -18,6 +18,7 @@
     [ ] mechanizm automatycznego wyboru komponentu na podstawie footprint+wartość
 [ ] zapis nowego PnP zawsze jako CSV
 [ ] katalog z Tou - trzymać ścieżkę w historii i uzupełniać pole
-[ ] okno podglądu i edycji bazy komponentów
-  [ ] podgląd
-  [ ] możliwość oznaczenia jako Hidden
+[x] okno podglądu i edycji bazy komponentów
+  [x] podgląd
+  [x] możliwość oznaczenia jako Hidden
+  [ ] przeniesienie z Home info o bazie i przycisku do skanera

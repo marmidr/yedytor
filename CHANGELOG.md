@@ -9,6 +9,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
   * DB info on home screen
   * PnP preview: columns selector
   * PnP editor: Value + Footprint | ComboBox with known Yamaha components (footprints)
+  * DB editor: list of the available components, ability to mark as 'Hidden'
 * Changed
 * Deprecated
 * Removed

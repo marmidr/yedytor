@@ -28,7 +28,12 @@ class ComponentsDB:
 
     def __init__(self, **kwargs):
         self.db_date = ""
+        """date str"""
+        self.db_file_path = ""
+        """full filepath"""
         self.items: list[Component] = []
+        """list of components"""
+
         if "components_dict" in kwargs:
             components_dict = kwargs.pop("components_dict")
             assert type(components_dict) is dict
@@ -73,6 +78,7 @@ class ComponentsDB:
                 for row in reader:
                     row_cells = [cell.strip() for cell in row]
                     self.items.append(Component(name=row_cells[0], hidden=row_cells[1] == "x"))
+                self.db_file_path = last_db_path
         else:
             logging.warning(f"No DB files found in {db_folder}")
 
@@ -84,7 +90,7 @@ class ComponentsDB:
                 item.hidden = old_item.hidden
 
     """Save local DB to a CSV file with date-time"""
-    def save(self, db_folder: str):
+    def save_new(self, db_folder: str):
         now = time.strftime(self.FILENAME_DATE_FMT)
         db_file_path = os.path.join(db_folder, f"components__{now}.csv")
         try:
@@ -92,9 +98,30 @@ class ComponentsDB:
                 for item in self.items:
                     hidden="x" if item.hidden else "_"
                     f.write(f"\"{item.name}\"\t{hidden}\n")
+            self.db_file_path = db_file_path
         except Exception as e:
             logging.error(f"Error saving to file '{db_file_path}: {e}'")
 
-    """Returns all components"""
-    def get_items(self) -> list[Component]:
-        return self.items
+    """Save local DB to the same file"""
+    def save_changes(self):
+        try:
+            with open(self.db_file_path, "w") as f:
+                for item in self.items:
+                    hidden="x" if item.hidden else "_"
+                    f.write(f"\"{item.name}\"\t{hidden}\n")
+        except Exception as e:
+            logging.error(f"Error saving changes to file '{self.db_file_path}: {e}'")
+
+    """Returns the number of valid components"""
+    def count_visible(self) -> int:
+        n = 0
+        for item in self.items:
+            if not item.hidden: n += 1
+        return n
+
+    """Returns the number of hidden components"""
+    def count_hidden(self) -> int:
+        n = 0
+        for item in self.items:
+            if item.hidden: n += 1
+        return n
