@@ -439,9 +439,20 @@ class PnPEditor(customtkinter.CTkFrame):
                     combo_footprint.bind('<Key>', self.combobox_key)
                     combo_footprint.bind("<Return>", self.combobox_enter)
                     combo_footprint.bind("<MouseWheel>", self.combobox_wheel)
+                    self.try_select_component(combo_footprint, component_list, row[proj.pnp_footprint_col], row[proj.pnp_comment_col])
 
                 self.scrollableframe.grid_columnconfigure(1, weight=2)
                 self.scrollableframe.grid_columnconfigure(2, weight=1)
+
+    def try_select_component(self, cb: tkinter.ttk.Combobox, components: list[str], ftprint: str, cmnt: str):
+        possible_component = ftprint + "_" + cmnt
+        try:
+            components.index(possible_component) # may raise exception if not found
+            cb.set(possible_component)
+            logging.info("Matched component found: {possible_component}")
+        except:
+            # not found
+            pass
 
     def check_selected_columns(self, ) -> bool:
         return proj.pnp_footprint_col < proj.pnp_grid.ncols \
