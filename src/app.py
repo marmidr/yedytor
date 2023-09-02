@@ -443,7 +443,29 @@ class PnPEditor(customtkinter.CTkFrame):
             and proj.pnp_comment_col < proj.pnp_grid.ncols
 
     def combobox_selected(self, event):
-        # logging.debug(f"CB selected: {event}")
+        selected_component = event.widget.get()
+        logging.debug(f"CB selected: {selected_component}")
+        try:
+            first_row = max(0, proj.pnp_first_row)
+            first_row += 1 if proj.pnp_has_column_headers else 0
+            # get the selection details:
+            selected_idx = self.cb_footprint_list.index(event.widget)
+            selected_idx += first_row
+            comment = proj.pnp_grid.rows[selected_idx][proj.pnp_comment_col]
+            ftprint = proj.pnp_grid.rows[selected_idx][proj.pnp_footprint_col]
+            # scan all items and if comment:footprint matches -> apply
+
+            for i, row in enumerate(proj.pnp_grid.rows[first_row:]):
+                if i == selected_idx - first_row:
+                    continue
+                if self.cb_footprint_list[i].get() != "":
+                    continue
+                if row[proj.pnp_comment_col] == comment and row[proj.pnp_footprint_col] == ftprint:
+                    # found: select the same component
+                    logging.debug(f"Applying '{selected_component}' to item #{i}")
+                    self.cb_footprint_list[i].set(selected_component)
+        except Exception as e:
+            logging.warning(f"Applying selection to matching items failed: {e}")
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def combobox_key(self, event):
@@ -596,12 +618,12 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
     def format_pageno(self) -> str:
         global components
-        pageno_str = f"{1 + self.components_pageno} / {1 + len(components.items)//self.COMP_PER_PAGE}"
+        pageno_str = f"{1 + self.components_pageno} / {1 + len(components.items) // self.COMP_PER_PAGE}"
         return pageno_str
 
     def load_components(self):
         global components
-        components_subrange = components.items[self.components_pageno*self.COMP_PER_PAGE:]
+        components_subrange = components.items[self.components_pageno * self.COMP_PER_PAGE:]
 
         for idx_on_page, component in enumerate(components_subrange):
             if idx_on_page == self.COMP_PER_PAGE:
@@ -622,7 +644,8 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def store_checkbox_selections(self):
-        for idx_on_page, component in enumerate(components.items[self.components_pageno*self.COMP_PER_PAGE:]):
+        components_subrange = components.items[self.components_pageno * self.COMP_PER_PAGE:]
+        for idx_on_page, component in enumerate(components_subrange):
             if idx_on_page == self.COMP_PER_PAGE:
                 break
             component.hidden = self.vars_hidden[idx_on_page].get() == 1
@@ -637,7 +660,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
     def button_next_event(self):
         logging.debug("next page")
-        if self.components_pageno < len(components.items)//self.COMP_PER_PAGE:
+        if self.components_pageno < len(components.items) // self.COMP_PER_PAGE:
             self.store_checkbox_selections()
             self.components_pageno += 1
             self.load_components()

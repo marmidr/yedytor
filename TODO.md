@@ -17,6 +17,7 @@
     [x] lista z komponentami z Tou
     [ ] mechanizm wyszukiwania komponentu regex, case-insensitive
     [ ] mechanizm automatycznego wyboru komponentu na podstawie footprint+wartość
+    [x] po ręcznym wyborze komponentu, zastosować do wszystkich pasujących
 [x] zapis nowego PnP jako CSV
 [ ] katalog z Tou - trzymać ścieżkę w historii i uzupełniać pole
 [x] okno podglądu i edycji bazy komponentów
