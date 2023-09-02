@@ -15,7 +15,7 @@
     [x] okienko wyboru kolumn: footprint i wartość
     [x] dodawanie nowej kolumny
     [x] lista z komponentami z Tou
-    [ ] mechanizm wyszukiwania komponentu regex, case-insensitive
+    [x] mechanizm wyszukiwania komponentu, case-insensitive
     [x] mechanizm automatycznego wyboru komponentu na podstawie footprint+wartość
     [x] po ręcznym wyborze komponentu, zastosować do wszystkich pasujących
     [ ] lista komponentów: natural sorting?

@@ -31,7 +31,7 @@ class ComponentsDB:
         """date str"""
         self.db_file_path = ""
         """full filepath"""
-        self.items: list[Component] = []
+        self.__items: list[Component] = []
         """list of components"""
 
         if "components_dict" in kwargs:
@@ -40,11 +40,11 @@ class ComponentsDB:
             # https://docs.python.org/3/library/stdtypes.html?#dict.items
             for item in components_dict.items():
                 # add all component variants into the same flat list
-                self.items.extend([Component(name=subitem) for subitem in item[1]])
-            self.items.sort()
+                self.__items.extend([Component(name=subitem) for subitem in item[1]])
+            self.__items.sort()
 
-    """Load latest database version"""
     def load(self, db_folder: str):
+        """Load latest database version"""
         logging.info(f"Initialize components database: {db_folder}")
         db_path_list = []
         for de in os.scandir(db_folder):
@@ -71,57 +71,76 @@ class ComponentsDB:
                 logging.warning(f"Unable to parse file datetime: {e}")
                 self.db_date = "?, ?"
 
-            self.items.clear()
+            self.__items.clear()
             # read csv file
             with open(last_db_path, "r") as f:
                 reader = csv.reader(f, delimiter="\t")
                 for row in reader:
                     row_cells = [cell.strip() for cell in row]
-                    self.items.append(Component(name=row_cells[0], hidden=row_cells[1] == "x"))
+                    self.__items.append(Component(name=row_cells[0], hidden=row_cells[1] == "x"))
                 self.db_file_path = last_db_path
         else:
             logging.warning(f"No DB files found in {db_folder}")
 
-    """Iterate over components and apply 'hidden' attribute from an old components"""
     def copy_attributes(self, old_items: list[Component]):
+        """Iterate over components and apply 'hidden' attribute from an old components"""
         old_items_dict = dict([(v.name, v) for v in old_items])
-        for item in self.items:
+        for item in self.__items:
             if old_item := old_items_dict.get(item.name):
                 item.hidden = old_item.hidden
 
-    """Save local DB to a CSV file with date-time"""
     def save_new(self, db_folder: str):
+        """Save local DB to a CSV file with date-time"""
         now = time.strftime(self.FILENAME_DATE_FMT)
         db_file_path = os.path.join(db_folder, f"components__{now}.csv")
         try:
             with open(db_file_path, "w") as f:
-                for item in self.items:
+                for item in self.__items:
                     hidden="x" if item.hidden else "_"
                     f.write(f"\"{item.name}\"\t{hidden}\n")
             self.db_file_path = db_file_path
         except Exception as e:
             logging.error(f"Error saving to file '{db_file_path}: {e}'")
 
-    """Save local DB to the same file"""
     def save_changes(self):
+        """Save local DB to the same file"""
         try:
             with open(self.db_file_path, "w") as f:
-                for item in self.items:
+                for item in self.__items:
                     hidden="x" if item.hidden else "_"
                     f.write(f"\"{item.name}\"\t{hidden}\n")
         except Exception as e:
             logging.error(f"Error saving changes to file '{self.db_file_path}: {e}'")
 
-    """Returns the number of valid components"""
     def count_visible(self) -> int:
+        """Returns the number of valid components"""
         n = 0
-        for item in self.items:
+        for item in self.__items:
             if not item.hidden: n += 1
         return n
 
-    """Returns the number of hidden components"""
     def count_hidden(self) -> int:
+        """Returns the number of hidden components"""
         n = 0
-        for item in self.items:
+        for item in self.__items:
             if item.hidden: n += 1
         return n
+
+    def items_all(self) -> list[Component]:
+        """Returns all components"""
+        return self.__items
+
+    def items_filtered(self, needle: str, visible: bool=True) -> list[Component]:
+        """Returns components containing the needle"""
+        needle = needle.lower()
+        result = []
+        for item in self.__items:
+            # TODO: '*805*10k*' in ...
+            if needle in item.name.lower():
+                if (not visible) or (visible and not item.hidden):
+                    result.append(item.name)
+        return result
+
+    def items_visible(self) -> list[str]:
+        component_list = list(item.name for item in self.items_all() if not item.hidden)
+        return component_list

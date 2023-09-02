@@ -8,6 +8,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
   * PnP editor: after manual selection, the component is appliet to all items where Comment and Footprint matches the current item
   * PnP editor: item details order changed to: <index> | <footprint> | <comment>
   * PnP editor: automatically select component if "<footprint>_<comment>" found
+  * PnP editor: simple components list narrowing using 'needle in string' method
 * Changed
   * DB components editor redesigned - now it's able to handle even 10'000 elements
 * Deprecated

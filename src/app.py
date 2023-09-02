@@ -28,7 +28,7 @@ from components import Component, ComponentsDB
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.3.0"
+APP_NAME = "Yedytor v0.4.0"
 
 # -----------------------------------------------------------------------------
 
@@ -413,7 +413,7 @@ class PnPEditor(customtkinter.CTkFrame):
             if not self.check_selected_columns():
                 logging.warning("Select proper Footprint and Comment columns before editing")
             else:
-                component_list = list(item.name for item in components.items if not item.hidden)
+                self.components_all = components.items_visible()
                 # find the max comment width
                 footprint_max_w = 0
 
@@ -432,24 +432,24 @@ class PnPEditor(customtkinter.CTkFrame):
 
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
                     # https://www.pythontutorial.net/tkinter/tkinter-combobox/
-                    combo_footprint = tkinter.ttk.Combobox(self.scrollableframe, values=component_list)
+                    combo_footprint = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all)
                     self.cb_footprint_list.append(combo_footprint)
                     combo_footprint.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
                     combo_footprint.bind('<<ComboboxSelected>>', self.combobox_selected)
-                    combo_footprint.bind('<Key>', self.combobox_key)
+                    # combo_footprint.bind('<Key>', self.combobox_key)
                     combo_footprint.bind("<Return>", self.combobox_enter)
                     combo_footprint.bind("<MouseWheel>", self.combobox_wheel)
-                    self.try_select_component(combo_footprint, component_list, row[proj.pnp_footprint_col], row[proj.pnp_comment_col])
+                    self.try_select_component(combo_footprint, row[proj.pnp_footprint_col], row[proj.pnp_comment_col])
 
                 self.scrollableframe.grid_columnconfigure(1, weight=2)
                 self.scrollableframe.grid_columnconfigure(2, weight=1)
 
-    def try_select_component(self, cb: tkinter.ttk.Combobox, components: list[str], ftprint: str, cmnt: str):
+    def try_select_component(self, cb: tkinter.ttk.Combobox, ftprint: str, cmnt: str):
         possible_component = ftprint + "_" + cmnt
         try:
-            components.index(possible_component) # may raise exception if not found
+            self.components_all.index(possible_component) # may raise exception if not found
             cb.set(possible_component)
-            logging.info("Matched component found: {possible_component}")
+            logging.info(f"Matching component found: {possible_component}")
         except:
             # not found
             pass
@@ -470,6 +470,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
             for i, row in enumerate(proj.pnp_grid.rows()):
                 if i == selected_idx:
+                    # TODO: add green marker that this is a final value
                     continue
                 if self.cb_footprint_list[i].get() != "":
                     continue
@@ -477,16 +478,26 @@ class PnPEditor(customtkinter.CTkFrame):
                     # found: select the same component
                     logging.debug(f"Applying '{selected_component}' to item #{i}")
                     self.cb_footprint_list[i].set(selected_component)
+                    # TODO: add green marker that this is a final value
         except Exception as e:
-            logging.warning(f"Applying selection to matching items failed: {e}")
+            logging.warning(f"Applying selection to the matching items failed: {e}")
         self.btn_save.configure(state=tkinter.NORMAL)
 
-    def combobox_key(self, event):
-        logging.debug(f"CB key: {event}")
-        self.btn_save.configure(state=tkinter.NORMAL)
+    # def combobox_key(self, event):
+        # logging.debug(f"CB key: {event}")
+        # self.btn_save.configure(state=tkinter.NORMAL)
 
     def combobox_enter(self, event):
-        logging.debug(f"CB enter: {event}")
+        filter = event.widget.get()
+        if len(filter) > 2:
+            components_filtered = components.items_filtered(filter)
+            logging.debug(f"Apply filter '{filter}' -> {len(components_filtered)} matching")
+            event.widget.configure(values=components_filtered)
+            # TODO: add yellow marker that this is a filter, not value
+        else:
+            logging.debug(f"Filter too short: use full list")
+            event.widget.configure(values=self.components_all)
+
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def combobox_wheel(self, event):
@@ -536,7 +547,7 @@ class ComponentsInfo(customtkinter.CTkFrame):
             if not os.path.isdir(db_directory):
                 os.mkdir(db_directory)
             global components
-            new_components.copy_attributes(components.items)
+            new_components.copy_attributes(components.items_all())
             new_components.save_new(db_directory)
             components = new_components
             self.update_components_info()
@@ -573,7 +584,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
         #
         global components
-        if not components or len(components.items) == 0:
+        if not components or len(components.items_all()) == 0:
             logging.info("DB editor: components DB is empty")
         else:
             self.load_components()
@@ -628,12 +639,12 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
     def format_pageno(self) -> str:
         global components
-        pageno_str = f"{1 + self.components_pageno} / {1 + len(components.items) // self.COMP_PER_PAGE}"
+        pageno_str = f"{1 + self.components_pageno} / {1 + len(components.items_all()) // self.COMP_PER_PAGE}"
         return pageno_str
 
     def load_components(self):
         global components
-        components_subrange = components.items[self.components_pageno * self.COMP_PER_PAGE:]
+        components_subrange = components.items_all()[self.components_pageno * self.COMP_PER_PAGE:]
 
         for idx_on_page, component in enumerate(components_subrange):
             if idx_on_page == self.COMP_PER_PAGE:
@@ -654,7 +665,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def store_checkbox_selections(self):
-        components_subrange = components.items[self.components_pageno * self.COMP_PER_PAGE:]
+        components_subrange = components.items_all()[self.components_pageno * self.COMP_PER_PAGE:]
         for idx_on_page, component in enumerate(components_subrange):
             if idx_on_page == self.COMP_PER_PAGE:
                 break
@@ -670,7 +681,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
     def button_next_event(self):
         logging.debug("next page")
-        if self.components_pageno < len(components.items) // self.COMP_PER_PAGE:
+        if self.components_pageno < len(components.items_all()) // self.COMP_PER_PAGE:
             self.store_checkbox_selections()
             self.components_pageno += 1
             self.load_components()
@@ -722,7 +733,7 @@ class CtkApp(customtkinter.CTk):
             if os.path.isdir(db_directory):
                 components.load(db_directory)
                 logging.info(f"  Date: {components.db_date}")
-                logging.info(f"  Items: {len(components.items)}")
+                logging.info(f"  Items: {len(components.items_all())}")
             else:
                 logging.warning(f"DB folder not found at {db_directory}")
         except Exception as e:
