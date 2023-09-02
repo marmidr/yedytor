@@ -7,7 +7,8 @@ class TextGrid:
     def __init__(self):
         self.nrows = 0
         self.ncols = 0
-        self.rows: list[list[str]] = []
+        self.firstrow = 0
+        self.__rows: list[list[str]] = []
 
     @staticmethod
     def format_cell(cell) -> str:
@@ -26,7 +27,7 @@ class TextGrid:
         Returns a list of each column width, in chars
         """
         col_max_w = [0 for _ in range(self.ncols)]
-        for r, row in enumerate(self.rows):
+        for r, row in enumerate(self.__rows):
             if r >= first_row:
                 for c, cell in enumerate(row):
                     cell = self.format_cell(cell)
@@ -40,8 +41,8 @@ class TextGrid:
         """
         columns_width = self.get_columns_width(first_row)
         grid_formatted = ""
-        last_row = len(self.rows) if last_row == -1 else last_row
-        for r, row in enumerate(self.rows):
+        last_row = len(self.__rows) if last_row == -1 else last_row
+        for r, row in enumerate(self.__rows):
             if r >= first_row and r <= last_row:
                 row_formatted = "{:0>3} | ".format(r+1)
                 for c, cell in enumerate(row):
@@ -57,9 +58,17 @@ class TextGrid:
         """
         Ensure every row has the same number of columns
         """
-        for row in self.rows:
+        for row in self.__rows:
             cols_to_add = self.ncols - len(row)
             row.extend(("" for _ in range(cols_to_add)))
+
+    def rows(self) -> list[list[str]]:
+        """Returns the rows subset, skipping X first rows"""
+        return self.__rows[self.firstrow:]
+
+    def rows_raw(self) -> list[list[str]]:
+        """Returns full rows: for editing, appending"""
+        return self.__rows
 
 class ConfiguredTextGrid:
     """

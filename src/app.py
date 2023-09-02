@@ -100,6 +100,47 @@ class Project:
     def get_pnp_delimiter(self) -> str:
         return self.translate_separator(self.pnp_separator)
 
+    def load_from_file(self, path: str, path2: str):
+        path_lower = path.lower()
+        delim = self.get_pnp_delimiter()
+
+        if path_lower.endswith("xls"):
+            self.pnp_grid = xls_reader.read_xls_sheet(path)
+        elif path_lower.endswith("xlsx"):
+            self.pnp_grid = xlsx_reader.read_xlsx_sheet(path)
+        elif path_lower.endswith("ods"):
+            self.pnp_grid = ods_reader.read_ods_sheet(path)
+        else: # assume CSV
+            self.pnp_grid = csv_reader.read_csv(path, delim)
+
+        log_f = logging.info if self.pnp_grid.nrows > 0 else logging.warning
+        log_f(f"PnP: {self.pnp_grid.nrows} rows x {self.pnp_grid.ncols} cols")
+
+        # load the optional second PnP file
+        if path2 != "":
+            path2_lower = path2.lower()
+
+            if path2_lower.endswith("xls"):
+                pnp2_grid = xls_reader.read_xls_sheet(path2)
+            elif path2_lower.endswith("xlsx"):
+                pnp2_grid = xlsx_reader.read_xlsx_sheet(path)
+            elif path2_lower.endswith("ods"):
+                pnp2_grid = ods_reader.read_ods_sheet(path2)
+            else: # assume CSV
+                pnp2_grid = csv_reader.read_csv(path2, delim)
+
+            log_f = logging.info if pnp2_grid.nrows > 0 else logging.warning
+            log_f("PnP2: {} rows x {} cols".format(pnp2_grid.nrows, pnp2_grid.ncols))
+
+            # merge
+            if pnp2_grid.ncols != proj.pnp_grid.ncols:
+                raise ValueError("PnP has {} columns, but PnP2 has {} columns".format(
+                    self.pnp_grid.ncols, pnp2_grid.ncols
+                ))
+
+            self.pnp_grid.nrows += pnp2_grid.nrows
+            self.pnp_grid.rows_raw().extend(pnp2_grid.rows)
+
 # global instance
 proj = Project()
 components = ComponentsDB()
@@ -224,46 +265,7 @@ class PnPView(customtkinter.CTkFrame):
         if path2 != "" and not os.path.isfile(path2):
             raise FileNotFoundError(f"File '{path2}' does not exists")
 
-        delim = proj.get_pnp_delimiter()
-        path_lower = path.lower()
-
-        if path_lower.endswith("xls"):
-            proj.pnp_grid = xls_reader.read_xls_sheet(path)
-        elif path_lower.endswith("xlsx"):
-            proj.pnp_grid = xlsx_reader.read_xlsx_sheet(path)
-        elif path_lower.endswith("ods"):
-            proj.pnp_grid = ods_reader.read_ods_sheet(path)
-        else: # assume CSV
-            proj.pnp_grid = csv_reader.read_csv(path, delim)
-
-        log_f = logging.info if proj.pnp_grid.nrows > 0 else logging.warning
-        log_f(f"PnP: {proj.pnp_grid.nrows} rows x {proj.pnp_grid.ncols} cols")
-
-        # load the optional second PnP file
-        if path2 != "":
-            path2_lower = path2.lower()
-
-            if path2_lower.endswith("xls"):
-                pnp2_grid = xls_reader.read_xls_sheet(path2)
-            elif path2_lower.endswith("xlsx"):
-                pnp2_grid = xlsx_reader.read_xlsx_sheet(path)
-            elif path2_lower.endswith("ods"):
-                pnp2_grid = ods_reader.read_ods_sheet(path2)
-            else: # assume CSV
-                pnp2_grid = csv_reader.read_csv(path2, delim)
-
-            log_f = logging.info if pnp2_grid.nrows > 0 else logging.warning
-            log_f("PnP2: {} rows x {} cols".format(pnp2_grid.nrows, pnp2_grid.ncols))
-
-            # merge
-            if pnp2_grid.ncols != proj.pnp_grid.ncols:
-                raise ValueError("PnP has {} columns, but PnP2 has {} columns".format(
-                    proj.pnp_grid.ncols, pnp2_grid.ncols
-                ))
-
-            proj.pnp_grid.nrows += pnp2_grid.nrows
-            proj.pnp_grid.rows.extend(pnp2_grid.rows)
-
+        proj.load_from_file(path, path2)
         pnp_txt_grid = proj.pnp_grid.format_grid(proj.pnp_first_row)
         self.textbox.insert("0.0", pnp_txt_grid)
         proj.pnp_grid_dirty = False
@@ -360,7 +362,7 @@ class PnPConfig(customtkinter.CTkFrame):
     def button_columns_event(self):
         logging.debug("Select PnP columns...")
         if proj.pnp_grid:
-            columns = list.copy(proj.pnp_grid.rows[proj.pnp_first_row])
+            columns = list.copy(proj.pnp_grid.rows_raw()[proj.pnp_first_row])
         else:
             columns = ["..."]
 
@@ -401,6 +403,9 @@ class PnPEditor(customtkinter.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.cb_footprint_list = []
 
+        proj.pnp_grid.firstrow = max(0, proj.pnp_first_row)
+        proj.pnp_grid.firstrow += 1 if proj.pnp_has_column_headers else 0
+
         if (not proj.pnp_grid) or (proj.pnp_grid.nrows == 0):
             logging.warning("PnP project not loaded")
         else:
@@ -410,13 +415,11 @@ class PnPEditor(customtkinter.CTkFrame):
                 component_list = list(item.name for item in components.items if not item.hidden)
                 # find the max comment width
                 comment_max_w = 0
-                first_row = max(0, proj.pnp_first_row)
-                first_row += 1 if proj.pnp_has_column_headers else 0
 
-                for row in proj.pnp_grid.rows[first_row:]:
+                for row in proj.pnp_grid.rows():
                     comment_max_w = max(comment_max_w, len(row[proj.pnp_comment_col]))
 
-                for idx, row in enumerate(proj.pnp_grid.rows[first_row:]):
+                for idx, row in enumerate(proj.pnp_grid.rows()):
                     entry_pnp = tkinter.ttk.Entry(self.scrollableframe, font=customtkinter.CTkFont(family="Consolas"))
                     entry_pnp.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
                     entry_txt = "{idx:03} | {cmnt:{cmnt_w}} | {ftprint}".format(
@@ -446,17 +449,14 @@ class PnPEditor(customtkinter.CTkFrame):
         selected_component = event.widget.get()
         logging.debug(f"CB selected: {selected_component}")
         try:
-            first_row = max(0, proj.pnp_first_row)
-            first_row += 1 if proj.pnp_has_column_headers else 0
             # get the selection details:
             selected_idx = self.cb_footprint_list.index(event.widget)
-            selected_idx += first_row
-            comment = proj.pnp_grid.rows[selected_idx][proj.pnp_comment_col]
-            ftprint = proj.pnp_grid.rows[selected_idx][proj.pnp_footprint_col]
+            comment = proj.pnp_grid.rows()[selected_idx][proj.pnp_comment_col]
+            ftprint = proj.pnp_grid.rows()[selected_idx][proj.pnp_footprint_col]
             # scan all items and if comment:footprint matches -> apply
 
-            for i, row in enumerate(proj.pnp_grid.rows[first_row:]):
-                if i == selected_idx - first_row:
+            for i, row in enumerate(proj.pnp_grid.rows()):
+                if i == selected_idx:
                     continue
                 if self.cb_footprint_list[i].get() != "":
                     continue
@@ -489,10 +489,7 @@ class PnPEditor(customtkinter.CTkFrame):
         csv_path = os.path.splitext(proj.pnp_path)[0]
         csv_path += "_edited.csv"
         with open(csv_path, "w") as f:
-            first_row = max(0, proj.pnp_first_row)
-            first_row += 1 if proj.pnp_has_column_headers else 0
-
-            for i, row in enumerate(proj.pnp_grid.rows[first_row:]):
+            for i, row in enumerate(proj.pnp_grid.rows()):
                 row_str = ";".join([f'"{item}"' for item in row])
                 sel_component = self.cb_footprint_list[i].get()
                 row_str += f';"{sel_component}"\n'
@@ -539,7 +536,7 @@ class ComponentsInfo(customtkinter.CTkFrame):
         self.database_summary_html = ''\
             '<h6>Components database</h6>'\
             '<pre style="font-family: Consolas, monospace; font-size: 80%">'\
-            f'Items:   <span style="color: Blue">{count}</span> (hidden: {hidden})\n'\
+            f'Items:   <span style="color: Blue">{count}</span> (+ {hidden} hidden)\n'\
             f'Created: <span style="color: Blue">{components.db_date}</span>\n'\
             '</pre>'
 

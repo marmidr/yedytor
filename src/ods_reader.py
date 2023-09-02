@@ -29,9 +29,9 @@ def read_ods_sheet(path: str) -> TextGrid:
 
                 # ignore rows with empty cell 'A'
                 if row_cells and row_cells[0] != "":
-                    tg.rows.append(row_cells)
+                    tg.rows_raw().append(row_cells)
 
-            tg.nrows = len(tg.rows)
+            tg.nrows = len(tg.rows_raw())
             tg.ncols = max_cols
 
             # dont read any other sheets

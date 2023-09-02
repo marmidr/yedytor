@@ -31,7 +31,7 @@ def __read_sp(rows: list[str], tg: TextGrid):
                         quoted_cell = ""
                 else:
                     row_cells_processed.append(cell.strip())
-            tg.rows.append(row_cells_processed)
+            tg.rows_raw().append(row_cells_processed)
     return max_cols
 
 def read_csv(path: str, delim: str) -> TextGrid:
@@ -64,9 +64,9 @@ def read_csv(path: str, delim: str) -> TextGrid:
                 if len(row) > 0 and row[0] != "" and not row[0].startswith("___"):
                     row_cells = [cell.strip() for cell in row]
                     max_cols = max(max_cols, len(row_cells))
-                    tg.rows.append(row_cells)
+                    tg.rows_raw().append(row_cells)
 
-    tg.nrows = len(tg.rows)
+    tg.nrows = len(tg.rows_raw())
     tg.ncols = max_cols
     tg.align_number_of_columns()
     return tg
