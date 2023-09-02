@@ -4,6 +4,8 @@
 *dump*
 yedytor.ini
 
+examples/*.py
+examples/*.xls
 examples/tou*/
 examples/tou*/*.csv
 __pycache__/

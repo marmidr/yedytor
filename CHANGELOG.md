@@ -2,6 +2,15 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.4.0 - 2023-09-02
+
+* Added
+* Changed
+  * DB components editor redesigned - now it's able to handle even 10'000 elements
+* Deprecated
+* Removed
+* Fixed
+
 ## 0.3.0 - 2023-08-16
 
 * Added

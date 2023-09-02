@@ -526,49 +526,126 @@ class ComponentsInfo(customtkinter.CTkFrame):
 # -----------------------------------------------------------------------------
 
 class ComponentsEditor(customtkinter.CTkFrame):
+    COMP_PER_PAGE = 500
+
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
+        self.components_pageno = 0
 
         self.components_info = ComponentsInfo(self)
         self.components_info.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+        self.mk_components_view()
 
         #
         global components
         if not components or len(components.items) == 0:
             logging.info("DB editor: components DB is empty")
         else:
-            self.vars_hidden = []
-            self.scrollableframe = customtkinter.CTkScrollableFrame(self)
-            self.scrollableframe.grid(row=1, column=0, padx=5, pady=1, sticky="wens")
-            self.scrollableframe.grid_columnconfigure(1, weight=2)
-            self.scrollableframe.grid_columnconfigure(2, weight=1)
-            self.grid_rowconfigure(1, weight=1)
-            self.grid_columnconfigure(0, weight=1)
+            self.load_components()
 
-            for idx, component in enumerate(components.items):
-                lbl_rowno = tkinter.ttk.Label(self.scrollableframe, text=f"{idx+1}.", justify="right")
-                lbl_rowno.grid(row=idx, column=0, padx=5, pady=1, sticky="w")
+        self.frame_buttons = customtkinter.CTkFrame(self)
+        self.frame_buttons.grid(row=2, column=0, pady=5, padx=5, sticky="we")
+        self.frame_buttons.grid_columnconfigure(3, weight=1)
 
-                entry_name = tkinter.ttk.Entry(self.scrollableframe, font=customtkinter.CTkFont(family="Consolas"),)
-                entry_name.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
-                ui_helpers.entry_set_text(entry_name, component.name)
+        # change components page, view contains up to self.COMP_PER_PAGE items
+        self.btn_page_prev = customtkinter.CTkButton(self.frame_buttons, text="<", command=self.button_prev_event)
+        self.btn_page_prev.grid(row=0, column=0, pady=5, padx=5, sticky="w")
 
-                var = tkinter.IntVar(self.scrollableframe, value=component.hidden)
-                self.vars_hidden.append(var)
-                chkbttn_hidden = tkinter.ttk.Checkbutton(self.scrollableframe, text="Hidden", variable=var, command=self.chkbttn_event)
-                chkbttn_hidden.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
+        self.lbl_pageno = customtkinter.CTkLabel(self.frame_buttons, text=self.format_pageno())
+        self.lbl_pageno.grid(row=0, column=1, pady=5, padx=5, sticky="w")
 
-        self.btn_save = customtkinter.CTkButton(self, text="Save DB", command=self.button_save_event)
-        self.btn_save.grid(row=2, column=0, pady=5, padx=5, sticky="e")
-        self.btn_save.configure(state=tkinter.DISABLED)
+        self.btn_page_next = customtkinter.CTkButton(self.frame_buttons, text=">", command=self.button_next_event)
+        self.btn_page_next.grid(row=0, column=2, pady=5, padx=5, sticky="w")
+
+        #
+        sep_v = tkinter.ttk.Separator(self.frame_buttons, orient='vertical')
+        sep_v.grid(row=0, column=3, pady=2, padx=5, sticky="wens")
+
+        # save DB modifications to file
+        self.btn_save = customtkinter.CTkButton(self.frame_buttons, text="Save DB", command=self.button_save_event)
+        self.btn_save.grid(row=0, column=4, pady=5, padx=5, sticky="e")
+
+    def mk_components_view(self):
+        self.scrollableframe = customtkinter.CTkScrollableFrame(self)
+        self.scrollableframe.grid(row=1, column=0, padx=5, pady=5, columnspan=5, sticky="wens")
+        self.scrollableframe.grid_columnconfigure(1, weight=2)
+        self.scrollableframe.grid_columnconfigure(2, weight=1)
+        # create all widgets only once, keeping them in arrays
+        self.lbls_rowno = []
+        self.entrys_name = []
+        self.chkbttns_hidden = []
+        self.vars_hidden = []
+
+        for idx_on_page in range(self.COMP_PER_PAGE):
+            lbl_rowno = tkinter.ttk.Label(self.scrollableframe, text="", justify="right")
+            lbl_rowno.grid(row=idx_on_page, column=0, padx=5, pady=1, sticky="w")
+            self.lbls_rowno.append(lbl_rowno)
+
+            entry_name = tkinter.ttk.Entry(self.scrollableframe, font=customtkinter.CTkFont(family="Consolas"),)
+            entry_name.grid(row=idx_on_page, column=1, padx=5, pady=1, sticky="we")
+            self.entrys_name.append(entry_name)
+
+            var = tkinter.IntVar(self.scrollableframe, value=False)
+            self.vars_hidden.append(var)
+            chkbttn_hidden = tkinter.ttk.Checkbutton(self.scrollableframe, text="Hidden", variable=var, command=self.chkbttn_event)
+            chkbttn_hidden.grid(row=idx_on_page, column=2, padx=5, pady=1, sticky="we")
+            self.chkbttns_hidden.append(chkbttn_hidden)
+
+    def format_pageno(self) -> str:
+        global components
+        pageno_str = f"{1 + self.components_pageno} / {1 + len(components.items)//self.COMP_PER_PAGE}"
+        return pageno_str
+
+    def load_components(self):
+        global components
+        components_subrange = components.items[self.components_pageno*self.COMP_PER_PAGE:]
+
+        for idx_on_page, component in enumerate(components_subrange):
+            if idx_on_page == self.COMP_PER_PAGE:
+                break
+
+            idx_absolute = idx_on_page + (self.components_pageno * self.COMP_PER_PAGE)
+            self.lbls_rowno[idx_on_page].configure(text=f"{idx_absolute+1}.")
+            ui_helpers.entry_set_text(self.entrys_name[idx_on_page], component.name)
+            self.vars_hidden[idx_on_page].set(component.hidden)
+
+        # clear remaining fields
+        for i in range(len(components_subrange), self.COMP_PER_PAGE):
+                self.lbls_rowno[i].configure(text="-")
+                ui_helpers.entry_set_text(self.entrys_name[i], "")
+                self.vars_hidden[i].set(False)
 
     def chkbttn_event(self):
         self.btn_save.configure(state=tkinter.NORMAL)
 
+    def store_checkbox_selections(self):
+        for idx_on_page, component in enumerate(components.items[self.components_pageno*self.COMP_PER_PAGE:]):
+            if idx_on_page == self.COMP_PER_PAGE:
+                break
+            component.hidden = self.vars_hidden[idx_on_page].get() == 1
+
+    def button_prev_event(self):
+        logging.debug("prev page")
+        if self.components_pageno > 0:
+            self.store_checkbox_selections()
+            self.components_pageno -= 1
+            self.load_components()
+            self.lbl_pageno.configure(text=self.format_pageno())
+
+    def button_next_event(self):
+        logging.debug("next page")
+        if self.components_pageno < len(components.items)//self.COMP_PER_PAGE:
+            self.store_checkbox_selections()
+            self.components_pageno += 1
+            self.load_components()
+            self.lbl_pageno.configure(text=self.format_pageno())
+
     def button_save_event(self):
         logging.debug("Save DB")
-        for idx, component in enumerate(components.items):
-            component.hidden = self.vars_hidden[idx].get() == 1
+        self.store_checkbox_selections()
         components.save_changes()
         self.btn_save.configure(state=tkinter.DISABLED)
         self.components_info.update_components_info()
