@@ -403,6 +403,7 @@ class PnPEditor(customtkinter.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.cb_footprint_list = []
 
+        # if we are here, user already selected the PnP file first row
         proj.pnp_grid.firstrow = max(0, proj.pnp_first_row)
         proj.pnp_grid.firstrow += 1 if proj.pnp_has_column_headers else 0
 
@@ -414,17 +415,18 @@ class PnPEditor(customtkinter.CTkFrame):
             else:
                 component_list = list(item.name for item in components.items if not item.hidden)
                 # find the max comment width
-                comment_max_w = 0
+                footprint_max_w = 0
 
                 for row in proj.pnp_grid.rows():
-                    comment_max_w = max(comment_max_w, len(row[proj.pnp_comment_col]))
+                    footprint_max_w = max(footprint_max_w, len(row[proj.pnp_footprint_col]))
 
                 for idx, row in enumerate(proj.pnp_grid.rows()):
                     entry_pnp = tkinter.ttk.Entry(self.scrollableframe, font=customtkinter.CTkFont(family="Consolas"))
                     entry_pnp.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
-                    entry_txt = "{idx:03} | {cmnt:{cmnt_w}} | {ftprint}".format(
-                        idx=idx+1, cmnt=row[proj.pnp_comment_col], cmnt_w=comment_max_w,
-                        ftprint=row[proj.pnp_footprint_col])
+                    entry_txt = "{idx:03} | {ftprint:{fprint_w}} | {cmnt} ".format(
+                        idx=idx+1,
+                        ftprint=row[proj.pnp_footprint_col], fprint_w=footprint_max_w,
+                        cmnt=row[proj.pnp_comment_col])
                     ui_helpers.entry_set_text(entry_pnp, entry_txt)
                     # entry_pnp.configure(state=tkinter.DISABLED)
 
@@ -627,7 +629,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
                 break
 
             idx_absolute = idx_on_page + (self.components_pageno * self.COMP_PER_PAGE)
-            self.lbls_rowno[idx_on_page].configure(text=f"{idx_absolute+1}.")
+            self.lbls_rowno[idx_on_page].configure(text=f"{idx_absolute+1:04}.")
             ui_helpers.entry_set_text(self.entrys_name[idx_on_page], component.name)
             self.vars_hidden[idx_on_page].set(component.hidden)
 

@@ -18,6 +18,7 @@
     [ ] mechanizm wyszukiwania komponentu regex, case-insensitive
     [ ] mechanizm automatycznego wyboru komponentu na podstawie footprint+wartość
     [x] po ręcznym wyborze komponentu, zastosować do wszystkich pasujących
+    [ ] lista komponentów: natural sorting?
 [x] zapis nowego PnP jako CSV
 [ ] katalog z Tou - trzymać ścieżkę w historii i uzupełniać pole
 [x] okno podglądu i edycji bazy komponentów
