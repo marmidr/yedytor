@@ -28,5 +28,6 @@
   [x] przeniesienie z Home info o bazie i przycisku do skanera
 [ ] osobne PnP dla top/bottom - po edycji trzeba zapisać osobno?
 [ ] zapisywanie niekompletnego edytowanego pliku, z możliwością kontynuacji
-[ ] przed zapisaniem sprawdź status każdego komponentu, zabroń zapisać jeśli nie-zielone
-[ ] progressbar: wybrane/wszystkie
+[ ] zapisywanie niekompletnego - jak zapisać filtr, żeby odróżniał sie w pliku od prawdziwego komponentu?
+[x] przed zapisaniem sprawdź status każdego komponentu, zabroń zapisać jeśli nie-zielone
+[x] progressbar: wybrane/wszystkie

@@ -195,14 +195,16 @@ class HomeFrame(customtkinter.CTkFrame):
         logging.info(f"Selected PnP(s): {pnp_paths}")
 
         if len(pnp_paths) > 2:
-            mb = MessageBox(dialog_type="o", message="You can only select one or two PnP files of the same type", callback=lambda btn: btn)
+            mb = MessageBox(dialog_type="o", message="You can only select one or two PnP files of the same type",
+                            callback=lambda btn: btn)
             return
         elif len(pnp_paths) == 2:
             # https://docs.python.org/3/library/os.path.html#os.path.splitext
             ext1 = os.path.splitext(pnp_paths[0])[1].lower()
             ext2 = os.path.splitext(pnp_paths[1])[1].lower()
             if ext1 != ext2:
-                mb = MessageBox(dialog_type="o", message="You must select two PnP files of the same type", callback=lambda btn: btn)
+                mb = MessageBox(dialog_type="o", message="You must select two PnP files of the same type",
+                                callback=lambda btn: btn)
                 return
 
         if len(pnp_paths) and os.path.isfile(pnp_paths[0]):
@@ -396,17 +398,28 @@ class PnPEditor(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
 
+        self.pgbar_selected = customtkinter.CTkProgressBar(self)
+        self.pgbar_selected.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
+        self.pgbar_selected.set(0)
+
+        self.lbl_selected = tkinter.Label(self, text="0 / 500")
+        self.lbl_selected.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+
+        sep_v = tkinter.ttk.Separator(self, orient='vertical')
+        sep_v.grid(row=2, column=2, pady=2, padx=5, sticky="ns")
+
         self.btn_save = customtkinter.CTkButton(self, text="Save PnP as new CSV", command=self.button_save_event)
-        self.btn_save.grid(row=2, column=0, pady=5, padx=5, sticky="e")
+        self.btn_save.grid(row=2, column=3, pady=5, padx=5, sticky="e")
         self.btn_save.configure(state=tkinter.DISABLED)
 
-    #
+        #
+        self.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
     def load(self):
         self.btn_save.configure(state=tkinter.DISABLED)
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
-        self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, sticky="wens")
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, columnspan=4, sticky="wens")
         self.cbx_component_list = []
         self.lbl_marker_list = []
 
@@ -415,7 +428,7 @@ class PnPEditor(customtkinter.CTkFrame):
         proj.pnp_grid.firstrow += 1 if proj.pnp_has_column_headers else 0
 
         if (not proj.pnp_grid) or (proj.pnp_grid.nrows == 0):
-            logging.warning("PnP project not loaded")
+            logging.warning("PnP file not loaded")
         else:
             if not self.check_selected_columns():
                 logging.warning("Select proper Footprint and Comment columns before editing")
@@ -454,6 +467,9 @@ class PnPEditor(customtkinter.CTkFrame):
 
                 self.scrollableframe.grid_columnconfigure(0, weight=2)
                 self.scrollableframe.grid_columnconfigure(2, weight=1)
+
+            # update progressbar
+            self.update_selected_status()
 
     def try_select_component(self, cbx: tkinter.ttk.Combobox, lbl: tkinter.Label, ftprint: str, cmnt: str):
         filter = ftprint + "_" + cmnt
@@ -511,6 +527,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     self.cbx_component_list[i].set(selected_component)
                     # add marker that this is a final value
                     self.lbl_marker_list[i].config(background=self.CL_MAN_SEL)
+            self.update_selected_status()
         except Exception as e:
             logging.warning(f"Applying selection to the matching items failed: {e}")
         self.btn_save.configure(state=tkinter.NORMAL)
@@ -553,7 +570,20 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def button_save_event(self):
         logging.debug("Save PnP")
-        self.btn_save.configure(state=tkinter.DISABLED)
+        n_selected = self.count_selected()
+        if n_selected[0] == n_selected[1]:
+            self.btn_save.configure(state=tkinter.DISABLED)
+            self.save_pnp_to_new_csv_file()
+        else:
+            MessageBox(dialog_type="yn",
+                       message=f"Only {n_selected[0]} / {n_selected[1]} items have selected PnP component.\n\nSave it now?",
+                       callback=self.msgbox_save_callback)
+
+    def msgbox_save_callback(self, btn: str):
+        if btn == "y":
+            self.save_pnp_to_new_csv_file()
+
+    def save_pnp_to_new_csv_file(self):
         # TODO: support for two separate files
         csv_path = os.path.splitext(proj.pnp_path)[0]
         csv_path += "_edited.csv"
@@ -564,6 +594,22 @@ class PnPEditor(customtkinter.CTkFrame):
                 row_str += f';"{sel_component}"\n'
                 f.write(row_str)
         logging.info(f"PnP saved to {csv_path}")
+
+    def update_selected_status(self):
+        n_selected = self.count_selected()
+        self.lbl_selected.configure(text=f"{n_selected[0]} / {n_selected[1]}")
+        if n_selected[1] > 0:
+            self.pgbar_selected.set(n_selected[0] / n_selected[1])
+        else:
+            self.pgbar_selected.set(0)
+
+    def count_selected(self) -> (int, int):
+        n = 0
+        for lbl in self.lbl_marker_list:
+            bg = lbl.cget("background")
+            if bg in (self.CL_MAN_SEL, self.CL_AUTO_SEL):
+                n += 1
+        return (n, len(self.lbl_marker_list))
 
 # -----------------------------------------------------------------------------
 
