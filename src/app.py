@@ -327,7 +327,7 @@ class PnPConfig(customtkinter.CTkFrame):
         self.lbl_columns.grid(row=0, column=6, pady=5, padx=(15,5), sticky="w")
         self.update_lbl_columns()
         #
-        self.btn_columns = customtkinter.CTkButton(self, text="Select\ncolumns...",
+        self.btn_columns = customtkinter.CTkButton(self, text="Select\ncolumns...", state=tkinter.DISABLED,
                                                    command=self.button_columns_event)
         self.btn_columns.grid(row=0, column=7, pady=5, padx=5, sticky="")
         #
@@ -353,6 +353,7 @@ class PnPConfig(customtkinter.CTkFrame):
         logging.debug("Load PnP...")
         try:
             self.pnp_view.load_pnp(proj.pnp_path, proj.pnp2_path)
+            self.btn_columns.configure(state=tkinter.NORMAL)
         except Exception as e:
             logging.error(f"Cannot load PnP: {e}")
 
@@ -401,7 +402,8 @@ class PnPEditor(customtkinter.CTkFrame):
         self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, sticky="wens")
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        self.cb_footprint_list = []
+        self.cbx_component_list = []
+        self.lbl_marker_list = []
 
         # if we are here, user already selected the PnP file first row
         proj.pnp_grid.firstrow = max(0, proj.pnp_first_row)
@@ -421,8 +423,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     footprint_max_w = max(footprint_max_w, len(row[proj.pnp_footprint_col]))
 
                 for idx, row in enumerate(proj.pnp_grid.rows()):
-                    entry_pnp = tkinter.ttk.Entry(self.scrollableframe, font=customtkinter.CTkFont(family="Consolas"))
-                    entry_pnp.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
+                    entry_pnp = tkinter.Entry(self.scrollableframe, font=customtkinter.CTkFont(family="Consolas"))
+                    entry_pnp.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
                     entry_txt = "{idx:03} | {ftprint:{fprint_w}} | {cmnt} ".format(
                         idx=idx+1,
                         ftprint=row[proj.pnp_footprint_col], fprint_w=footprint_max_w,
@@ -430,25 +432,31 @@ class PnPEditor(customtkinter.CTkFrame):
                     ui_helpers.entry_set_text(entry_pnp, entry_txt)
                     # entry_pnp.configure(state=tkinter.DISABLED)
 
+                    lbl_marker = tkinter.Label(self.scrollableframe, text=" ")
+                    lbl_marker.grid(row=idx, column=1, padx=5, pady=1, sticky="")
+                    self.lbl_marker_list.append(lbl_marker)
+
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
                     # https://www.pythontutorial.net/tkinter/tkinter-combobox/
-                    combo_footprint = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all)
-                    self.cb_footprint_list.append(combo_footprint)
-                    combo_footprint.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
-                    combo_footprint.bind('<<ComboboxSelected>>', self.combobox_selected)
+                    cbx_component = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all)
+                    cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
+                    cbx_component.bind('<<ComboboxSelected>>', self.combobox_selected)
                     # combo_footprint.bind('<Key>', self.combobox_key)
-                    combo_footprint.bind("<Return>", self.combobox_enter)
-                    combo_footprint.bind("<MouseWheel>", self.combobox_wheel)
-                    self.try_select_component(combo_footprint, row[proj.pnp_footprint_col], row[proj.pnp_comment_col])
+                    cbx_component.bind("<Return>", self.combobox_enter)
+                    cbx_component.bind("<MouseWheel>", self.combobox_wheel)
+                    self.cbx_component_list.append(cbx_component)
+                    self.try_select_component(cbx_component, lbl_marker, row[proj.pnp_footprint_col], row[proj.pnp_comment_col])
 
-                self.scrollableframe.grid_columnconfigure(1, weight=2)
+                self.scrollableframe.grid_columnconfigure(0, weight=2)
                 self.scrollableframe.grid_columnconfigure(2, weight=1)
 
-    def try_select_component(self, cb: tkinter.ttk.Combobox, ftprint: str, cmnt: str):
+    def try_select_component(self, cbx: tkinter.ttk.Combobox, lbl: tkinter.Label, ftprint: str, cmnt: str):
         possible_component = ftprint + "_" + cmnt
         try:
             self.components_all.index(possible_component) # may raise exception if not found
-            cb.set(possible_component)
+            cbx.set(possible_component)
+            # mark autoselection with ligh green color
+            lbl.config(background="lime")
             logging.info(f"Matching component found: {possible_component}")
         except:
             # not found
@@ -463,22 +471,24 @@ class PnPEditor(customtkinter.CTkFrame):
         logging.debug(f"CB selected: {selected_component}")
         try:
             # get the selection details:
-            selected_idx = self.cb_footprint_list.index(event.widget)
+            selected_idx = self.cbx_component_list.index(event.widget)
             comment = proj.pnp_grid.rows()[selected_idx][proj.pnp_comment_col]
             ftprint = proj.pnp_grid.rows()[selected_idx][proj.pnp_footprint_col]
             # scan all items and if comment:footprint matches -> apply
 
             for i, row in enumerate(proj.pnp_grid.rows()):
                 if i == selected_idx:
-                    # TODO: add green marker that this is a final value
+                    # add green marker that this is a final value
+                    self.lbl_marker_list[i].config(background="green")
                     continue
-                if self.cb_footprint_list[i].get() != "":
+                if self.cbx_component_list[i].get() != "":
                     continue
                 if row[proj.pnp_comment_col] == comment and row[proj.pnp_footprint_col] == ftprint:
                     # found: select the same component
                     logging.debug(f"Applying '{selected_component}' to item #{i}")
-                    self.cb_footprint_list[i].set(selected_component)
-                    # TODO: add green marker that this is a final value
+                    self.cbx_component_list[i].set(selected_component)
+                    # add green marker that this is a final value
+                    self.lbl_marker_list[i].config(background="green")
         except Exception as e:
             logging.warning(f"Applying selection to the matching items failed: {e}")
         self.btn_save.configure(state=tkinter.NORMAL)
@@ -488,12 +498,20 @@ class PnPEditor(customtkinter.CTkFrame):
         # self.btn_save.configure(state=tkinter.NORMAL)
 
     def combobox_enter(self, event):
-        filter = event.widget.get()
+        filter: str = event.widget.get().strip()
         if len(filter) > 2:
             components_filtered = components.items_filtered(filter)
             logging.debug(f"Apply filter '{filter}' -> {len(components_filtered)} matching")
             event.widget.configure(values=components_filtered)
-            # TODO: add yellow marker that this is a filter, not value
+
+            selected_idx = self.cbx_component_list.index(event.widget)
+            try:
+                self.components_all.index(filter)
+                # filter found on component list: add green marker that this is a final value
+                self.lbl_marker_list[selected_idx].config(background="green")
+            except:
+                # add yellow marker that this is a filter, not value
+                self.lbl_marker_list[selected_idx].config(background="yellow")
         else:
             logging.debug(f"Filter too short: use full list")
             event.widget.configure(values=self.components_all)
@@ -515,7 +533,7 @@ class PnPEditor(customtkinter.CTkFrame):
         with open(csv_path, "w") as f:
             for i, row in enumerate(proj.pnp_grid.rows()):
                 row_str = ";".join([f'"{item}"' for item in row])
-                sel_component = self.cb_footprint_list[i].get()
+                sel_component = self.cbx_component_list[i].get()
                 row_str += f';"{sel_component}"\n'
                 f.write(row_str)
         logging.info(f"PnP saved to {csv_path}")

@@ -4,6 +4,8 @@ PnP files editor, using a footprints defined in the Yamaha .Tou files.
 
 ![ss2](doc/sshot2.png)
 ![ss3](doc/sshot3.png)
+![ss4](doc/sshot4.png)
+![ss5](doc/sshot5.png)
 
 ## Supported formats
 

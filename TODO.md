@@ -18,6 +18,7 @@
     [x] mechanizm wyszukiwania komponentu, case-insensitive
     [x] mechanizm automatycznego wyboru komponentu na podstawie footprint+wartość
     [x] po ręcznym wyborze komponentu, zastosować do wszystkich pasujących
+    [x] kolorować brak wyboru/wybrany automatycznie/ręcznie/filtr
     [ ] lista komponentów: natural sorting?
 [x] zapis nowego PnP jako CSV
 [ ] katalog z Tou - trzymać ścieżkę w historii i uzupełniać pole
@@ -25,3 +26,4 @@
   [x] podgląd
   [x] możliwość oznaczenia jako Hidden
   [x] przeniesienie z Home info o bazie i przycisku do skanera
+[ ] osobne PnP dla top/bottom - po edycji trzeba zapisać osobno?

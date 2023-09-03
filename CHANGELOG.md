@@ -9,6 +9,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
   * PnP editor: item details order changed to: <index> | <footprint> | <comment>
   * PnP editor: automatically select component if "<footprint>_<comment>" found
   * PnP editor: simple components list narrowing using 'needle in string' method
+  * PnP editor: colored items: lime->matched automatically, green->selected manually
 * Changed
   * DB components editor redesigned - now it's able to handle even 10'000 elements
 * Deprecated
