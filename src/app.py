@@ -388,6 +388,11 @@ class PnPConfig(customtkinter.CTkFrame):
 # -----------------------------------------------------------------------------
 
 class PnPEditor(customtkinter.CTkFrame):
+    CL_NOMATCH = "orange"
+    CL_FILTER = "yellow"
+    CL_AUTO_SEL = "lime"
+    CL_MAN_SEL = "green"
+
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
 
@@ -451,16 +456,31 @@ class PnPEditor(customtkinter.CTkFrame):
                 self.scrollableframe.grid_columnconfigure(2, weight=1)
 
     def try_select_component(self, cbx: tkinter.ttk.Combobox, lbl: tkinter.Label, ftprint: str, cmnt: str):
-        possible_component = ftprint + "_" + cmnt
+        filter = ftprint + "_" + cmnt
         try:
-            self.components_all.index(possible_component) # may raise exception if not found
-            cbx.set(possible_component)
-            # mark autoselection with ligh green color
-            lbl.config(background="lime")
-            logging.info(f"Matching component found: {possible_component}")
+            self.components_all.index(filter) # may raise exception if not found
+            cbx.set(filter)
+            # mark autoselection
+            lbl.config(background=self.CL_AUTO_SEL)
+            logging.info(f"Matching component found: {filter}")
         except:
-            # not found
-            pass
+            # not found; try to create a good filter expression
+            # "1206_R_1,2k" -> "1206"
+            ftprint_prefix = ftprint.split("_")
+            if len(ftprint_prefix):
+                ftprint_prefix = ftprint_prefix[0]
+                filter = ftprint_prefix + " " + cmnt
+                # assign a filtered list of components
+                filtered_components = components.items_filtered(filter)
+                cbx.configure(values=filtered_components)
+                # set value to the filter
+                cbx.set(filter.lower())
+                if len(filtered_components):
+                    # mark filter
+                    lbl.config(background=self.CL_FILTER)
+                else:
+                    # mark no matching component in database
+                    lbl.config(background=self.CL_NOMATCH)
 
     def check_selected_columns(self, ) -> bool:
         return proj.pnp_footprint_col < proj.pnp_grid.ncols \
@@ -474,21 +494,23 @@ class PnPEditor(customtkinter.CTkFrame):
             selected_idx = self.cbx_component_list.index(event.widget)
             comment = proj.pnp_grid.rows()[selected_idx][proj.pnp_comment_col]
             ftprint = proj.pnp_grid.rows()[selected_idx][proj.pnp_footprint_col]
-            # scan all items and if comment:footprint matches -> apply
 
+            # scan all items and if comment:footprint matches -> apply
             for i, row in enumerate(proj.pnp_grid.rows()):
                 if i == selected_idx:
-                    # add green marker that this is a final value
-                    self.lbl_marker_list[i].config(background="green")
+                    # add marker that this is a final value
+                    self.lbl_marker_list[i].config(background=self.CL_MAN_SEL)
                     continue
-                if self.cbx_component_list[i].get() != "":
+                marker_bg = self.lbl_marker_list[i].cget("background")
+                # if already selected, skip this item
+                if marker_bg == self.CL_MAN_SEL:
                     continue
                 if row[proj.pnp_comment_col] == comment and row[proj.pnp_footprint_col] == ftprint:
                     # found: select the same component
                     logging.debug(f"Applying '{selected_component}' to item #{i}")
                     self.cbx_component_list[i].set(selected_component)
-                    # add green marker that this is a final value
-                    self.lbl_marker_list[i].config(background="green")
+                    # add marker that this is a final value
+                    self.lbl_marker_list[i].config(background=self.CL_MAN_SEL)
         except Exception as e:
             logging.warning(f"Applying selection to the matching items failed: {e}")
         self.btn_save.configure(state=tkinter.NORMAL)
@@ -507,11 +529,16 @@ class PnPEditor(customtkinter.CTkFrame):
             selected_idx = self.cbx_component_list.index(event.widget)
             try:
                 self.components_all.index(filter)
-                # filter found on component list: add green marker that this is a final value
-                self.lbl_marker_list[selected_idx].config(background="green")
+                # filter found on component list: add marker that this is a final value
+                self.lbl_marker_list[selected_idx].config(background=self.CL_MAN_SEL)
             except:
-                # add yellow marker that this is a filter, not value
-                self.lbl_marker_list[selected_idx].config(background="yellow")
+                if len(components_filtered):
+                    # mark this is a filter, not value
+                    self.lbl_marker_list[selected_idx].config(background=self.CL_FILTER)
+                else:
+                    # mark no matching component in database
+                    self.lbl_marker_list[selected_idx].config(background=self.CL_NOMATCH)
+
         else:
             logging.debug(f"Filter too short: use full list")
             event.widget.configure(values=self.components_all)

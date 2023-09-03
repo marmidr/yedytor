@@ -27,5 +27,6 @@
   [x] możliwość oznaczenia jako Hidden
   [x] przeniesienie z Home info o bazie i przycisku do skanera
 [ ] osobne PnP dla top/bottom - po edycji trzeba zapisać osobno?
-[ ] zapisywanie niekompletnego edytoanego pliku, z możliwością kontynuacji
-[ ] przed zapisaniem sprawdź status każdego komponentu, zabroń zapisać jeśli szare/źółte
+[ ] zapisywanie niekompletnego edytowanego pliku, z możliwością kontynuacji
+[ ] przed zapisaniem sprawdź status każdego komponentu, zabroń zapisać jeśli nie-zielone
+[ ] progressbar: wybrane/wszystkie

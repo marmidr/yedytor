@@ -10,6 +10,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
   * PnP editor: automatically select component if "<footprint>_<comment>" found
   * PnP editor: components list narrowing: enter "603" for footprint or "603 10k" for better match
   * PnP editor: colored items: lime->matched automatically, green->selected manually
+  * PnP editor: each combobox is assigned filtered list of all components upon loading
 * Changed
   * DB components editor redesigned - now it's able to handle even 10'000 elements
 * Deprecated
