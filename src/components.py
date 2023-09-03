@@ -2,6 +2,7 @@ import logging
 import os
 import time
 import csv
+import fnmatch
 
 # -----------------------------------------------------------------------------
 
@@ -132,11 +133,11 @@ class ComponentsDB:
 
     def items_filtered(self, needle: str, visible: bool=True) -> list[Component]:
         """Returns components containing the needle"""
-        needle = needle.lower()
+        """Needle: space-separated keywords: "603", "603 2k2", ..."""
+        needle = '*' + '*'.join(needle.split(' ')) + '*'
         result = []
         for item in self.__items:
-            # TODO: '*805*10k*' in ...
-            if needle in item.name.lower():
+            if fnmatch.fnmatch(item.name, needle):
                 if (not visible) or (visible and not item.hidden):
                     result.append(item.name)
         return result
