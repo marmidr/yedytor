@@ -10,7 +10,6 @@ import tkinter
 from tkinter import tix
 import logging
 import os
-import configparser
 import sys
 
 import xls_reader
@@ -24,11 +23,12 @@ import tou_scanner
 from column_selector import ColumnsSelector, ColumnsSelectorResult
 from msg_box import MessageBox
 from tkhtmlview import HTMLLabel
-from components import Component, ComponentsDB
+from components import ComponentsDB
+from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.4.0"
+APP_NAME = "Yedytor v0.4.1"
 
 # -----------------------------------------------------------------------------
 
@@ -42,8 +42,6 @@ def get_db_directory() -> str:
 # -----------------------------------------------------------------------------
 
 class Project:
-    CONFIG_FILE_NAME = "yedytor.ini"
-
     def __init__(self):
         self.pnp_path = "<pnp_fpath>"
         self.pnp2_path = ""
@@ -55,26 +53,8 @@ class Project:
         self.pnp_first_row = 0
         self.pnp_has_column_headers = False
 
-        # https://docs.python.org/3/library/configparser.html
-        self.__config = configparser.ConfigParser()
-
-        if os.path.isfile(self.CONFIG_FILE_NAME):
-            self.__config.read(self.CONFIG_FILE_NAME)
-        else:
-            self.__config['common'] = {
-                "initial_dir": "",
-            }
-
     def get_name(self) -> str:
         return os.path.basename(self.pnp_path)
-
-    def cfg_get_section(self, sect_name: str) -> configparser.SectionProxy:
-        try:
-            self.__config[sect_name]
-        except Exception:
-            self.__config[sect_name] = {}
-
-        return self.__config[sect_name]
 
     @staticmethod
     def get_separator_names() -> list[str]:
@@ -141,9 +121,12 @@ class Project:
             self.pnp_grid.nrows += pnp2_grid.nrows
             self.pnp_grid.rows_raw().extend(pnp2_grid.rows)
 
+# -----------------------------------------------------------------------------
+
 # global instance
 proj = Project()
 components = ComponentsDB()
+config = Config()
 
 # -----------------------------------------------------------------------------
 
@@ -174,6 +157,29 @@ class HomeFrame(customtkinter.CTkFrame):
         self.entry_pnp2_path.grid(row=2, column=1, pady=5, padx=5, sticky="we")
         self.entry_pnp2_path.configure(state=tkinter.DISABLED)
 
+        #
+        sep_h = tkinter.ttk.Separator(self, orient='horizontal')
+        sep_h.grid(row=3, column=0, pady=5, padx=5, columnspan=4, sticky="we")
+
+        #
+        self.config = customtkinter.CTkFrame(self)
+        self.config.grid(row=4, column=0, pady=5, padx=5, columnspan=4, sticky="we")
+        self.config.lbl_font = customtkinter.CTkLabel(self.config, text="PnP Editor font size:")
+        self.config.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
+
+        self.config.radio_var = tkinter.IntVar(value=config.editor_font_idx)
+        self.config.rb_font0 = customtkinter.CTkRadioButton(self.config, text="12px",
+                                                            variable=self.config.radio_var, value=0, command=self.radiobutton_event)
+        self.config.rb_font0.grid(row=1, column=0, pady=5, padx=5, sticky="w")
+        self.config.rb_font1 = customtkinter.CTkRadioButton(self.config, text="16px",
+                                                            variable=self.config.radio_var, value=1, command=self.radiobutton_event)
+        self.config.rb_font1.grid(row=2, column=0, pady=5, padx=5, sticky="w")
+
+    def radiobutton_event(self):
+        config.editor_font_idx = self.config.radio_var.get()
+        # logging.debug(f"RB event: {config.editor_font_idx}")
+        config.save()
+
     def clear_previews(self):
         self.var_pnp.set("")
         self.var_pnp2.set("")
@@ -195,16 +201,16 @@ class HomeFrame(customtkinter.CTkFrame):
         logging.info(f"Selected PnP(s): {pnp_paths}")
 
         if len(pnp_paths) > 2:
-            mb = MessageBox(dialog_type="o", message="You can only select one or two PnP files of the same type",
-                            callback=lambda btn: btn)
+            MessageBox(dialog_type="o", message="You can only select one or two PnP files of the same type",
+                        callback=lambda btn: btn)
             return
         elif len(pnp_paths) == 2:
             # https://docs.python.org/3/library/os.path.html#os.path.splitext
             ext1 = os.path.splitext(pnp_paths[0])[1].lower()
             ext2 = os.path.splitext(pnp_paths[1])[1].lower()
             if ext1 != ext2:
-                mb = MessageBox(dialog_type="o", message="You must select two PnP files of the same type",
-                                callback=lambda btn: btn)
+                MessageBox(dialog_type="o", message="You must select two PnP files of the same type",
+                            callback=lambda btn: btn)
                 return
 
         if len(pnp_paths) and os.path.isfile(pnp_paths[0]):
@@ -396,6 +402,10 @@ class PnPEditor(customtkinter.CTkFrame):
     CL_MAN_SEL = "green"
 
     def __init__(self, master, **kwargs):
+        app = None
+        if 'app' in kwargs:
+            app = kwargs.pop('app')
+
         super().__init__(master, **kwargs)
 
         self.pgbar_selected = customtkinter.CTkProgressBar(self)
@@ -416,12 +426,31 @@ class PnPEditor(customtkinter.CTkFrame):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
+        # define fonts for editor
+        self.fonts = (
+            (
+                customtkinter.CTkFont(family="Consolas", size=12, weight='normal'),
+                customtkinter.CTkFont(family="Consolas", size=12, weight='bold')
+            ),
+            (
+                customtkinter.CTkFont(family="Consolas", size=16, weight='normal'),
+                customtkinter.CTkFont(family="Consolas", size=16, weight='bold')
+            )
+        )
+
+        if not app is None:
+            # apply font to ALL application combobox list
+            app.option_add('*TCombobox*Listbox.font', self.fonts[config.editor_font_idx][0])
+            app.option_add('*TCombobox*Listbox.background', 'LightBlue')
+
     def load(self):
         self.btn_save.configure(state=tkinter.DISABLED)
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
         self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, columnspan=4, sticky="wens")
+        self.entry_list = []
         self.cbx_component_list = []
         self.lbl_marker_list = []
+        self.focused_idx = None
 
         # if we are here, user already selected the PnP file first row
         proj.pnp_grid.firstrow = max(0, proj.pnp_first_row)
@@ -441,13 +470,14 @@ class PnPEditor(customtkinter.CTkFrame):
                     footprint_max_w = max(footprint_max_w, len(row[proj.pnp_footprint_col]))
 
                 for idx, row in enumerate(proj.pnp_grid.rows()):
-                    entry_pnp = tkinter.Entry(self.scrollableframe, font=customtkinter.CTkFont(family="Consolas"))
+                    entry_pnp = tkinter.Entry(self.scrollableframe, font=self.fonts[config.editor_font_idx][0])
                     entry_pnp.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
                     entry_txt = "{idx:03} | {ftprint:{fprint_w}} | {cmnt} ".format(
                         idx=idx+1,
                         ftprint=row[proj.pnp_footprint_col], fprint_w=footprint_max_w,
                         cmnt=row[proj.pnp_comment_col])
                     ui_helpers.entry_set_text(entry_pnp, entry_txt)
+                    self.entry_list.append(entry_pnp)
                     # entry_pnp.configure(state=tkinter.DISABLED)
 
                     lbl_marker = tkinter.Label(self.scrollableframe, text=" ")
@@ -456,12 +486,13 @@ class PnPEditor(customtkinter.CTkFrame):
 
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
                     # https://www.pythontutorial.net/tkinter/tkinter-combobox/
-                    cbx_component = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all)
+                    cbx_component = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all, font=self.fonts[config.editor_font_idx][0])
                     cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
                     cbx_component.bind('<<ComboboxSelected>>', self.combobox_selected)
                     # combo_footprint.bind('<Key>', self.combobox_key)
-                    cbx_component.bind("<Return>", self.combobox_enter)
+                    cbx_component.bind("<Return>", self.combobox_return)
                     cbx_component.bind("<MouseWheel>", self.combobox_wheel)
+                    cbx_component.bind("<FocusIn>", self.combobox_focus_in)
                     self.cbx_component_list.append(cbx_component)
                     self.try_select_component(cbx_component, lbl_marker, row[proj.pnp_footprint_col], row[proj.pnp_comment_col])
 
@@ -536,7 +567,7 @@ class PnPEditor(customtkinter.CTkFrame):
         # logging.debug(f"CB key: {event}")
         # self.btn_save.configure(state=tkinter.NORMAL)
 
-    def combobox_enter(self, event):
+    def combobox_return(self, event):
         filter: str = event.widget.get().strip()
         if len(filter) > 2:
             components_filtered = components.items_filtered(filter)
@@ -567,6 +598,21 @@ class PnPEditor(customtkinter.CTkFrame):
         # block changing value when the list is hidden to avoid accidental modification
         return 'break'
         # pass
+
+    def combobox_focus_in(self, event):
+        # logging.debug(f"CB focus_in: {event}")
+        try:
+            # restore normal font on previous item
+            if not self.focused_idx is None and self.focused_idx < len(self.entry_list):
+                self.entry_list[self.focused_idx].config(font=self.fonts[config.editor_font_idx][0])
+                self.cbx_component_list[self.focused_idx].config(font=self.fonts[config.editor_font_idx][0])
+
+            # set bold font in new item
+            self.focused_idx = self.cbx_component_list.index(event.widget)
+            self.entry_list[self.focused_idx].config(font=self.fonts[config.editor_font_idx][1])
+            self.cbx_component_list[self.focused_idx].config(font=self.fonts[config.editor_font_idx][1])
+        except Exception as e:
+            logging.debug(f"focus_in: {e}")
 
     def button_save_event(self):
         logging.debug("Save PnP")
@@ -696,7 +742,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
         #
         sep_v = tkinter.ttk.Separator(self.frame_buttons, orient='vertical')
-        sep_v.grid(row=0, column=3, pady=2, padx=5, sticky="wens")
+        sep_v.grid(row=0, column=3, pady=2, padx=5, sticky="ns")
 
         # save DB modifications to file
         self.btn_save = customtkinter.CTkButton(self.frame_buttons, text="Save DB", command=self.button_save_event)
@@ -712,20 +758,21 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.entrys_name = []
         self.chkbttns_hidden = []
         self.vars_hidden = []
+        self.editor_font = customtkinter.CTkFont(family="Consolas")
 
         for idx_on_page in range(self.COMP_PER_PAGE):
-            lbl_rowno = tkinter.ttk.Label(self.scrollableframe, text="", justify="right")
+            lbl_rowno = tkinter.Label(self.scrollableframe, text="", justify="right")
             lbl_rowno.grid(row=idx_on_page, column=0, padx=5, pady=1, sticky="w")
             self.lbls_rowno.append(lbl_rowno)
 
-            entry_name = tkinter.ttk.Entry(self.scrollableframe, font=customtkinter.CTkFont(family="Consolas"),)
+            entry_name = tkinter.Entry(self.scrollableframe, font=self.editor_font)
             entry_name.grid(row=idx_on_page, column=1, padx=5, pady=1, sticky="we")
             self.entrys_name.append(entry_name)
 
             var = tkinter.IntVar(self.scrollableframe, value=False)
             self.vars_hidden.append(var)
-            chkbttn_hidden = tkinter.ttk.Checkbutton(self.scrollableframe, text="Hidden", variable=var, command=self.chkbttn_event)
-            chkbttn_hidden.grid(row=idx_on_page, column=2, padx=5, pady=1, sticky="we")
+            chkbttn_hidden = tkinter.Checkbutton(self.scrollableframe, text="Hidden", variable=var, command=self.chkbttn_event)
+            chkbttn_hidden.grid(row=idx_on_page, column=2, padx=5, pady=1, sticky="w")
             self.chkbttns_hidden.append(chkbttn_hidden)
 
     def format_pageno(self) -> str:
@@ -840,7 +887,7 @@ class CtkApp(customtkinter.CTk):
         self.home_frame.pnp_view = self.pnp_view
 
         # panel with PnP footprints editor
-        self.pnp_editor = PnPEditor(tab_pnp_editor)
+        self.pnp_editor = PnPEditor(tab_pnp_editor, app=self)
         self.pnp_editor.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
         tab_pnp_editor.grid_columnconfigure(0, weight=1)
         tab_pnp_editor.grid_rowconfigure(0, weight=1)

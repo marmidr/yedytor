@@ -2,6 +2,18 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.4.1 - 2023-09-05
+
+* Added
+  * yedytor.in config file
+  * PnP editor: font size 12px or 16px
+* Changed
+  * PnP editor: dropdown background color set to light blue to distinguish it from the background
+  * PnP editor: set edited item font weight=Bold to distinguish it among the others
+* Deprecated
+* Removed
+* Fixed
+
 ## 0.4.0 - 2023-09-02
 
 * Added
