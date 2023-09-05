@@ -526,6 +526,9 @@ class PnPEditor(customtkinter.CTkFrame):
                     # mark filter
                     lbl.config(background=self.CL_FILTER)
                 else:
+                    # remove filter and assign all components
+                    cbx.set("")
+                    cbx.configure(values=self.components_all)
                     # mark no matching component in database
                     lbl.config(background=self.CL_NOMATCH)
 

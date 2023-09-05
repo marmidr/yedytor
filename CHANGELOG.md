@@ -10,6 +10,8 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Changed
   * PnP editor: dropdown background color set to light blue to distinguish it from the background
   * PnP editor: set edited item font weight=Bold to distinguish it among the others
+  * PnP editor: if filtered components returned 0 items, the filter is removed and full components list is restored
+  * Tou scanner: items are now sorted naturally (like in Excel), not alphabetically
 * Deprecated
 * Removed
 * Fixed

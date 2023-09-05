@@ -39,8 +39,8 @@ Minimum required version is **Python 3.9**.
 To install required libraries, open the PowerShell and:
 
 ```ps1
-# .xls reader, .xlsx reader, .ods reader, UI lib, http requests, image formats
-pip install xlrd openpyxl odfpy customtkinter requests pillow
+# .xls reader, .xlsx reader, .ods reader, UI lib, http requests, image formats, natural sorting,
+pip install xlrd openpyxl odfpy customtkinter requests pillow natsort
 ```
 
 ## How to run

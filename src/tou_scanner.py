@@ -4,11 +4,11 @@ import logging
 import typing
 import os
 import time
+import natsort
 
 import ui_helpers
 from tou_reader import TouFile
-from components import Component, ComponentsDB
-
+from components import ComponentsDB
 
 # -----------------------------------------------------------------------------
 
@@ -125,8 +125,9 @@ class TouScanner(customtkinter.CTkToplevel):
                     defaultextension = ".csv"
                 )
             if file:
-                components_keys_sorted = list(self.components_dict)
-                components_keys_sorted.sort()
+                # sort naturally: https://pypi.org/project/natsort/
+                components_keys_sorted = natsort.natsorted(list(self.components_dict))
+
                 for component_key in components_keys_sorted:
                     components_str = ""
                     for cmp_name in self.components_dict[component_key]:
