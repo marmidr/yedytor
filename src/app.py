@@ -113,7 +113,7 @@ class Project:
             log_f("PnP2: {} rows x {} cols".format(pnp2_grid.nrows, pnp2_grid.ncols))
 
             # merge
-            if pnp2_grid.ncols != proj.pnp_grid.ncols:
+            if pnp2_grid.ncols != glob_proj.pnp_grid.ncols:
                 raise ValueError("PnP has {} columns, but PnP2 has {} columns".format(
                     self.pnp_grid.ncols, pnp2_grid.ncols
                 ))
@@ -124,9 +124,9 @@ class Project:
 # -----------------------------------------------------------------------------
 
 # global instance
-proj = Project()
-components = ComponentsDB()
-config = Config()
+glob_proj = Project()
+glob_components = ComponentsDB()
+glob_config = Config()
 
 # -----------------------------------------------------------------------------
 
@@ -167,7 +167,7 @@ class HomeFrame(customtkinter.CTkFrame):
         self.config.lbl_font = customtkinter.CTkLabel(self.config, text="PnP Editor font size:")
         self.config.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
 
-        self.config.radio_var = tkinter.IntVar(value=config.editor_font_idx)
+        self.config.radio_var = tkinter.IntVar(value=glob_config.editor_font_idx)
         self.config.rb_font0 = customtkinter.CTkRadioButton(self.config, text="12px",
                                                             variable=self.config.radio_var, value=0, command=self.radiobutton_event)
         self.config.rb_font0.grid(row=1, column=0, pady=5, padx=5, sticky="w")
@@ -176,9 +176,9 @@ class HomeFrame(customtkinter.CTkFrame):
         self.config.rb_font1.grid(row=2, column=0, pady=5, padx=5, sticky="w")
 
     def radiobutton_event(self):
-        config.editor_font_idx = self.config.radio_var.get()
+        glob_config.editor_font_idx = self.config.radio_var.get()
         # logging.debug(f"RB event: {config.editor_font_idx}")
-        config.save()
+        glob_config.save()
 
     def clear_previews(self):
         self.var_pnp.set("")
@@ -216,15 +216,15 @@ class HomeFrame(customtkinter.CTkFrame):
         if len(pnp_paths) and os.path.isfile(pnp_paths[0]):
             try:
                 # reset entire project
-                global proj
-                sep_backup = proj.pnp_separator
-                proj = Project()
+                global glob_proj
+                sep_backup = glob_proj.pnp_separator
+                glob_proj = Project()
 
-                proj.pnp_separator = sep_backup
-                proj.pnp_path = pnp_paths[0]
-                proj.pnp2_path = pnp_paths[1] if len(pnp_paths) > 1 else ""
-                self.var_pnp.set(proj.pnp_path)
-                self.var_pnp2.set(proj.pnp2_path)
+                glob_proj.pnp_separator = sep_backup
+                glob_proj.pnp_path = pnp_paths[0]
+                glob_proj.pnp2_path = pnp_paths[1] if len(pnp_paths) > 1 else ""
+                self.var_pnp.set(glob_proj.pnp_path)
+                self.var_pnp2.set(glob_proj.pnp2_path)
 
                 self.activate_csv_separator()
             except Exception as e:
@@ -234,7 +234,7 @@ class HomeFrame(customtkinter.CTkFrame):
                 logging.error(f"Cannot access the file '{pnp_paths[0]}'")
 
     def activate_csv_separator(self):
-        pnp_fname = proj.pnp_path.lower()
+        pnp_fname = glob_proj.pnp_path.lower()
         if pnp_fname.endswith("xls") or pnp_fname.endswith("xlsx") or pnp_fname.endswith("ods"):
             self.pnp_config.opt_separator.configure(state=tkinter.DISABLED)
         else:
@@ -273,12 +273,12 @@ class PnPView(customtkinter.CTkFrame):
         if path2 != "" and not os.path.isfile(path2):
             raise FileNotFoundError(f"File '{path2}' does not exists")
 
-        proj.load_from_file(path, path2)
-        pnp_txt_grid = proj.pnp_grid.format_grid(proj.pnp_first_row)
+        glob_proj.load_from_file(path, path2)
+        pnp_txt_grid = glob_proj.pnp_grid.format_grid(glob_proj.pnp_first_row)
         self.textbox.insert("0.0", pnp_txt_grid)
-        proj.pnp_grid_dirty = False
+        glob_proj.pnp_grid_dirty = False
         # refresh editor (if columns were selected)
-        if proj.pnp_footprint_col > 0 or proj.pnp_comment_col > 0:
+        if glob_proj.pnp_footprint_col > 0 or glob_proj.pnp_comment_col > 0:
             self.pnp_editor.load()
 
     def clear_preview(self):
@@ -307,7 +307,7 @@ class PnPConfig(customtkinter.CTkFrame):
         lbl_separator = customtkinter.CTkLabel(self, text="CSV\nSeparator:")
         lbl_separator.grid(row=0, column=0, pady=5, padx=5, sticky="")
 
-        self.opt_separator_var = customtkinter.StringVar(value=proj.pnp_separator)
+        self.opt_separator_var = customtkinter.StringVar(value=glob_proj.pnp_separator)
         self.opt_separator = customtkinter.CTkOptionMenu(self, values=Project.get_separator_names(),
                                                     command=self.opt_separator_event,
                                                     variable=self.opt_separator_var)
@@ -345,14 +345,14 @@ class PnPConfig(customtkinter.CTkFrame):
 
     def opt_separator_event(self, new_sep: str):
         logging.info(f"  PnP separator: {new_sep}")
-        proj.pnp_separator = new_sep
+        glob_proj.pnp_separator = new_sep
         self.button_load_event()
 
     def var_first_row_event(self, sv: customtkinter.StringVar):
         new_first_row = sv.get().strip()
         try:
-            proj.pnp_first_row = int(new_first_row) - 1
-            logging.info(f"  PnP 1st row: {proj.pnp_first_row+1}")
+            glob_proj.pnp_first_row = int(new_first_row) - 1
+            logging.info(f"  PnP 1st row: {glob_proj.pnp_first_row+1}")
             self.button_load_event()
         except Exception as e:
             logging.error(f"  Invalid row number: {e}")
@@ -360,18 +360,18 @@ class PnPConfig(customtkinter.CTkFrame):
     def button_load_event(self):
         logging.debug("Load PnP...")
         try:
-            self.pnp_view.load_pnp(proj.pnp_path, proj.pnp2_path)
+            self.pnp_view.load_pnp(glob_proj.pnp_path, glob_proj.pnp2_path)
             self.btn_columns.configure(state=tkinter.NORMAL)
         except Exception as e:
             logging.error(f"Cannot load PnP: {e}")
 
     def update_lbl_columns(self):
-        self.lbl_columns.configure(text=f"COLUMNS:\n• Footprint: {proj.pnp_footprint_col}\n• Comment: {proj.pnp_comment_col}")
+        self.lbl_columns.configure(text=f"COLUMNS:\n• Footprint: {glob_proj.pnp_footprint_col}\n• Comment: {glob_proj.pnp_comment_col}")
 
     def button_columns_event(self):
         logging.debug("Select PnP columns...")
-        if proj.pnp_grid:
-            columns = list.copy(proj.pnp_grid.rows_raw()[proj.pnp_first_row])
+        if glob_proj.pnp_grid:
+            columns = list.copy(glob_proj.pnp_grid.rows_raw()[glob_proj.pnp_first_row])
         else:
             columns = ["..."]
 
@@ -381,9 +381,9 @@ class PnPConfig(customtkinter.CTkFrame):
 
     def column_selector_callback(self, result: ColumnsSelectorResult):
         logging.debug(f"Selected PnP columns: ftprnt={result.footprint_col}, cmnt={result.comment_col}")
-        proj.pnp_footprint_col = result.footprint_col
-        proj.pnp_comment_col = result.comment_col
-        proj.pnp_has_column_headers = result.has_column_headers
+        glob_proj.pnp_footprint_col = result.footprint_col
+        glob_proj.pnp_comment_col = result.comment_col
+        glob_proj.pnp_has_column_headers = result.has_column_headers
         self.update_lbl_columns()
         self.btn_edit.configure(state=tkinter.NORMAL)
 
@@ -440,7 +440,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
         if not app is None:
             # apply font to ALL application combobox list
-            app.option_add('*TCombobox*Listbox.font', self.fonts[config.editor_font_idx][0])
+            app.option_add('*TCombobox*Listbox.font', self.fonts[glob_config.editor_font_idx][0])
             app.option_add('*TCombobox*Listbox.background', 'LightBlue')
 
     def load(self):
@@ -453,29 +453,29 @@ class PnPEditor(customtkinter.CTkFrame):
         self.focused_idx = None
 
         # if we are here, user already selected the PnP file first row
-        proj.pnp_grid.firstrow = max(0, proj.pnp_first_row)
-        proj.pnp_grid.firstrow += 1 if proj.pnp_has_column_headers else 0
+        glob_proj.pnp_grid.firstrow = max(0, glob_proj.pnp_first_row)
+        glob_proj.pnp_grid.firstrow += 1 if glob_proj.pnp_has_column_headers else 0
 
-        if (not proj.pnp_grid) or (proj.pnp_grid.nrows == 0):
+        if (not glob_proj.pnp_grid) or (glob_proj.pnp_grid.nrows == 0):
             logging.warning("PnP file not loaded")
         else:
             if not self.check_selected_columns():
                 logging.warning("Select proper Footprint and Comment columns before editing")
             else:
-                self.components_all = components.items_visible()
+                self.components_all = glob_components.items_visible()
                 # find the max comment width
                 footprint_max_w = 0
 
-                for row in proj.pnp_grid.rows():
-                    footprint_max_w = max(footprint_max_w, len(row[proj.pnp_footprint_col]))
+                for row in glob_proj.pnp_grid.rows():
+                    footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_footprint_col]))
 
-                for idx, row in enumerate(proj.pnp_grid.rows()):
-                    entry_pnp = tkinter.Entry(self.scrollableframe, font=self.fonts[config.editor_font_idx][0])
+                for idx, row in enumerate(glob_proj.pnp_grid.rows()):
+                    entry_pnp = tkinter.Entry(self.scrollableframe, font=self.fonts[glob_config.editor_font_idx][0])
                     entry_pnp.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
                     entry_txt = "{idx:03} | {ftprint:{fprint_w}} | {cmnt} ".format(
                         idx=idx+1,
-                        ftprint=row[proj.pnp_footprint_col], fprint_w=footprint_max_w,
-                        cmnt=row[proj.pnp_comment_col])
+                        ftprint=row[glob_proj.pnp_footprint_col], fprint_w=footprint_max_w,
+                        cmnt=row[glob_proj.pnp_comment_col])
                     ui_helpers.entry_set_text(entry_pnp, entry_txt)
                     self.entry_list.append(entry_pnp)
                     # entry_pnp.configure(state=tkinter.DISABLED)
@@ -486,7 +486,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
                     # https://www.pythontutorial.net/tkinter/tkinter-combobox/
-                    cbx_component = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all, font=self.fonts[config.editor_font_idx][0])
+                    cbx_component = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all, font=self.fonts[glob_config.editor_font_idx][0])
                     cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
                     cbx_component.bind('<<ComboboxSelected>>', self.combobox_selected)
                     # combo_footprint.bind('<Key>', self.combobox_key)
@@ -494,7 +494,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.bind("<MouseWheel>", self.combobox_wheel)
                     cbx_component.bind("<FocusIn>", self.combobox_focus_in)
                     self.cbx_component_list.append(cbx_component)
-                    self.try_select_component(cbx_component, lbl_marker, row[proj.pnp_footprint_col], row[proj.pnp_comment_col])
+                    self.try_select_component(cbx_component, lbl_marker, row[glob_proj.pnp_footprint_col], row[glob_proj.pnp_comment_col])
 
                 self.scrollableframe.grid_columnconfigure(0, weight=2)
                 self.scrollableframe.grid_columnconfigure(2, weight=1)
@@ -518,7 +518,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 ftprint_prefix = ftprint_prefix[0]
                 filter = ftprint_prefix + " " + cmnt
                 # assign a filtered list of components
-                filtered_components = components.items_filtered(filter)
+                filtered_components = glob_components.items_filtered(filter)
                 cbx.configure(values=filtered_components)
                 # set value to the filter
                 cbx.set(filter.lower())
@@ -530,8 +530,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     lbl.config(background=self.CL_NOMATCH)
 
     def check_selected_columns(self, ) -> bool:
-        return proj.pnp_footprint_col < proj.pnp_grid.ncols \
-            and proj.pnp_comment_col < proj.pnp_grid.ncols
+        return glob_proj.pnp_footprint_col < glob_proj.pnp_grid.ncols \
+            and glob_proj.pnp_comment_col < glob_proj.pnp_grid.ncols
 
     def combobox_selected(self, event):
         selected_component = event.widget.get()
@@ -539,11 +539,11 @@ class PnPEditor(customtkinter.CTkFrame):
         try:
             # get the selection details:
             selected_idx = self.cbx_component_list.index(event.widget)
-            comment = proj.pnp_grid.rows()[selected_idx][proj.pnp_comment_col]
-            ftprint = proj.pnp_grid.rows()[selected_idx][proj.pnp_footprint_col]
+            comment = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_comment_col]
+            ftprint = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_footprint_col]
 
             # scan all items and if comment:footprint matches -> apply
-            for i, row in enumerate(proj.pnp_grid.rows()):
+            for i, row in enumerate(glob_proj.pnp_grid.rows()):
                 if i == selected_idx:
                     # add marker that this is a final value
                     self.lbl_marker_list[i].config(background=self.CL_MAN_SEL)
@@ -552,7 +552,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 # if already selected, skip this item
                 if marker_bg == self.CL_MAN_SEL:
                     continue
-                if row[proj.pnp_comment_col] == comment and row[proj.pnp_footprint_col] == ftprint:
+                if row[glob_proj.pnp_comment_col] == comment and row[glob_proj.pnp_footprint_col] == ftprint:
                     # found: select the same component
                     logging.debug(f"Applying '{selected_component}' to item #{i}")
                     self.cbx_component_list[i].set(selected_component)
@@ -570,7 +570,7 @@ class PnPEditor(customtkinter.CTkFrame):
     def combobox_return(self, event):
         filter: str = event.widget.get().strip()
         if len(filter) > 2:
-            components_filtered = components.items_filtered(filter)
+            components_filtered = glob_components.items_filtered(filter)
             logging.debug(f"Apply filter '{filter}' -> {len(components_filtered)} matching")
             event.widget.configure(values=components_filtered)
 
@@ -604,13 +604,13 @@ class PnPEditor(customtkinter.CTkFrame):
         try:
             # restore normal font on previous item
             if not self.focused_idx is None and self.focused_idx < len(self.entry_list):
-                self.entry_list[self.focused_idx].config(font=self.fonts[config.editor_font_idx][0])
-                self.cbx_component_list[self.focused_idx].config(font=self.fonts[config.editor_font_idx][0])
+                self.entry_list[self.focused_idx].config(font=self.fonts[glob_config.editor_font_idx][0])
+                self.cbx_component_list[self.focused_idx].config(font=self.fonts[glob_config.editor_font_idx][0])
 
             # set bold font in new item
             self.focused_idx = self.cbx_component_list.index(event.widget)
-            self.entry_list[self.focused_idx].config(font=self.fonts[config.editor_font_idx][1])
-            self.cbx_component_list[self.focused_idx].config(font=self.fonts[config.editor_font_idx][1])
+            self.entry_list[self.focused_idx].config(font=self.fonts[glob_config.editor_font_idx][1])
+            self.cbx_component_list[self.focused_idx].config(font=self.fonts[glob_config.editor_font_idx][1])
         except Exception as e:
             logging.debug(f"focus_in: {e}")
 
@@ -631,10 +631,10 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def save_pnp_to_new_csv_file(self):
         # TODO: support for two separate files
-        csv_path = os.path.splitext(proj.pnp_path)[0]
+        csv_path = os.path.splitext(glob_proj.pnp_path)[0]
         csv_path += "_edited.csv"
         with open(csv_path, "w") as f:
-            for i, row in enumerate(proj.pnp_grid.rows()):
+            for i, row in enumerate(glob_proj.pnp_grid.rows()):
                 row_str = ";".join([f'"{item}"' for item in row])
                 sel_component = self.cbx_component_list[i].get()
                 row_str += f';"{sel_component}"\n'
@@ -683,22 +683,22 @@ class ComponentsInfo(customtkinter.CTkFrame):
 
             if not os.path.isdir(db_directory):
                 os.mkdir(db_directory)
-            global components
-            new_components.copy_attributes(components.items_all())
+            global glob_components
+            new_components.copy_attributes(glob_components.items_all())
             new_components.save_new(db_directory)
-            components = new_components
+            glob_components = new_components
             self.update_components_info()
 
     def update_components_info(self):
-        global components
-        count = components.count_visible()
-        hidden = components.count_hidden()
+        global glob_components
+        count = glob_components.count_visible()
+        hidden = glob_components.count_hidden()
 
         self.database_summary_html = ''\
             '<h6>Components database</h6>'\
             '<pre style="font-family: Consolas, monospace; font-size: 80%">'\
             f'Items:   <span style="color: Blue">{count}</span> (+ {hidden} hidden)\n'\
-            f'Created: <span style="color: Blue">{components.db_date}</span>\n'\
+            f'Created: <span style="color: Blue">{glob_components.db_date}</span>\n'\
             '</pre>'
 
         self.lblhtml_dbsummary.set_html(self.database_summary_html)
@@ -720,8 +720,8 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.mk_components_view()
 
         #
-        global components
-        if not components or len(components.items_all()) == 0:
+        global glob_components
+        if not glob_components or len(glob_components.items_all()) == 0:
             logging.info("DB editor: components DB is empty")
         else:
             self.load_components()
@@ -776,13 +776,13 @@ class ComponentsEditor(customtkinter.CTkFrame):
             self.chkbttns_hidden.append(chkbttn_hidden)
 
     def format_pageno(self) -> str:
-        global components
-        pageno_str = f"{1 + self.components_pageno} / {1 + len(components.items_all()) // self.COMP_PER_PAGE}"
+        global glob_components
+        pageno_str = f"{1 + self.components_pageno} / {1 + len(glob_components.items_all()) // self.COMP_PER_PAGE}"
         return pageno_str
 
     def load_components(self):
-        global components
-        components_subrange = components.items_all()[self.components_pageno * self.COMP_PER_PAGE:]
+        global glob_components
+        components_subrange = glob_components.items_all()[self.components_pageno * self.COMP_PER_PAGE:]
 
         for idx_on_page, component in enumerate(components_subrange):
             if idx_on_page == self.COMP_PER_PAGE:
@@ -803,7 +803,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def store_checkbox_selections(self):
-        components_subrange = components.items_all()[self.components_pageno * self.COMP_PER_PAGE:]
+        components_subrange = glob_components.items_all()[self.components_pageno * self.COMP_PER_PAGE:]
         for idx_on_page, component in enumerate(components_subrange):
             if idx_on_page == self.COMP_PER_PAGE:
                 break
@@ -819,7 +819,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
     def button_next_event(self):
         logging.debug("next page")
-        if self.components_pageno < len(components.items_all()) // self.COMP_PER_PAGE:
+        if self.components_pageno < len(glob_components.items_all()) // self.COMP_PER_PAGE:
             self.store_checkbox_selections()
             self.components_pageno += 1
             self.load_components()
@@ -828,7 +828,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
     def button_save_event(self):
         logging.debug("Save DB")
         self.store_checkbox_selections()
-        components.save_changes()
+        glob_components.save_changes()
         self.btn_save.configure(state=tkinter.DISABLED)
         self.components_info.update_components_info()
 
@@ -865,13 +865,13 @@ class CtkApp(customtkinter.CTk):
 
         #
         try:
-            global components
-            components = ComponentsDB()
+            global glob_components
+            glob_components = ComponentsDB()
             db_directory = get_db_directory()
             if os.path.isdir(db_directory):
-                components.load(db_directory)
-                logging.info(f"  Date: {components.db_date}")
-                logging.info(f"  Items: {len(components.items_all())}")
+                glob_components.load(db_directory)
+                logging.info(f"  Date: {glob_components.db_date}")
+                logging.info(f"  Items: {len(glob_components.items_all())}")
             else:
                 logging.warning(f"DB folder not found at {db_directory}")
         except Exception as e:
