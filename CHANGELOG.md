@@ -6,6 +6,9 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
 * Added
   * in case of the output file encoding exception, saving the output will continue with the remaining rows
+  * history:
+    * keeps the last opened PnP file
+    * keeps the Tou files folder
 * Changed
   * updated README and screenshots
 * Deprecated

@@ -9,6 +9,7 @@ import natsort
 import ui_helpers
 from tou_reader import TouFile
 from components import ComponentsDB
+from config import Config
 
 # -----------------------------------------------------------------------------
 
@@ -98,6 +99,12 @@ class TouScanner(customtkinter.CTkToplevel):
         # enable "always-on-top" for this popup window
         self.attributes('-topmost', True)
 
+        #
+        tou_folder = Config.instance().tou_directory_path
+        if os.path.isdir(tou_folder):
+            self.btn_scan.configure(state=tkinter.NORMAL)
+            ui_helpers.entry_set_text(self.entry_tou_folder, tou_folder)
+
     def button_ok_event(self):
         logging.debug("Ok")
 
@@ -106,12 +113,12 @@ class TouScanner(customtkinter.CTkToplevel):
             components = ComponentsDB(components_dict=self.components_dict)
             self.callback("o", components)
         else:
-            self.callback("c")
+            self.callback("c", None)
         self.destroy()
 
     def button_cancel_event(self):
         logging.debug("Cancel")
-        self.callback("c")
+        self.callback("c", None)
         self.destroy()
 
     def btn_savecomponents_event(self):
@@ -139,7 +146,6 @@ class TouScanner(customtkinter.CTkToplevel):
 
     def button_browse_event(self):
         # https://docs.python.org/3/library/dialog.html
-        # TODO: get the initial dir from the app settings
         self.attributes('-topmost', False)
         tou_folder = tkinter.filedialog.askdirectory(
             title="Select Yamaha *.Tou files folder",
@@ -150,6 +156,8 @@ class TouScanner(customtkinter.CTkToplevel):
         logging.info(f"Selected folder: {tou_folder}")
         ui_helpers.entry_set_text(self.entry_tou_folder, tou_folder)
         self.btn_scan.configure(state=tkinter.NORMAL)
+        Config.instance().tou_directory_path = tou_folder
+        Config.instance().save()
 
     def button_scan_event(self):
         self.scan_folder()
@@ -183,7 +191,7 @@ class TouScanner(customtkinter.CTkToplevel):
                     tou_files.append(tou)
                     self.prgrbar_scan.set((i+1) / len(tou_filenames))
                     self.update()
-                    time.sleep(0.01) # TODO: remove
+                    time.sleep(0.01) # for effect only :)
 
                 delta = time.monotonic() - started_at
                 self.btn_ok.configure(state=tkinter.NORMAL)

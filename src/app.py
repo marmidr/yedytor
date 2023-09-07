@@ -7,7 +7,6 @@
 
 import customtkinter
 import tkinter
-from tkinter import tix
 import logging
 import os
 import sys
@@ -126,7 +125,6 @@ class Project:
 # global instance
 glob_proj = Project()
 glob_components = ComponentsDB()
-glob_config = Config()
 
 # -----------------------------------------------------------------------------
 
@@ -144,6 +142,8 @@ class HomeFrame(customtkinter.CTkFrame):
         self.entry_pnp_path = customtkinter.CTkEntry(self, textvariable=self.var_pnp)
         self.entry_pnp_path.grid(row=0, column=1, pady=5, padx=5, columnspan=2, sticky="we")
         self.entry_pnp_path.configure(state=tkinter.DISABLED)
+        # restore last path from config
+        self.var_pnp.set(Config.instance().recent_pnp_path)
 
         btn_browse = customtkinter.CTkButton(self, text="Browse...", command=self.button_browse_event)
         btn_browse.grid(row=0, column=3, pady=5, padx=5, sticky="e")
@@ -167,7 +167,7 @@ class HomeFrame(customtkinter.CTkFrame):
         self.config.lbl_font = customtkinter.CTkLabel(self.config, text="PnP Editor font size:")
         self.config.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
 
-        self.config.radio_var = tkinter.IntVar(value=glob_config.editor_font_idx)
+        self.config.radio_var = tkinter.IntVar(value=Config.instance().editor_font_idx)
         self.config.rb_font0 = customtkinter.CTkRadioButton(self.config, text="12px",
                                                             variable=self.config.radio_var, value=0, command=self.radiobutton_event)
         self.config.rb_font0.grid(row=1, column=0, pady=5, padx=5, sticky="w")
@@ -176,9 +176,9 @@ class HomeFrame(customtkinter.CTkFrame):
         self.config.rb_font1.grid(row=2, column=0, pady=5, padx=5, sticky="w")
 
     def radiobutton_event(self):
-        glob_config.editor_font_idx = self.config.radio_var.get()
+        Config.instance().editor_font_idx = self.config.radio_var.get()
         # logging.debug(f"RB event: {config.editor_font_idx}")
-        glob_config.save()
+        Config.instance().save()
 
     def clear_previews(self):
         self.var_pnp.set("")
@@ -190,7 +190,6 @@ class HomeFrame(customtkinter.CTkFrame):
         self.clear_previews()
 
         # https://docs.python.org/3/library/dialog.html
-        # TODO: get the initial dir from the proj settings
         pnp_paths = tkinter.filedialog.askopenfilenames(
             title="Select PnP file(s)",
             initialdir=None,
@@ -213,6 +212,9 @@ class HomeFrame(customtkinter.CTkFrame):
                             callback=lambda btn: btn)
                 return
 
+        self.process_input_files(pnp_paths)
+
+    def process_input_files(self, pnp_paths: list[str]):
         if len(pnp_paths) and os.path.isfile(pnp_paths[0]):
             try:
                 # reset entire project
@@ -229,6 +231,9 @@ class HomeFrame(customtkinter.CTkFrame):
                 self.activate_csv_separator()
             except Exception as e:
                 logging.error(f"Cannot open file: {e}")
+
+            Config.instance().recent_pnp_path = pnp_paths[0]
+            Config.instance().save()
         else:
             if len(pnp_paths):
                 logging.error(f"Cannot access the file '{pnp_paths[0]}'")
@@ -440,7 +445,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
         if not app is None:
             # apply font to ALL application combobox list
-            app.option_add('*TCombobox*Listbox.font', self.fonts[glob_config.editor_font_idx][0])
+            app.option_add('*TCombobox*Listbox.font', self.fonts[Config.instance().editor_font_idx][0])
             app.option_add('*TCombobox*Listbox.background', 'LightBlue')
 
     def load(self):
@@ -470,7 +475,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_footprint_col]))
 
                 for idx, row in enumerate(glob_proj.pnp_grid.rows()):
-                    entry_pnp = tkinter.Entry(self.scrollableframe, font=self.fonts[glob_config.editor_font_idx][0])
+                    entry_pnp = tkinter.Entry(self.scrollableframe, font=self.fonts[Config.instance().editor_font_idx][0])
                     entry_pnp.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
                     entry_txt = "{idx:03} | {ftprint:{fprint_w}} | {cmnt} ".format(
                         idx=idx+1,
@@ -486,7 +491,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
                     # https://www.pythontutorial.net/tkinter/tkinter-combobox/
-                    cbx_component = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all, font=self.fonts[glob_config.editor_font_idx][0])
+                    cbx_component = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all, font=self.fonts[Config.instance().editor_font_idx][0])
                     cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
                     cbx_component.bind('<<ComboboxSelected>>', self.combobox_selected)
                     # combo_footprint.bind('<Key>', self.combobox_key)
@@ -607,13 +612,13 @@ class PnPEditor(customtkinter.CTkFrame):
         try:
             # restore normal font on previous item
             if not self.focused_idx is None and self.focused_idx < len(self.entry_list):
-                self.entry_list[self.focused_idx].config(font=self.fonts[glob_config.editor_font_idx][0])
-                self.cbx_component_list[self.focused_idx].config(font=self.fonts[glob_config.editor_font_idx][0])
+                self.entry_list[self.focused_idx].config(font=self.fonts[Config.instance().editor_font_idx][0])
+                self.cbx_component_list[self.focused_idx].config(font=self.fonts[Config.instance().editor_font_idx][0])
 
             # set bold font in new item
             self.focused_idx = self.cbx_component_list.index(event.widget)
-            self.entry_list[self.focused_idx].config(font=self.fonts[glob_config.editor_font_idx][1])
-            self.cbx_component_list[self.focused_idx].config(font=self.fonts[glob_config.editor_font_idx][1])
+            self.entry_list[self.focused_idx].config(font=self.fonts[Config.instance().editor_font_idx][1])
+            self.cbx_component_list[self.focused_idx].config(font=self.fonts[Config.instance().editor_font_idx][1])
         except Exception as e:
             logging.debug(f"focus_in: {e}")
 
@@ -919,6 +924,9 @@ class CtkApp(customtkinter.CTk):
         #
         tab_preview.grid_columnconfigure(0, weight=1)
         tab_preview.grid_rowconfigure(0, weight=1)
+
+        #
+        self.home_frame.process_input_files([Config.instance().recent_pnp_path])
 
         # UI ready
         logging.info('Application ready.')
