@@ -2,6 +2,17 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.4.2 - 2023-09-07
+
+* Added
+  * in case of the output file encoding exception, saving the output will continue with the remaining rows
+* Changed
+  * updated README and screenshots
+* Deprecated
+* Removed
+* Fixed
+  * encoding problem when writing output CSV file
+
 ## 0.4.1 - 2023-09-05
 
 * Added

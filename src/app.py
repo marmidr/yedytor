@@ -28,7 +28,7 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.4.1"
+APP_NAME = "Yedytor v0.4.2"
 
 # -----------------------------------------------------------------------------
 
@@ -633,16 +633,27 @@ class PnPEditor(customtkinter.CTkFrame):
             self.save_pnp_to_new_csv_file()
 
     def save_pnp_to_new_csv_file(self):
-        # TODO: support for two separate files
         csv_path = os.path.splitext(glob_proj.pnp_path)[0]
         csv_path += "_edited.csv"
-        with open(csv_path, "w") as f:
+        write_errors = 0
+
+        with open(csv_path, "w", encoding="UTF-8") as f:
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
                 row_str = ";".join([f'"{item}"' for item in row])
                 sel_component = self.cbx_component_list[i].get()
                 row_str += f';"{sel_component}"\n'
-                f.write(row_str)
-        logging.info(f"PnP saved to {csv_path}")
+                try:
+                    f.write(row_str)
+                except UnicodeEncodeError as e:
+                    logging.error(f"Encoding error in: {i}. {row_str} -> {e}")
+                    write_errors += 1
+        if write_errors == 0:
+            logging.info(f"PnP saved to {csv_path}")
+        else:
+            logging.warning(f"PnP saved to {csv_path} with {write_errors} errors")
+            mb = MessageBox(dialog_type="o",
+                            message=f"Encoding errors occured!\n\n{write_errors} items not saved",
+                            callback=lambda btn: btn)
 
     def update_selected_status(self):
         n_selected = self.count_selected()

@@ -131,14 +131,14 @@ class ComponentsDB:
         """Returns all components"""
         return self.__items
 
-    def items_filtered(self, needle: str, visible: bool=True) -> list[Component]:
+    def items_filtered(self, needle: str, ignore_hidden: bool=True) -> list[Component]:
         """Returns components containing the needle"""
         """Needle: space-separated keywords: "603", "603 2k2", ..."""
         needle = '*' + '*'.join(needle.split(' ')) + '*'
         result = []
         for item in self.__items:
-            if fnmatch.fnmatch(item.name, needle):
-                if (not visible) or (visible and not item.hidden):
+            if (not ignore_hidden) or (ignore_hidden and not item.hidden):
+                if fnmatch.fnmatch(item.name, needle):
                     result.append(item.name)
         return result
 
