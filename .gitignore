@@ -11,3 +11,4 @@ examples/tou*/*.csv
 __pycache__/
 htmlcov/
 db/
+build/

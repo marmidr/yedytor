@@ -27,7 +27,8 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.4.2"
+VERSION = "0.4.2"
+APP_NAME = f"Yedytor v{VERSION}"
 
 # -----------------------------------------------------------------------------
 
@@ -642,7 +643,7 @@ class PnPEditor(customtkinter.CTkFrame):
         csv_path += "_edited.csv"
         write_errors = 0
 
-        with open(csv_path, "w", encoding="UTF-8") as f:
+        with open(csv_path, "w", encoding="utf-8") as f:
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
                 row_str = ";".join([f'"{item}"' for item in row])
                 sel_component = self.cbx_component_list[i].get()
@@ -938,7 +939,7 @@ class CtkApp(customtkinter.CTk):
 
 # -----------------------------------------------------------------------------
 
-if __name__ == "__main__":
+def main():
     # logger config with dimmed time
     # https://docs.python.org/3/howto/logging.html
     logging.basicConfig(format='\033[30m%(asctime)s\033[39m %(levelname)s: %(message)s',
@@ -973,3 +974,8 @@ if __name__ == "__main__":
 
     ctkapp = CtkApp()
     ctkapp.mainloop()
+
+# -----------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    main()

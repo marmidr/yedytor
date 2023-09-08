@@ -48,13 +48,13 @@ pip install xlrd openpyxl odfpy customtkinter requests pillow natsort
 From PowerShell:
 
 ```ps1
-python.exe src/app.py
+python.exe yedytor/app.py
 ```
 
 To get colored logs, use Linux-like terminal, eg. [MSys2](msys2.org/), but still using the Windows installation of the Python:
 
 ```sh
-$ /c/Program\ Files/Python39/python.exe src/app.py
+$ /c/Program\ Files/Python39/python.exe yedytor/app.py
 ```
 
 ![msys2con](doc/msys2-console.png)
