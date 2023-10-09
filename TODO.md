@@ -20,6 +20,7 @@
     [x] po ręcznym wyborze komponentu, zastosować do wszystkich pasujących
     [x] kolorować brak wyboru/wybrany automatycznie/ręcznie/filtr
     [x] lista komponentów: natural sorting
+    [x] zamiast licznika, podawać identyfikator z pierwszej kolumny
 [x] zapis nowego PnP jako CSV
 [x] katalog z Tou - trzymać ścieżkę w historii i uzupełniać pole
 [x] okno podglądu i edycji bazy komponentów

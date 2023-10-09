@@ -22,12 +22,12 @@ import tou_scanner
 from column_selector import ColumnsSelector, ColumnsSelectorResult
 from msg_box import MessageBox
 from tkhtmlview import HTMLLabel
-from components import ComponentsDB
+from components import Component, ComponentsDB
 from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.4.2"
+APP_NAME = "Yedytor v0.4.3"
 
 # -----------------------------------------------------------------------------
 
@@ -470,15 +470,17 @@ class PnPEditor(customtkinter.CTkFrame):
                 self.components_all = glob_components.items_visible()
                 # find the max comment width
                 footprint_max_w = 0
+                id_max_w = 0
 
                 for row in glob_proj.pnp_grid.rows():
                     footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_footprint_col]))
+                    id_max_w = max(id_max_w, len(row[0]))
 
                 for idx, row in enumerate(glob_proj.pnp_grid.rows()):
                     entry_pnp = tkinter.Entry(self.scrollableframe, font=self.fonts[Config.instance().editor_font_idx][0])
                     entry_pnp.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
-                    entry_txt = "{idx:03} | {ftprint:{fprint_w}} | {cmnt} ".format(
-                        idx=idx+1,
+                    entry_txt = "{id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
+                        id=row[0], id_w=id_max_w,
                         ftprint=row[glob_proj.pnp_footprint_col], fprint_w=footprint_max_w,
                         cmnt=row[glob_proj.pnp_comment_col])
                     ui_helpers.entry_set_text(entry_pnp, entry_txt)
@@ -523,11 +525,11 @@ class PnPEditor(customtkinter.CTkFrame):
                 ftprint_prefix = ftprint_prefix[0]
                 filter = ftprint_prefix + " " + cmnt
                 # assign a filtered list of components
-                filtered_components = glob_components.items_filtered(filter)
-                cbx.configure(values=filtered_components)
+                filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
+                cbx.configure(values=filtered_comp_names)
                 # set value to the filter
                 cbx.set(filter.lower())
-                if len(filtered_components):
+                if len(filtered_comp_names):
                     # mark filter
                     lbl.config(background=self.CL_FILTER)
                 else:
@@ -578,9 +580,9 @@ class PnPEditor(customtkinter.CTkFrame):
     def combobox_return(self, event):
         filter: str = event.widget.get().strip()
         if len(filter) > 2:
-            components_filtered = glob_components.items_filtered(filter)
-            logging.debug(f"Apply filter '{filter}' -> {len(components_filtered)} matching")
-            event.widget.configure(values=components_filtered)
+            filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
+            logging.debug(f"Apply filter '{filter}' -> {len(filtered_comp_names)} matching")
+            event.widget.configure(values=filtered_comp_names)
 
             selected_idx = self.cbx_component_list.index(event.widget)
             try:
@@ -588,7 +590,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 # filter found on component list: add marker that this is a final value
                 self.lbl_marker_list[selected_idx].config(background=self.CL_MAN_SEL)
             except:
-                if len(components_filtered):
+                if len(filtered_comp_names):
                     # mark this is a filter, not value
                     self.lbl_marker_list[selected_idx].config(background=self.CL_FILTER)
                 else:
@@ -730,6 +732,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
         self.components_pageno = 0
+        self.component_filter = ""
 
         self.components_info = ComponentsInfo(self)
         self.components_info.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
@@ -749,23 +752,38 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.frame_buttons.grid(row=2, column=0, pady=5, padx=5, sticky="we")
         self.frame_buttons.grid_columnconfigure(3, weight=1)
 
+        self.entry_filter_var = customtkinter.StringVar(value="")
+        self.entry_filter_var.trace_add("write", lambda n, i, m, sv=self.entry_filter_var: self.var_filter_event(sv))
+        self.entry_filter = customtkinter.CTkEntry(self.frame_buttons, width=200, placeholder_text="filter", textvariable=self.entry_filter_var)
+        self.entry_filter.grid(row=0, column=0, padx=5, pady=5, sticky="we")
+
         # change components page, view contains up to self.COMP_PER_PAGE items
         self.btn_page_prev = customtkinter.CTkButton(self.frame_buttons, text="<", command=self.button_prev_event)
-        self.btn_page_prev.grid(row=0, column=0, pady=5, padx=5, sticky="w")
+        self.btn_page_prev.grid(row=0, column=1, pady=5, padx=5, sticky="w")
 
         self.lbl_pageno = customtkinter.CTkLabel(self.frame_buttons, text=self.format_pageno())
-        self.lbl_pageno.grid(row=0, column=1, pady=5, padx=5, sticky="w")
+        self.lbl_pageno.grid(row=0, column=2, pady=5, padx=5, sticky="w")
 
         self.btn_page_next = customtkinter.CTkButton(self.frame_buttons, text=">", command=self.button_next_event)
-        self.btn_page_next.grid(row=0, column=2, pady=5, padx=5, sticky="w")
+        self.btn_page_next.grid(row=0, column=3, pady=5, padx=5, sticky="w")
 
         #
         sep_v = tkinter.ttk.Separator(self.frame_buttons, orient='vertical')
-        sep_v.grid(row=0, column=3, pady=2, padx=5, sticky="ns")
+        sep_v.grid(row=0, column=4, pady=2, padx=5, sticky="ns")
 
         # save DB modifications to file
         self.btn_save = customtkinter.CTkButton(self.frame_buttons, text="Save DB", command=self.button_save_event)
-        self.btn_save.grid(row=0, column=4, pady=5, padx=5, sticky="e")
+        self.btn_save.grid(row=0, column=5, pady=5, padx=5, sticky="e")
+
+    def var_filter_event(self, sv: customtkinter.StringVar):
+        self.component_filter = sv.get().strip()
+        # correct the page index
+        npages = 1 + len(self.get_components()) // self.COMP_PER_PAGE
+        if self.components_pageno >= npages:
+            self.components_pageno = max(0, npages-1)
+        # reload view
+        self.load_components()
+        self.lbl_pageno.configure(text=self.format_pageno())
 
     def mk_components_view(self):
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
@@ -794,14 +812,22 @@ class ComponentsEditor(customtkinter.CTkFrame):
             chkbttn_hidden.grid(row=idx_on_page, column=2, padx=5, pady=1, sticky="w")
             self.chkbttns_hidden.append(chkbttn_hidden)
 
-    def format_pageno(self) -> str:
+    def get_components(self) -> list[Component]:
         global glob_components
-        pageno_str = f"{1 + self.components_pageno} / {1 + len(glob_components.items_all()) // self.COMP_PER_PAGE}"
+        # depending on entered filter, returns filtered or entire list of components
+        if len(self.component_filter):
+            return glob_components.items_filtered(self.component_filter)
+        else:
+            return glob_components.items_all()
+
+    def format_pageno(self) -> str:
+        pageno_str = f"{1 + self.components_pageno} / {1 + len(self.get_components()) // self.COMP_PER_PAGE}"
         return pageno_str
 
     def load_components(self):
-        global glob_components
-        components_subrange = glob_components.items_all()[self.components_pageno * self.COMP_PER_PAGE:]
+        components = self.get_components()
+        logging.debug(f"Components: {len(components)}")
+        components_subrange = components[self.components_pageno * self.COMP_PER_PAGE:]
 
         for idx_on_page, component in enumerate(components_subrange):
             if idx_on_page == self.COMP_PER_PAGE:
@@ -814,15 +840,15 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
         # clear remaining fields
         for i in range(len(components_subrange), self.COMP_PER_PAGE):
-                self.lbls_rowno[i].configure(text="-")
-                ui_helpers.entry_set_text(self.entrys_name[i], "")
-                self.vars_hidden[i].set(False)
+            self.lbls_rowno[i].configure(text="-")
+            ui_helpers.entry_set_text(self.entrys_name[i], "")
+            self.vars_hidden[i].set(False)
 
     def chkbttn_event(self):
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def store_checkbox_selections(self):
-        components_subrange = glob_components.items_all()[self.components_pageno * self.COMP_PER_PAGE:]
+        components_subrange = self.get_components()[self.components_pageno * self.COMP_PER_PAGE:]
         for idx_on_page, component in enumerate(components_subrange):
             if idx_on_page == self.COMP_PER_PAGE:
                 break
@@ -838,7 +864,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
     def button_next_event(self):
         logging.debug("next page")
-        if self.components_pageno < len(glob_components.items_all()) // self.COMP_PER_PAGE:
+        if self.components_pageno < len(self.get_components()) // self.COMP_PER_PAGE:
             self.store_checkbox_selections()
             self.components_pageno += 1
             self.load_components()

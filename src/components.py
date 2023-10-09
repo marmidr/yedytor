@@ -139,7 +139,7 @@ class ComponentsDB:
         for item in self.__items:
             if (not ignore_hidden) or (ignore_hidden and not item.hidden):
                 if fnmatch.fnmatch(item.name, needle):
-                    result.append(item.name)
+                    result.append(item)
         return result
 
     def items_visible(self) -> list[str]:

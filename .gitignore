@@ -3,6 +3,7 @@
 *.coverage
 *dump*
 yedytor.ini
+bookmarks.json
 
 examples/*.py
 examples/*.xls

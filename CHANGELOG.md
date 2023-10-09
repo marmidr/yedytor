@@ -2,6 +2,16 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.4.3 - 2023-10-09
+
+* Added
+  * DB components editor - filter
+* Changed
+  * in PnP editor, show component ID instead of record index
+* Deprecated
+* Removed
+* Fixed
+
 ## 0.4.2 - 2023-09-07
 
 * Added
