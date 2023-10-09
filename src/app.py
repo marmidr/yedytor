@@ -27,7 +27,7 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.4.3"
+APP_NAME = "Yedytor v0.5.0"
 
 # -----------------------------------------------------------------------------
 
@@ -47,10 +47,8 @@ class Project:
         self.pnp_separator = "SPACES"
         self.pnp_grid: text_grid.TextGrid = None
         self.pnp_grid_dirty = False
-        self.pnp_footprint_col = 0
-        self.pnp_comment_col = 0
         self.pnp_first_row = 0
-        self.pnp_has_column_headers = False
+        self.pnp_columns = ColumnsSelectorResult()
 
     def get_name(self) -> str:
         return os.path.basename(self.pnp_path)
@@ -283,7 +281,7 @@ class PnPView(customtkinter.CTkFrame):
         self.textbox.insert("0.0", pnp_txt_grid)
         glob_proj.pnp_grid_dirty = False
         # refresh editor (if columns were selected)
-        if glob_proj.pnp_footprint_col > 0 or glob_proj.pnp_comment_col > 0:
+        if glob_proj.pnp_columns.valid:
             self.pnp_editor.load()
 
     def clear_preview(self):
@@ -371,7 +369,8 @@ class PnPConfig(customtkinter.CTkFrame):
             logging.error(f"Cannot load PnP: {e}")
 
     def update_lbl_columns(self):
-        self.lbl_columns.configure(text=f"COLUMNS:\n• Footprint: {glob_proj.pnp_footprint_col}\n• Comment: {glob_proj.pnp_comment_col}")
+        # self.lbl_columns.configure(text=f"COLUMNS:\n• Footprint: {glob_proj.pnp_columns.footprint_col}\n• Comment: {glob_proj.pnp_columns.comment_col}")
+        pass
 
     def button_columns_event(self):
         logging.debug("Select PnP columns...")
@@ -385,10 +384,9 @@ class PnPConfig(customtkinter.CTkFrame):
         self.column_selector = ColumnsSelector(self, columns=columns, callback=self.column_selector_callback)
 
     def column_selector_callback(self, result: ColumnsSelectorResult):
-        logging.debug(f"Selected PnP columns: ftprnt={result.footprint_col}, cmnt={result.comment_col}")
-        glob_proj.pnp_footprint_col = result.footprint_col
-        glob_proj.pnp_comment_col = result.comment_col
-        glob_proj.pnp_has_column_headers = result.has_column_headers
+        logging.debug(f"Selected PnP columns: {result.tostr()}")
+        glob_proj.pnp_columns = result
+        glob_proj.pnp_columns.valid = True
         self.update_lbl_columns()
         self.btn_edit.configure(state=tkinter.NORMAL)
 
@@ -459,7 +457,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
         # if we are here, user already selected the PnP file first row
         glob_proj.pnp_grid.firstrow = max(0, glob_proj.pnp_first_row)
-        glob_proj.pnp_grid.firstrow += 1 if glob_proj.pnp_has_column_headers else 0
+        glob_proj.pnp_grid.firstrow += 1 if glob_proj.pnp_columns.has_column_headers else 0
 
         if (not glob_proj.pnp_grid) or (glob_proj.pnp_grid.nrows == 0):
             logging.warning("PnP file not loaded")
@@ -473,7 +471,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 id_max_w = 0
 
                 for row in glob_proj.pnp_grid.rows():
-                    footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_footprint_col]))
+                    footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_columns.footprint_col]))
                     id_max_w = max(id_max_w, len(row[0]))
 
                 for idx, row in enumerate(glob_proj.pnp_grid.rows()):
@@ -481,8 +479,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     entry_pnp.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
                     entry_txt = "{id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
                         id=row[0], id_w=id_max_w,
-                        ftprint=row[glob_proj.pnp_footprint_col], fprint_w=footprint_max_w,
-                        cmnt=row[glob_proj.pnp_comment_col])
+                        ftprint=row[glob_proj.pnp_columns.footprint_col], fprint_w=footprint_max_w,
+                        cmnt=row[glob_proj.pnp_columns.comment_col])
                     ui_helpers.entry_set_text(entry_pnp, entry_txt)
                     self.entry_list.append(entry_pnp)
                     # entry_pnp.configure(state=tkinter.DISABLED)
@@ -501,7 +499,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.bind("<MouseWheel>", self.combobox_wheel)
                     cbx_component.bind("<FocusIn>", self.combobox_focus_in)
                     self.cbx_component_list.append(cbx_component)
-                    self.try_select_component(cbx_component, lbl_marker, row[glob_proj.pnp_footprint_col], row[glob_proj.pnp_comment_col])
+                    self.try_select_component(cbx_component, lbl_marker, row[glob_proj.pnp_columns.footprint_col], row[glob_proj.pnp_columns.comment_col])
 
                 self.scrollableframe.grid_columnconfigure(0, weight=2)
                 self.scrollableframe.grid_columnconfigure(2, weight=1)
@@ -540,8 +538,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     lbl.config(background=self.CL_NOMATCH)
 
     def check_selected_columns(self, ) -> bool:
-        return glob_proj.pnp_footprint_col < glob_proj.pnp_grid.ncols \
-            and glob_proj.pnp_comment_col < glob_proj.pnp_grid.ncols
+        return glob_proj.pnp_columns.footprint_col < glob_proj.pnp_grid.ncols \
+            and glob_proj.pnp_columns.comment_col < glob_proj.pnp_grid.ncols
 
     def combobox_selected(self, event):
         selected_component = event.widget.get()
@@ -549,8 +547,8 @@ class PnPEditor(customtkinter.CTkFrame):
         try:
             # get the selection details:
             selected_idx = self.cbx_component_list.index(event.widget)
-            comment = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_comment_col]
-            ftprint = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_footprint_col]
+            comment = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_columns.comment_col]
+            ftprint = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_columns.footprint_col]
 
             # scan all items and if comment:footprint matches -> apply
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
@@ -562,7 +560,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 # if already selected, skip this item
                 if marker_bg == self.CL_MAN_SEL:
                     continue
-                if row[glob_proj.pnp_comment_col] == comment and row[glob_proj.pnp_footprint_col] == ftprint:
+                if row[glob_proj.pnp_columns.comment_col] == comment and row[glob_proj.pnp_columns.footprint_col] == ftprint:
                     # found: select the same component
                     logging.debug(f"Applying '{selected_component}' to item #{i}")
                     self.cbx_component_list[i].set(selected_component)
@@ -646,9 +644,20 @@ class PnPEditor(customtkinter.CTkFrame):
 
         with open(csv_path, "w", encoding="UTF-8") as f:
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
-                row_str = ";".join([f'"{item}"' for item in row])
-                sel_component = self.cbx_component_list[i].get()
-                row_str += f';"{sel_component}"\n'
+                selected_component = self.cbx_component_list[i].get()
+                output_columns = (
+                    selected_component,
+                    row[glob_proj.pnp_columns.id_col],
+                    row[glob_proj.pnp_columns.comment_col],
+                    row[glob_proj.pnp_columns.footprint_col],
+                    row[glob_proj.pnp_columns.xcoord_col],
+                    row[glob_proj.pnp_columns.ycoord_col],
+                    row[glob_proj.pnp_columns.rot_col],
+                    row[glob_proj.pnp_columns.layer_col] if glob_proj.pnp_columns.layer_col else ""
+                )
+
+                row_str = ";".join([f'"{item}"' for item in output_columns]) + "\n"
+
                 try:
                     f.write(row_str)
                 except UnicodeEncodeError as e:

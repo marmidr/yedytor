@@ -2,12 +2,14 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
-## 0.4.3 - 2023-10-09
+## 0.5.0 - 2023-10-09
 
 * Added
   * DB components editor - filter
+  * Columns editor - select all columns required in the output document
 * Changed
   * in PnP editor, show component ID instead of record index
+  * output document is no longer a mirror if input, but a set of user-selected columns
 * Deprecated
 * Removed
 * Fixed
