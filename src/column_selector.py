@@ -15,7 +15,7 @@ class ColumnsSelectorResult:
         self.xcoord_col = ""
         self.ycoord_col = ""
         self.rot_col = ""
-        self.layer_col = ""
+        self.layer_col = "" # may be None
 
     def tostr(self) -> str:
         return f"id={self.id_col}, cmnt={self.comment_col}, ftprnt={self.footprint_col}, x={self.xcoord_col}, y={self.ycoord_col}, rot={self.rot_col}, lr={self.layer_col}"
@@ -175,6 +175,7 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         result.ycoord_col = extract_idx(result.ycoord_col)
         result.rot_col = extract_idx(result.rot_col)
         result.layer_col = extract_idx(result.layer_col) if result.layer_col != "" else None
+        result.valid = True
         #
         self.callback(result)
         self.destroy()

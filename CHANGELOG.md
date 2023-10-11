@@ -2,6 +2,15 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.5.1 - 2023-10-11
+
+* Added
+* Changed
+  * output document: original document columns + yamaha-expected columns
+* Deprecated
+* Removed
+* Fixed
+
 ## 0.5.0 - 2023-10-09
 
 * Added

@@ -27,7 +27,7 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.5.0"
+APP_NAME = "Yedytor v0.5.1"
 
 # -----------------------------------------------------------------------------
 
@@ -386,7 +386,6 @@ class PnPConfig(customtkinter.CTkFrame):
     def column_selector_callback(self, result: ColumnsSelectorResult):
         logging.debug(f"Selected PnP columns: {result.tostr()}")
         glob_proj.pnp_columns = result
-        glob_proj.pnp_columns.valid = True
         self.update_lbl_columns()
         self.btn_edit.configure(state=tkinter.NORMAL)
 
@@ -494,7 +493,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all, font=self.fonts[Config.instance().editor_font_idx][0])
                     cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
                     cbx_component.bind('<<ComboboxSelected>>', self.combobox_selected)
-                    # combo_footprint.bind('<Key>', self.combobox_key)
+                    # cbx_component.bind('<Key>', self.combobox_key)
                     cbx_component.bind("<Return>", self.combobox_return)
                     cbx_component.bind("<MouseWheel>", self.combobox_wheel)
                     cbx_component.bind("<FocusIn>", self.combobox_focus_in)
@@ -645,18 +644,21 @@ class PnPEditor(customtkinter.CTkFrame):
         with open(csv_path, "w", encoding="UTF-8") as f:
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
                 selected_component = self.cbx_component_list[i].get()
-                output_columns = (
+                yamaha_columns = (
                     selected_component,
                     row[glob_proj.pnp_columns.id_col],
                     row[glob_proj.pnp_columns.comment_col],
-                    row[glob_proj.pnp_columns.footprint_col],
                     row[glob_proj.pnp_columns.xcoord_col],
                     row[glob_proj.pnp_columns.ycoord_col],
+                    "",
                     row[glob_proj.pnp_columns.rot_col],
                     row[glob_proj.pnp_columns.layer_col] if glob_proj.pnp_columns.layer_col else ""
                 )
 
-                row_str = ";".join([f'"{item}"' for item in output_columns]) + "\n"
+                # original document content
+                row_str = ";".join([f'"{item}"' for item in row]) + ";"
+                # append new columns in Yamaha-expected order
+                row_str += ";".join([f'"{item}"' for item in yamaha_columns]) + ";\n"
 
                 try:
                     f.write(row_str)
@@ -664,9 +666,9 @@ class PnPEditor(customtkinter.CTkFrame):
                     logging.error(f"Encoding error in: {i}. {row_str} -> {e}")
                     write_errors += 1
         if write_errors == 0:
-            logging.info(f"PnP saved to {csv_path}")
+            logging.info(f"PnP saved to: {csv_path}")
         else:
-            logging.warning(f"PnP saved to {csv_path} with {write_errors} errors")
+            logging.warning(f"PnP saved to: {csv_path} with {write_errors} errors")
             mb = MessageBox(dialog_type="o",
                             message=f"Encoding errors occured!\n\n{write_errors} items not saved",
                             callback=lambda btn: btn)
