@@ -1,6 +1,6 @@
 # Yedytor
 #
-# PnP files editor, using a footprints defined in the Yamaha .Tou files.
+# PnP files editor, using a footprint components defined in the Yamaha .Tou files.
 #
 # (c) 2023 Mariusz Midor
 # https://github.com/marmidr/yedytor
@@ -27,7 +27,7 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.5.1"
+APP_NAME = "Yedytor v0.5.2"
 
 # -----------------------------------------------------------------------------
 
@@ -655,8 +655,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     row[glob_proj.pnp_columns.layer_col] if glob_proj.pnp_columns.layer_col else ""
                 )
 
-                # original document content
-                row_str = ";".join([f'"{item}"' for item in row]) + ";"
+                # original document content + empty column
+                row_str = ";".join([f'"{item}"' for item in row]) + ";;"
                 # append new columns in Yamaha-expected order
                 row_str += ";".join([f'"{item}"' for item in yamaha_columns]) + ";\n"
 

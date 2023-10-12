@@ -2,6 +2,16 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.5.2 - 2023-10-12
+
+* Added
+* Changed
+  * output document: extra empty column between original and added columns
+* Deprecated
+* Removed
+* Fixed
+  * XLS reader does not convert 0603 string to 603 number
+
 ## 0.5.1 - 2023-10-11
 
 * Added

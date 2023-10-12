@@ -22,17 +22,18 @@ def read_xls_sheet(path: str) -> TextGrid:
     for r in range(sheet.nrows):
         row_cells = []
         for c in range(sheet.ncols):
-            cell = sheet.cell_value(r, c)
-            if cell is None:
-                cell = ""
-            elif type(cell) is float or type(cell) is int:
-                if type(cell) is float and int(cell) == float(cell):
+            cellobj = sheet.cell(r, c)
+            cell_val = cellobj.value or ""
+
+            # https://xlrd.readthedocs.io/en/latest/api.html#xlrd.sheet.Cell
+            if cellobj.ctype == xlrd.XL_CELL_NUMBER:
+                if type(cell_val) is float and int(cell_val) == cell_val:
                     # prevent the conversion of '100' to '100.0'
-                    cell = int(cell)
-                cell = repr(cell)
+                    cell_val = int(cell_val)
+                cell_val = repr(cell_val)
             # change multiline cells into single-line
-            cell = cell.replace("\n", " ⏎ ")
-            row_cells.append(cell.strip())
+            cell_val = cell_val.replace("\n", " ⏎ ")
+            row_cells.append(cell_val.strip())
 
         # ignore rows with empty cell 'A'
         if row_cells and row_cells[0] != "":
