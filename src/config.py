@@ -61,3 +61,12 @@ class Config:
     @tou_directory_path.setter
     def tou_directory_path(self, path: str):
         self.get_section("common")["tou_directory_path"] = path
+
+    @property
+    def devlib_path(self) -> str:
+        path = self.get_section("common").get("devlib_path", fallback="")
+        return path
+
+    @devlib_path.setter
+    def devlib_path(self, path: str):
+        self.get_section("common")["devlib_path"] = path

@@ -17,7 +17,7 @@ import csv_reader
 import ods_reader
 import text_grid
 import ui_helpers
-import tou_scanner
+import db_scanner
 
 from column_selector import ColumnsSelector, ColumnsSelectorResult
 from msg_box import MessageBox
@@ -27,7 +27,7 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.5.2"
+APP_NAME = "Yedytor v0.6.0"
 
 # -----------------------------------------------------------------------------
 
@@ -698,17 +698,26 @@ class ComponentsInfo(customtkinter.CTkFrame):
         self.lblhtml_dbsummary = HTMLLabel(self, wrap='none', height=5)
         self.lblhtml_dbsummary.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
 
-        btn_scanner = customtkinter.CTkButton(self, text="Tou scanner...", command=self.btn_scanner_event)
-        btn_scanner.grid(row=0, column=1, pady=5, padx=5, sticky="ne")
+        frame_buttons = customtkinter.CTkFrame(self)
+        frame_buttons.grid(row=0, column=1, sticky="")
+
+        btn_tou_scanner = customtkinter.CTkButton(frame_buttons, text="Tou scanner...", command=self.btn_tou_scanner_event)
+        btn_tou_scanner.grid(row=0, column=0, pady=5, padx=5, sticky="")
+
+        btn_lib_scanner = customtkinter.CTkButton(frame_buttons, text="DevLib scanner...", command=self.btn_devlib_scanner_event)
+        btn_lib_scanner.grid(row=1, column=0, pady=5, padx=5, sticky="")
 
         self.grid_columnconfigure(0, weight=1)
         # self.grid_rowconfigure(0, weight=1)
 
-    def btn_scanner_event(self):
-        wnd_scanner = tou_scanner.TouScanner(callback=self.touscanner_callback)
+    def btn_tou_scanner_event(self):
+        db_scanner.DbScanner(callback=self.scanner_callback, input_type="tou")
 
-    def touscanner_callback(self, action: str, new_components: ComponentsDB):
-        logging.debug(f"TouScanner: {action}")
+    def btn_devlib_scanner_event(self):
+        db_scanner.DbScanner(callback=self.scanner_callback, input_type="devlib")
+
+    def scanner_callback(self, action: str, input_type: str, new_components: ComponentsDB):
+        logging.debug(f"Scanner {input_type}: {action}")
         if action == "o":
             # save to a CSV file
             db_directory = get_db_directory()

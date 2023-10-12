@@ -8,7 +8,8 @@ bookmarks.json
 examples/*.py
 examples/*.xls
 examples/tou*/
+examples/devlib
 examples/tou*/*.csv
 __pycache__/
 htmlcov/
-db/
+db*/

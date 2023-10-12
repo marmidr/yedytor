@@ -14,7 +14,7 @@ TOU_COMPONENT_NAME_SIZE = 40
 class TouFile:
     def __init__(self, path: str):
         self.file_name = os.path.basename(path)
-        """Tou filename"""
+        """.Tou filename"""
         self.items: dict[str, list[str]] = {}
         """dictionary with lower-case component name : list of component names"""
 
@@ -40,8 +40,7 @@ class TouFile:
                                 lst.append(name_str)
                             else:
                                 self.items[key] = [name_str]
-
-                            # logging.debug(f"    {n:3}. {name}")
+                            # logging.debug(f"    {n:3}. {name_str}")
                     except Exception as e:
                         logging.warning(f"    Entry '{n}' contains invalid characters: {e}")
                         logging.warning(f"    {name_bytes}")
