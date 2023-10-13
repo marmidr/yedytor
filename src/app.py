@@ -382,13 +382,30 @@ class PnPConfig(customtkinter.CTkFrame):
 
         if self.column_selector:
             self.column_selector.destroy()
-        self.column_selector = ColumnsSelector(self, columns=columns, callback=self.column_selector_callback)
+
+        # load the columns selection from the history
+        last_cr_result = ColumnsSelectorResult()
+        history_key = glob_proj.get_name().replace(" ", "_")
+        serialized = Config.instance().get_section("columns").get(history_key, fallback="")
+        if serialized != "":
+            last_cr_result.deserialize(serialized)
+        # show the column selector
+        self.column_selector = ColumnsSelector(self, columns=columns,
+                                               callback=self.column_selector_callback,
+                                               last_result=last_cr_result)
 
     def column_selector_callback(self, result: ColumnsSelectorResult):
         logging.debug(f"Selected PnP columns: {result.tostr()}")
         glob_proj.pnp_columns = result
         self.update_lbl_columns()
         self.btn_goto_editor.configure(state=tkinter.NORMAL)
+        try:
+            serialized = result.serialize()
+            # save columns configuration in history
+            Config.instance().get_section("columns")[glob_proj.get_name().replace(" ", "_")] = serialized
+            Config.instance().save()
+        except Exception as e:
+            logging.error(f"Can not save columnt in history: {e}")
 
     def button_goto_editor_event(self):
         logging.debug(f"Go to Edit page")

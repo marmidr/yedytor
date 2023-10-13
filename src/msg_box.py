@@ -1,5 +1,5 @@
 import customtkinter
-import logging
+# import logging
 import typing
 
 # -----------------------------------------------------------------------------

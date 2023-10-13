@@ -5,6 +5,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 ## 0.6.1 - 2023-10-13
 
 * Added
+  * Column selector - stores selections per file, restore last selection if the same file is opened
 * Changed
 * Deprecated
 * Removed
