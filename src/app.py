@@ -10,6 +10,7 @@ import tkinter
 import logging
 import os
 import sys
+import typing
 
 import xls_reader
 import xlsx_reader
@@ -27,7 +28,7 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.6.0"
+APP_NAME = "Yedytor v0.6.1"
 
 # -----------------------------------------------------------------------------
 
@@ -342,9 +343,9 @@ class PnPConfig(customtkinter.CTkFrame):
                                                    command=self.button_columns_event)
         self.btn_columns.grid(row=0, column=7, pady=5, padx=5, sticky="")
         #
-        self.btn_edit = customtkinter.CTkButton(self, text="Go to\nEditor →", state=tkinter.DISABLED,
-                                                command=self.button_edit_event)
-        self.btn_edit.grid(row=0, column=8, pady=5, padx=5, sticky="")
+        self.btn_goto_editor = customtkinter.CTkButton(self, text="Go to\nEditor →", state=tkinter.DISABLED,
+                                                command=self.button_goto_editor_event)
+        self.btn_goto_editor.grid(row=0, column=8, pady=5, padx=5, sticky="")
 
     def opt_separator_event(self, new_sep: str):
         logging.info(f"  PnP separator: {new_sep}")
@@ -387,9 +388,9 @@ class PnPConfig(customtkinter.CTkFrame):
         logging.debug(f"Selected PnP columns: {result.tostr()}")
         glob_proj.pnp_columns = result
         self.update_lbl_columns()
-        self.btn_edit.configure(state=tkinter.NORMAL)
+        self.btn_goto_editor.configure(state=tkinter.NORMAL)
 
-    def button_edit_event(self):
+    def button_goto_editor_event(self):
         logging.debug(f"Go to Edit page")
         # refresh editor
         self.pnp_editor.load()
@@ -693,6 +694,9 @@ class PnPEditor(customtkinter.CTkFrame):
 
 class ComponentsInfo(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
+        assert "callback" in kwargs
+        self.on_new_components_callback: typing.Callable = kwargs.pop("callback")
+
         super().__init__(master, **kwargs)
 
         self.lblhtml_dbsummary = HTMLLabel(self, wrap='none', height=5)
@@ -724,11 +728,14 @@ class ComponentsInfo(customtkinter.CTkFrame):
 
             if not os.path.isdir(db_directory):
                 os.mkdir(db_directory)
+            # replace old database with a new one, but applying 'hidden' attribute from the one components
             global glob_components
             new_components.copy_attributes(glob_components.items_all())
             new_components.save_new(db_directory)
             glob_components = new_components
             self.update_components_info()
+            # update components view
+            self.on_new_components_callback()
 
     def update_components_info(self):
         global glob_components
@@ -754,7 +761,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.components_pageno = 0
         self.component_filter = ""
 
-        self.components_info = ComponentsInfo(self)
+        self.components_info = ComponentsInfo(self, callback=lambda: self.reload_components())
         self.components_info.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
@@ -794,6 +801,12 @@ class ComponentsEditor(customtkinter.CTkFrame):
         # save DB modifications to file
         self.btn_save = customtkinter.CTkButton(self.frame_buttons, text="Save DB", command=self.button_save_event)
         self.btn_save.grid(row=0, column=5, pady=5, padx=5, sticky="e")
+
+    def reload_components(self):
+        # reload view
+        self.components_pageno = 0
+        self.load_components()
+        self.lbl_pageno.configure(text=self.format_pageno())
 
     def var_filter_event(self, sv: customtkinter.StringVar):
         self.component_filter = sv.get().strip()

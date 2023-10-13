@@ -2,6 +2,15 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.6.1 - 2023-10-13
+
+* Added
+* Changed
+* Deprecated
+* Removed
+* Fixed
+  * after coponent scanner finished work, the db components view is reloaded
+
 ## 0.6.0 - 2023-10-12
 
 * Added
