@@ -492,7 +492,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     id_max_w = max(id_max_w, len(row[0]))
 
                 for idx, row in enumerate(glob_proj.pnp_grid.rows()):
-                    entry_pnp = tkinter.Entry(self.scrollableframe, font=self.fonts[Config.instance().editor_font_idx][0])
+                    # entry_pnp = tkinter.Entry(self.scrollableframe, font=self.fonts[Config.instance().editor_font_idx][0])
+                    entry_pnp = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c", font=self.fonts[Config.instance().editor_font_idx][0])
                     entry_pnp.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
                     entry_txt = "{id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
                         id=row[0], id_w=id_max_w,
@@ -508,7 +509,10 @@ class PnPEditor(customtkinter.CTkFrame):
 
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
                     # https://www.pythontutorial.net/tkinter/tkinter-combobox/
-                    cbx_component = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all, font=self.fonts[Config.instance().editor_font_idx][0])
+                    # cbx_component = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all,
+                    #                                     font=self.fonts[Config.instance().editor_font_idx][0])
+                    cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cxp", values=self.components_all,
+                                                               font=self.fonts[Config.instance().editor_font_idx][0])
                     cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
                     cbx_component.bind('<<ComboboxSelected>>', self.combobox_selected)
                     # cbx_component.bind('<Key>', self.combobox_key)
@@ -516,7 +520,9 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.bind("<MouseWheel>", self.combobox_wheel)
                     cbx_component.bind("<FocusIn>", self.combobox_focus_in)
                     self.cbx_component_list.append(cbx_component)
-                    self.try_select_component(cbx_component, lbl_marker, row[glob_proj.pnp_columns.footprint_col], row[glob_proj.pnp_columns.comment_col])
+                    self.try_select_component(cbx_component, lbl_marker,
+                                              row[glob_proj.pnp_columns.footprint_col],
+                                              row[glob_proj.pnp_columns.comment_col])
 
                 self.scrollableframe.grid_columnconfigure(0, weight=2)
                 self.scrollableframe.grid_columnconfigure(2, weight=1)
@@ -561,9 +567,13 @@ class PnPEditor(customtkinter.CTkFrame):
     def combobox_selected(self, event):
         selected_component = event.widget.get()
         logging.debug(f"CB selected: {selected_component}")
+        selected_idx = self.cbx_component_list.index(event.widget)
+        self.apply_component(selected_idx, selected_component)
+        self.btn_save.configure(state=tkinter.NORMAL)
+
+    def apply_component(self, selected_idx, selected_component: str):
         try:
             # get the selection details:
-            selected_idx = self.cbx_component_list.index(event.widget)
             comment = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_columns.comment_col]
             ftprint = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_columns.footprint_col]
 
@@ -577,20 +587,19 @@ class PnPEditor(customtkinter.CTkFrame):
                 # if already selected, skip this item
                 if marker_bg == self.CL_MAN_SEL:
                     continue
-                if row[glob_proj.pnp_columns.comment_col] == comment and row[glob_proj.pnp_columns.footprint_col] == ftprint:
+                if row[glob_proj.pnp_columns.comment_col] == comment and \
+                   row[glob_proj.pnp_columns.footprint_col] == ftprint:
                     # found: select the same component
-                    logging.debug(f"Applying '{selected_component}' to item #{i}")
+                    logging.debug(f"Applying '{selected_component}' to item {row[0]}")
                     self.cbx_component_list[i].set(selected_component)
                     # add marker that this is a final value
                     self.lbl_marker_list[i].config(background=self.CL_MAN_SEL)
             self.update_selected_status()
         except Exception as e:
             logging.warning(f"Applying selection to the matching items failed: {e}")
-        self.btn_save.configure(state=tkinter.NORMAL)
 
     # def combobox_key(self, event):
-        # logging.debug(f"CB key: {event}")
-        # self.btn_save.configure(state=tkinter.NORMAL)
+    #     logging.debug(f"CB key: {event}")
 
     def combobox_return(self, event):
         filter: str = event.widget.get().strip()

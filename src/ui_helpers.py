@@ -33,3 +33,57 @@ def entry_set_text(entry: customtkinter.CTkEntry, text: str):
     entry.delete(0, tkinter.END)
     entry.insert(0, text)
     if entry_disabled: entry.configure(state=tkinter.DISABLED)
+
+
+# https://stackoverflow.com/questions/4266566/stardand-context-menu-in-python-tkinter-text-widget-when-mouse-right-button-is-p
+def _wgt_install_standard_menu(wgt, items: str):
+    wgt.menu = tkinter.Menu(wgt, tearoff=0)
+
+    if "c" in items:
+        wgt.menu.add_command(label="Copy")
+        wgt.menu.entryconfigure("Copy", command=lambda: wgt.focus_force() or wgt.event_generate("<<Copy>>"))
+    if "x" in items:
+        wgt.menu.add_command(label="Cut")
+        wgt.menu.entryconfigure("Cut", command=lambda: wgt.focus_force() or wgt.event_generate("<<Cut>>"))
+    if "p" in items:
+        wgt.menu.add_command(label="Paste")
+        wgt.menu.entryconfigure("Paste", command=lambda: wgt.focus_force() or wgt.event_generate("<<Paste>>"))
+
+    wgt.menu.add_separator()
+    wgt.menu.add_command(label="Select all")
+    wgt.menu.entryconfigure("Select all", command=wgt.event_select_all)
+
+
+class EntryWithPPM(tkinter.Entry):
+# class CTkEntryWithPPM(customtkinter.CTkEntry):
+    def __init__(self, *args, **kwargs):
+        menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxp"
+        tkinter.Entry.__init__(self, *args, **kwargs)
+        # customtkinter.CTkEntry(self, *args, **kwargs)
+        _wgt_install_standard_menu(self, menuitems)
+        # overwrite default class binding so we don't need to return "break"
+        self.bind_class("Entry", "<Control-a>", self.event_select_all)
+        self.bind("<Button-3><ButtonRelease-3>", self.show_menu)
+
+    def event_select_all(self, *args):
+        self.focus_force()
+        self.selection_range(0, tkinter.END)
+
+    def show_menu(self, e):
+        self.tk.call("tk_popup", self.menu, e.x_root, e.y_root)
+
+class ComboboxWithPPM(tkinter.ttk.Combobox):
+    def __init__(self, *args, **kwargs):
+        menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxp"
+        tkinter.ttk.Combobox.__init__(self, *args, **kwargs)
+        _wgt_install_standard_menu(self, menuitems)
+        # overwrite default class binding so we don't need to return "break"
+        self.bind_class("Entry", "<Control-a>", self.event_select_all)
+        self.bind("<Button-3><ButtonRelease-3>", self.show_menu)
+
+    def event_select_all(self, *args):
+        self.focus_force()
+        self.selection_range(0, tkinter.END)
+
+    def show_menu(self, e):
+        self.tk.call("tk_popup", self.menu, e.x_root, e.y_root)
