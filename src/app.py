@@ -492,8 +492,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     id_max_w = max(id_max_w, len(row[0]))
 
                 for idx, row in enumerate(glob_proj.pnp_grid.rows()):
-                    # entry_pnp = tkinter.Entry(self.scrollableframe, font=self.fonts[Config.instance().editor_font_idx][0])
-                    entry_pnp = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c", font=self.fonts[Config.instance().editor_font_idx][0])
+                    entry_pnp = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
+                                                        font=self.fonts[Config.instance().editor_font_idx][0])
                     entry_pnp.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
                     entry_txt = "{id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
                         id=row[0], id_w=id_max_w,
@@ -509,10 +509,12 @@ class PnPEditor(customtkinter.CTkFrame):
 
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
                     # https://www.pythontutorial.net/tkinter/tkinter-combobox/
-                    # cbx_component = tkinter.ttk.Combobox(self.scrollableframe, values=self.components_all,
-                    #                                     font=self.fonts[Config.instance().editor_font_idx][0])
-                    cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cxp", values=self.components_all,
+
+                    cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cp", values=self.components_all,
                                                                font=self.fonts[Config.instance().editor_font_idx][0])
+                    cbx_component.menu.add_command(label="Apply to all matching")
+                    cbx_component.menu.entryconfigure("Apply to all matching",
+                                                      command=lambda cbx=cbx_component: self.cbx_apply_to_all(cbx))
                     cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
                     cbx_component.bind('<<ComboboxSelected>>', self.combobox_selected)
                     # cbx_component.bind('<Key>', self.combobox_key)
@@ -529,6 +531,13 @@ class PnPEditor(customtkinter.CTkFrame):
 
             # update progressbar
             self.update_selected_status()
+
+    def cbx_apply_to_all(self, cbx):
+        cbx.focus_force()
+        selected_idx = self.cbx_component_list.index(cbx)
+        selected_component: str = cbx.get().strip()
+        logging.debug(f"Applying '{selected_component}' to matching:")
+        self.apply_component_to_all_matching(selected_idx, selected_component)
 
     def try_select_component(self, cbx: tkinter.ttk.Combobox, lbl: tkinter.Label, ftprint: str, cmnt: str):
         filter = ftprint + "_" + cmnt
@@ -565,13 +574,13 @@ class PnPEditor(customtkinter.CTkFrame):
             and glob_proj.pnp_columns.comment_col < glob_proj.pnp_grid.ncols
 
     def combobox_selected(self, event):
-        selected_component = event.widget.get()
+        selected_component: str = event.widget.get().strip()
         logging.debug(f"CB selected: {selected_component}")
         selected_idx = self.cbx_component_list.index(event.widget)
-        self.apply_component(selected_idx, selected_component)
+        self.apply_component_to_all_matching(selected_idx, selected_component)
         self.btn_save.configure(state=tkinter.NORMAL)
 
-    def apply_component(self, selected_idx, selected_component: str):
+    def apply_component_to_all_matching(self, selected_idx: int, selected_component: str):
         try:
             # get the selection details:
             comment = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_columns.comment_col]
@@ -582,6 +591,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 if i == selected_idx:
                     # add marker that this is a final value
                     self.lbl_marker_list[i].config(background=self.CL_MAN_SEL)
+                    # event source widget, so we can skip this one
                     continue
                 marker_bg = self.lbl_marker_list[i].cget("background")
                 # if already selected, skip this item
@@ -592,8 +602,12 @@ class PnPEditor(customtkinter.CTkFrame):
                     # found: select the same component
                     logging.debug(f"Applying '{selected_component}' to item {row[0]}")
                     self.cbx_component_list[i].set(selected_component)
-                    # add marker that this is a final value
-                    self.lbl_marker_list[i].config(background=self.CL_MAN_SEL)
+                    if len(selected_component) >= 3:
+                        # add marker that this is a final value
+                        self.lbl_marker_list[i].config(background=self.CL_MAN_SEL)
+                    else:
+                        # too short -> filter or empty
+                        self.lbl_marker_list[i].config(background=self.CL_NOMATCH)
             self.update_selected_status()
         except Exception as e:
             logging.warning(f"Applying selection to the matching items failed: {e}")
@@ -603,7 +617,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def combobox_return(self, event):
         filter: str = event.widget.get().strip()
-        if len(filter) > 2:
+        if len(filter) >= 3:
             filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
             logging.debug(f"Apply filter '{filter}' -> {len(filtered_comp_names)} matching")
             event.widget.configure(values=filtered_comp_names)
@@ -620,10 +634,14 @@ class PnPEditor(customtkinter.CTkFrame):
                 else:
                     # mark no matching component in database
                     self.lbl_marker_list[selected_idx].config(background=self.CL_NOMATCH)
-
         else:
             logging.debug(f"Filter too short: use full list")
             event.widget.configure(values=self.components_all)
+            try:
+                selected_idx = self.cbx_component_list.index(event.widget)
+                self.lbl_marker_list[selected_idx].config(background=self.CL_NOMATCH)
+            except Exception as e:
+                logging.warning(f"{e}")
 
         self.btn_save.configure(state=tkinter.NORMAL)
 

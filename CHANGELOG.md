@@ -2,10 +2,12 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
-## 0.6.1 - 2023-10-13
+## 0.6.1 - 2023-10-14
 
 * Added
   * Column selector - stores selections per file, restore last selection if the same file is opened
+  * PnP editor - Popup menu (Copy/Cut/Paste/Select)
+  * PnP editor - PPM: apply selection to all matching components
 * Changed
 * Deprecated
 * Removed

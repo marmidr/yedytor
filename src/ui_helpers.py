@@ -55,11 +55,10 @@ def _wgt_install_standard_menu(wgt, items: str):
 
 
 class EntryWithPPM(tkinter.Entry):
-# class CTkEntryWithPPM(customtkinter.CTkEntry):
     def __init__(self, *args, **kwargs):
         menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxp"
         tkinter.Entry.__init__(self, *args, **kwargs)
-        # customtkinter.CTkEntry(self, *args, **kwargs)
+
         _wgt_install_standard_menu(self, menuitems)
         # overwrite default class binding so we don't need to return "break"
         self.bind_class("Entry", "<Control-a>", self.event_select_all)
@@ -76,6 +75,7 @@ class ComboboxWithPPM(tkinter.ttk.Combobox):
     def __init__(self, *args, **kwargs):
         menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxp"
         tkinter.ttk.Combobox.__init__(self, *args, **kwargs)
+
         _wgt_install_standard_menu(self, menuitems)
         # overwrite default class binding so we don't need to return "break"
         self.bind_class("Entry", "<Control-a>", self.event_select_all)
