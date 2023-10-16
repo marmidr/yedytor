@@ -2,6 +2,15 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.6.2 - 2023-10-16
+
+* Added
+  * PnP editor - PPM: force apply selection to all matching components (replaces selection even if already manual selected)
+* Changed
+* Deprecated
+* Removed
+* Fixed
+
 ## 0.6.1 - 2023-10-14
 
 * Added

@@ -6,19 +6,20 @@
 # https://github.com/marmidr/yedytor
 
 import customtkinter
-import tkinter
 import logging
 import os
 import sys
+import time
+import tkinter
 import typing
 
-import xls_reader
-import xlsx_reader
 import csv_reader
+import db_scanner
 import ods_reader
 import text_grid
 import ui_helpers
-import db_scanner
+import xls_reader
+import xlsx_reader
 
 from column_selector import ColumnsSelector, ColumnsSelectorResult
 from msg_box import MessageBox
@@ -491,6 +492,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_columns.footprint_col]))
                     id_max_w = max(id_max_w, len(row[0]))
 
+                started_at = time.monotonic()
+
                 for idx, row in enumerate(glob_proj.pnp_grid.rows()):
                     entry_pnp = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
                                                         font=self.fonts[Config.instance().editor_font_idx][0])
@@ -514,7 +517,10 @@ class PnPEditor(customtkinter.CTkFrame):
                                                                font=self.fonts[Config.instance().editor_font_idx][0])
                     cbx_component.menu.add_command(label="Apply to all matching")
                     cbx_component.menu.entryconfigure("Apply to all matching",
-                                                      command=lambda cbx=cbx_component: self.cbx_apply_to_all(cbx))
+                                                      command=lambda cbx=cbx_component: self.cbx_apply_to_all(cbx, False))
+                    cbx_component.menu.add_command(label="Force apply to all matching")
+                    cbx_component.menu.entryconfigure("Force apply to all matching",
+                                                      command=lambda cbx=cbx_component: self.cbx_apply_to_all(cbx, True))
                     cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
                     cbx_component.bind('<<ComboboxSelected>>', self.combobox_selected)
                     # cbx_component.bind('<Key>', self.combobox_key)
@@ -526,18 +532,21 @@ class PnPEditor(customtkinter.CTkFrame):
                                               row[glob_proj.pnp_columns.footprint_col],
                                               row[glob_proj.pnp_columns.comment_col])
 
+                delta = time.monotonic() - started_at
+                delta = f"{delta:.1f}s"
+                logging.info(f"{len(glob_proj.pnp_grid.rows())} elements added in {delta}")
                 self.scrollableframe.grid_columnconfigure(0, weight=2)
                 self.scrollableframe.grid_columnconfigure(2, weight=1)
 
             # update progressbar
             self.update_selected_status()
 
-    def cbx_apply_to_all(self, cbx):
+    def cbx_apply_to_all(self, cbx, force: bool):
         cbx.focus_force()
         selected_idx = self.cbx_component_list.index(cbx)
         selected_component: str = cbx.get().strip()
-        logging.debug(f"Applying '{selected_component}' to matching:")
-        self.apply_component_to_all_matching(selected_idx, selected_component)
+        logging.debug(f"Applying '{selected_component}':")
+        self.apply_component_to_matching(selected_idx, selected_component, force)
 
     def try_select_component(self, cbx: tkinter.ttk.Combobox, lbl: tkinter.Label, ftprint: str, cmnt: str):
         filter = ftprint + "_" + cmnt
@@ -577,10 +586,10 @@ class PnPEditor(customtkinter.CTkFrame):
         selected_component: str = event.widget.get().strip()
         logging.debug(f"CB selected: {selected_component}")
         selected_idx = self.cbx_component_list.index(event.widget)
-        self.apply_component_to_all_matching(selected_idx, selected_component)
+        self.apply_component_to_matching(selected_idx, selected_component)
         self.btn_save.configure(state=tkinter.NORMAL)
 
-    def apply_component_to_all_matching(self, selected_idx: int, selected_component: str):
+    def apply_component_to_matching(self, selected_idx: int, selected_component: str, force: bool = False):
         try:
             # get the selection details:
             comment = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_columns.comment_col]
@@ -595,12 +604,12 @@ class PnPEditor(customtkinter.CTkFrame):
                     continue
                 marker_bg = self.lbl_marker_list[i].cget("background")
                 # if already selected, skip this item
-                if marker_bg == self.CL_MAN_SEL:
+                if not force and (marker_bg == self.CL_MAN_SEL):
                     continue
                 if row[glob_proj.pnp_columns.comment_col] == comment and \
                    row[glob_proj.pnp_columns.footprint_col] == ftprint:
                     # found: select the same component
-                    logging.debug(f"Applying '{selected_component}' to item {row[0]}")
+                    logging.debug(f"  Apply '{selected_component}' to item {row[0]}")
                     self.cbx_component_list[i].set(selected_component)
                     if len(selected_component) >= 3:
                         # add marker that this is a final value
