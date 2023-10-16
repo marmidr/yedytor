@@ -493,6 +493,9 @@ class PnPEditor(customtkinter.CTkFrame):
                     id_max_w = max(id_max_w, len(row[0]))
 
                 started_at = time.monotonic()
+                progress_step = len(glob_proj.pnp_grid.rows()) // 10
+                progress_prc = 0
+                idx_threshold = progress_step
 
                 for idx, row in enumerate(glob_proj.pnp_grid.rows()):
                     entry_pnp = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
@@ -528,9 +531,14 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.bind("<MouseWheel>", self.combobox_wheel)
                     cbx_component.bind("<FocusIn>", self.combobox_focus_in)
                     self.cbx_component_list.append(cbx_component)
+                    # the most time consuming part:
                     self.try_select_component(cbx_component, lbl_marker,
                                               row[glob_proj.pnp_columns.footprint_col],
                                               row[glob_proj.pnp_columns.comment_col])
+                    if idx == idx_threshold:
+                        progress_prc += 10
+                        idx_threshold += progress_step
+                        logging.info(f"  {progress_prc:3} %")
 
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"

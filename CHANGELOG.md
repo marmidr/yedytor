@@ -6,6 +6,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
 * Added
   * PnP editor - PPM: force apply selection to all matching components (replaces selection even if already manual selected)
+  * PnP preview - print progress on terminal while preparing the editor
 * Changed
 * Deprecated
 * Removed
