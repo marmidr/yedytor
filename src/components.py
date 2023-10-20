@@ -34,6 +34,8 @@ class ComponentsDB:
         """full filepath"""
         self.__items: list[Component] = []
         """list of components"""
+        self.dirty = False
+        """list updated during operation"""
 
         if "components_dict" in kwargs:
             components_dict = kwargs.pop("components_dict")
@@ -110,6 +112,7 @@ class ComponentsDB:
                 for item in self.__items:
                     hidden="x" if item.hidden else "_"
                     f.write(f"\"{item.name}\"\t{hidden}\n")
+            self.dirty = False
         except Exception as e:
             logging.error(f"Error saving changes to file '{self.db_file_path}: {e}'")
 
@@ -142,6 +145,20 @@ class ComponentsDB:
                     result.append(item)
         return result
 
-    def items_visible(self) -> list[str]:
-        component_list = list(item.name for item in self.items_all() if not item.hidden)
-        return component_list
+    def names_visible(self) -> list[str]:
+        names_list = list(item.name for item in self.items_all() if not item.hidden)
+        return names_list
+
+    def add_if_not_exists(self, component_name: str) -> bool:
+        component_name = component_name.strip()
+        if len(component_name) < 3:
+            logging.warning(f"Cannot add component '{component_name}' - the name must be 3 characters long at least")
+            return False
+
+        component_name_lower = component_name.lower()
+        for item in self.__items:
+            if item.name.lower() == component_name_lower:
+                return False
+        self.__items.append(Component(name=component_name))
+        self.dirty = True
+        return True

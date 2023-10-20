@@ -5,8 +5,11 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 ## 0.6.2 - 2023-10-16
 
 * Added
-  * PnP editor - PPM: force apply selection to all matching components (replaces selection even if already manual selected)
   * PnP preview - print progress on terminal while preparing the editor
+  * PnP editor - PPM: Force apply selection to all matching components (replaces selection even if already manual selected)
+  * PnP editor - PPM: Filter the ComboBox items (just like the Enter key)
+  * PnP editor - PPM: Apply to all matching... adds a new component to the database, if needed
+  * All Entry widgets with PopupMenu
 * Changed
 * Deprecated
 * Removed

@@ -29,7 +29,7 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.6.1"
+APP_NAME = "Yedytor v0.6.2"
 
 # -----------------------------------------------------------------------------
 
@@ -259,8 +259,8 @@ class PnPView(customtkinter.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
-        self.entry_search = customtkinter.CTkEntry(self, placeholder_text="search...")
-        self.entry_search.grid(row=1, column=0, padx=5, pady=5, sticky="wens")
+        self.entry_search = ui_helpers.EntryWithPPM(self)
+        self.entry_search.grid(row=1, column=0, padx=5, pady=5, sticky="we")
 
         self.btn_search = customtkinter.CTkButton(self, text="Find", command=self.button_find_event)
         self.btn_search.grid(row=1, column=1, pady=5, padx=5, sticky="we")
@@ -483,7 +483,7 @@ class PnPEditor(customtkinter.CTkFrame):
             if not self.check_selected_columns():
                 logging.warning("Select proper Footprint and Comment columns before editing")
             else:
-                self.components_all = glob_components.items_visible()
+                self.component_names = glob_components.names_visible()
                 # find the max comment width
                 footprint_max_w = 0
                 id_max_w = 0
@@ -516,14 +516,18 @@ class PnPEditor(customtkinter.CTkFrame):
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
                     # https://www.pythontutorial.net/tkinter/tkinter-combobox/
 
-                    cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cp", values=self.components_all,
+                    cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cp", values=self.component_names,
                                                                font=self.fonts[Config.instance().editor_font_idx][0])
-                    cbx_component.menu.add_command(label="Apply to all matching")
-                    cbx_component.menu.entryconfigure("Apply to all matching",
-                                                      command=lambda cbx=cbx_component: self.cbx_apply_to_all(cbx, False))
-                    cbx_component.menu.add_command(label="Force apply to all matching")
-                    cbx_component.menu.entryconfigure("Force apply to all matching",
-                                                      command=lambda cbx=cbx_component: self.cbx_apply_to_all(cbx, True))
+                    cbx_component.menu.add_separator()
+                    cbx_component.menu.add_command(label="Filter the ComboBox items")
+                    cbx_component.menu.entryconfigure("Filter the ComboBox items",
+                                                      command=lambda cbx=cbx_component: self.combobox_apply_filter(cbx))
+                    cbx_component.menu.add_command(label="Apply selected item to all matching components")
+                    cbx_component.menu.entryconfigure("Apply selected item to all matching components",
+                                                      command=lambda cbx=cbx_component: self.combobox_apply_selected_to_all(cbx, False))
+                    cbx_component.menu.add_command(label="Force apply selected to all matching components")
+                    cbx_component.menu.entryconfigure("Force apply selected to all matching components",
+                                                      command=lambda cbx=cbx_component: self.combobox_apply_selected_to_all(cbx, True))
                     cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
                     cbx_component.bind('<<ComboboxSelected>>', self.combobox_selected)
                     # cbx_component.bind('<Key>', self.combobox_key)
@@ -549,17 +553,10 @@ class PnPEditor(customtkinter.CTkFrame):
             # update progressbar
             self.update_selected_status()
 
-    def cbx_apply_to_all(self, cbx, force: bool):
-        cbx.focus_force()
-        selected_idx = self.cbx_component_list.index(cbx)
-        selected_component: str = cbx.get().strip()
-        logging.debug(f"Applying '{selected_component}':")
-        self.apply_component_to_matching(selected_idx, selected_component, force)
-
     def try_select_component(self, cbx: tkinter.ttk.Combobox, lbl: tkinter.Label, ftprint: str, cmnt: str):
         filter = ftprint + "_" + cmnt
         try:
-            self.components_all.index(filter) # may raise exception if not found
+            self.component_names.index(filter) # may raise exception if not found
             cbx.set(filter)
             # mark autoselection
             lbl.config(background=self.CL_AUTO_SEL)
@@ -582,7 +579,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 else:
                     # remove filter and assign all components
                     cbx.set("")
-                    cbx.configure(values=self.components_all)
+                    cbx.configure(values=self.component_names)
                     # mark no matching component in database
                     lbl.config(background=self.CL_NOMATCH)
 
@@ -629,19 +626,36 @@ class PnPEditor(customtkinter.CTkFrame):
         except Exception as e:
             logging.warning(f"Applying selection to the matching items failed: {e}")
 
+    def add_component_if_missing(self, new_component_name: str):
+        global glob_components
+        if glob_components.add_if_not_exists(new_component_name):
+            logging.debug(f"Add new component '{new_component_name}' to database")
+            self.component_names.append(new_component_name.strip())
+
     # def combobox_key(self, event):
     #     logging.debug(f"CB key: {event}")
 
     def combobox_return(self, event):
-        filter: str = event.widget.get().strip()
+        self.combobox_apply_filter(event.widget)
+
+    def combobox_apply_selected_to_all(self, cbx, force: bool):
+        cbx.focus_force()
+        selected_idx = self.cbx_component_list.index(cbx)
+        selected_component: str = cbx.get().strip()
+        logging.debug(f"Applying '{selected_component}':")
+        self.apply_component_to_matching(selected_idx, selected_component, force)
+        self.add_component_if_missing(selected_component)
+
+    def combobox_apply_filter(self, cbx):
+        filter: str = cbx.get().strip()
         if len(filter) >= 3:
             filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
             logging.debug(f"Apply filter '{filter}' -> {len(filtered_comp_names)} matching")
-            event.widget.configure(values=filtered_comp_names)
+            cbx.configure(values=filtered_comp_names)
 
-            selected_idx = self.cbx_component_list.index(event.widget)
+            selected_idx = self.cbx_component_list.index(cbx)
             try:
-                self.components_all.index(filter)
+                self.component_names.index(filter)
                 # filter found on component list: add marker that this is a final value
                 self.lbl_marker_list[selected_idx].config(background=self.CL_MAN_SEL)
             except:
@@ -653,9 +667,9 @@ class PnPEditor(customtkinter.CTkFrame):
                     self.lbl_marker_list[selected_idx].config(background=self.CL_NOMATCH)
         else:
             logging.debug(f"Filter too short: use full list")
-            event.widget.configure(values=self.components_all)
+            cbx.configure(values=self.component_names)
             try:
-                selected_idx = self.cbx_component_list.index(event.widget)
+                selected_idx = self.cbx_component_list.index(cbx)
                 self.lbl_marker_list[selected_idx].config(background=self.CL_NOMATCH)
             except Exception as e:
                 logging.warning(f"{e}")
@@ -842,7 +856,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
         self.entry_filter_var = customtkinter.StringVar(value="")
         self.entry_filter_var.trace_add("write", lambda n, i, m, sv=self.entry_filter_var: self.var_filter_event(sv))
-        self.entry_filter = customtkinter.CTkEntry(self.frame_buttons, width=200, placeholder_text="filter", textvariable=self.entry_filter_var)
+        self.entry_filter = ui_helpers.EntryWithPPM(self.frame_buttons, width=30, textvariable=self.entry_filter_var)
         self.entry_filter.grid(row=0, column=0, padx=5, pady=5, sticky="we")
 
         # change components page, view contains up to self.COMP_PER_PAGE items
@@ -896,7 +910,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
             lbl_rowno.grid(row=idx_on_page, column=0, padx=5, pady=1, sticky="w")
             self.lbls_rowno.append(lbl_rowno)
 
-            entry_name = tkinter.Entry(self.scrollableframe, font=self.editor_font)
+            entry_name = ui_helpers.EntryWithPPM(self.scrollableframe, font=self.editor_font)
             entry_name.grid(row=idx_on_page, column=1, padx=5, pady=1, sticky="we")
             self.entrys_name.append(entry_name)
 
@@ -920,7 +934,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
     def load_components(self):
         components = self.get_components()
-        logging.debug(f"Components: {len(components)}")
+        logging.debug(f"DB Editor: {len(components)} components")
         components_subrange = components[self.components_pageno * self.COMP_PER_PAGE:]
 
         for idx_on_page, component in enumerate(components_subrange):
@@ -1093,3 +1107,8 @@ if __name__ == "__main__":
 
     ctkapp = CtkApp()
     ctkapp.mainloop()
+    # app exitting
+    if glob_components.dirty:
+        logging.info('Saving the components database...')
+        glob_components.save_changes()
+    logging.debug('Program ended.')

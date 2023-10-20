@@ -71,6 +71,25 @@ class EntryWithPPM(tkinter.Entry):
     def show_menu(self, e):
         self.tk.call("tk_popup", self.menu, e.x_root, e.y_root)
 
+# seems like bindings (<<Copy>>, ...) are not implemented in Ctk
+# class CtkEntryWithPPM(customtkinter.CTkEntry):
+#     def __init__(self, *args, **kwargs):
+#         menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxp"
+#         customtkinter.CTkEntry.__init__(self, *args, **kwargs)
+
+#         _wgt_install_standard_menu(self, menuitems)
+#         # overwrite default class binding so we don't need to return "break"
+#         self.bind_class("Entry", "<Control-a>", self.event_select_all)
+#         self.bind("<Button-3><ButtonRelease-3>", self.show_menu)
+
+#     def event_select_all(self, *args):
+#         self.focus_force()
+#         self.selection_range(0, tkinter.END)
+
+#     def show_menu(self, e):
+#         self.tk.call("tk_popup", self.menu, e.x_root, e.y_root)
+
+
 class ComboboxWithPPM(tkinter.ttk.Combobox):
     def __init__(self, *args, **kwargs):
         menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxp"
