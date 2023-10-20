@@ -469,8 +469,9 @@ class PnPEditor(customtkinter.CTkFrame):
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
         self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, columnspan=4, sticky="wens")
         self.entry_list = []
-        self.cbx_component_list = []
         self.lbl_marker_list = []
+        self.cbx_component_list = []
+        self.lbl_namelength_list = []
         self.focused_idx = None
 
         # if we are here, user already selected the PnP file first row
@@ -535,8 +536,14 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.bind("<MouseWheel>", self.combobox_wheel)
                     cbx_component.bind("<FocusIn>", self.combobox_focus_in)
                     self.cbx_component_list.append(cbx_component)
+
+                    lbl_length = tkinter.Label(self.scrollableframe, font=self.fonts[Config.instance().editor_font_idx][0])
+                    lbl_length.grid(row=idx, column=3, padx=1, pady=1, sticky="e")
+                    lbl_length.config(foreground="maroon")
+                    self.lbl_namelength_list.append(lbl_length)
+
                     # the most time consuming part:
-                    self.try_select_component(cbx_component, lbl_marker,
+                    self.try_select_component(cbx_component, lbl_marker, lbl_length,
                                               row[glob_proj.pnp_columns.footprint_col],
                                               row[glob_proj.pnp_columns.comment_col])
                     if idx == idx_threshold:
@@ -553,14 +560,15 @@ class PnPEditor(customtkinter.CTkFrame):
             # update progressbar
             self.update_selected_status()
 
-    def try_select_component(self, cbx: tkinter.ttk.Combobox, lbl: tkinter.Label, ftprint: str, cmnt: str):
-        filter = ftprint + "_" + cmnt
+    def try_select_component(self, cbx: tkinter.ttk.Combobox, lbl_marker: tkinter.Label, lbl_length: tkinter.Label,
+                             ftprint: str, cmnt: str):
         try:
-            self.component_names.index(filter) # may raise exception if not found
-            cbx.set(filter)
+            expected_component = ftprint + "_" + cmnt
+            self.component_names.index(expected_component) # may raise exception if not found
+            cbx.set(expected_component)
             # mark autoselection
-            lbl.config(background=self.CL_AUTO_SEL)
-            logging.info(f"Matching component found: {filter}")
+            lbl_marker.config(background=self.CL_AUTO_SEL)
+            logging.info(f"Matching component found: {expected_component}")
         except:
             # not found; try to create a good filter expression
             # "1206_R_1,2k" -> "1206"
@@ -575,13 +583,23 @@ class PnPEditor(customtkinter.CTkFrame):
                 cbx.set(filter.lower())
                 if len(filtered_comp_names):
                     # mark filter
-                    lbl.config(background=self.CL_FILTER)
+                    lbl_marker.config(background=self.CL_FILTER)
                 else:
                     # remove filter and assign all components
                     cbx.set("")
                     cbx.configure(values=self.component_names)
                     # mark no matching component in database
-                    lbl.config(background=self.CL_NOMATCH)
+                    lbl_marker.config(background=self.CL_NOMATCH)
+        self.update_componentname_length_lbl(lbl_length, cbx.get())
+
+    def update_componentname_length_lbl(self, lbl: tkinter.Label, comp_name: str):
+        COMPONENT_MAX_LEN = 38
+
+        name_len = len(comp_name)
+        if name_len < COMPONENT_MAX_LEN:
+            lbl.configure(text="")
+        else:
+            lbl.configure(text=f"+{name_len-COMPONENT_MAX_LEN}")
 
     def check_selected_columns(self, ) -> bool:
         return glob_proj.pnp_columns.footprint_col < glob_proj.pnp_grid.ncols \
@@ -605,6 +623,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 if i == selected_idx:
                     # add marker that this is a final value
                     self.lbl_marker_list[i].config(background=self.CL_MAN_SEL)
+                    self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
                     # event source widget, so we can skip this one
                     continue
                 marker_bg = self.lbl_marker_list[i].cget("background")
@@ -616,6 +635,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     # found: select the same component
                     logging.debug(f"  Apply '{selected_component}' to item {row[0]}")
                     self.cbx_component_list[i].set(selected_component)
+                    self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
+
                     if len(selected_component) >= 3:
                         # add marker that this is a final value
                         self.lbl_marker_list[i].config(background=self.CL_MAN_SEL)
@@ -665,6 +686,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 else:
                     # mark no matching component in database
                     self.lbl_marker_list[selected_idx].config(background=self.CL_NOMATCH)
+                self.update_componentname_length_lbl(self.lbl_namelength_list[selected_idx], filter)
         else:
             logging.debug(f"Filter too short: use full list")
             cbx.configure(values=self.component_names)

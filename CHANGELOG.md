@@ -2,7 +2,7 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
-## 0.6.2 - 2023-10-16
+## 0.6.2 - 2023-10-20
 
 * Added
   * PnP preview - print progress on terminal while preparing the editor
@@ -10,6 +10,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
   * PnP editor - PPM: Filter the ComboBox items (just like the Enter key)
   * PnP editor - PPM: Apply to all matching... adds a new component to the database, if needed
   * All Entry widgets with PopupMenu
+  * PnP editor - new column showing that the component name is too long
 * Changed
 * Deprecated
 * Removed
@@ -25,7 +26,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Deprecated
 * Removed
 * Fixed
-  * after coponent scanner finished work, the db components view is reloaded
+  * after coponent scanner finished work, the DB components view is reloaded
 
 ## 0.6.0 - 2023-10-12
 
