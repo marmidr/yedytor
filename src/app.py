@@ -527,15 +527,24 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cp", values=self.component_names,
                                                                font=self.fonts[Config.instance().editor_font_idx][0])
                     cbx_component.menu.add_separator()
-                    cbx_component.menu.add_command(label="Filter the ComboBox items")
-                    cbx_component.menu.entryconfigure("Filter the ComboBox items",
+                    #
+                    cbx_component.menu.add_command(label="Apply value as an items filter")
+                    cbx_component.menu.entryconfigure("Apply value as an items filter",
                                                       command=lambda cbx=cbx_component: self.combobox_apply_filter(cbx))
-                    cbx_component.menu.add_command(label="Apply selected item to all matching components")
-                    cbx_component.menu.entryconfigure("Apply selected item to all matching components",
+                    cbx_component.menu.add_separator()
+                    #
+                    cbx_component.menu.add_command(label="Set default: <Footprint>_<Comment>")
+                    cbx_component.menu.entryconfigure("Set default: <Footprint>_<Comment>",
+                                                      command=lambda cbx=cbx_component: self.combobox_set_default(cbx))
+                    #
+                    cbx_component.menu.add_command(label="Apply value to all matching components")
+                    cbx_component.menu.entryconfigure("Apply value to all matching components",
                                                       command=lambda cbx=cbx_component: self.combobox_apply_selected_to_all(cbx, False))
-                    cbx_component.menu.add_command(label="Force apply selected to all matching components")
-                    cbx_component.menu.entryconfigure("Force apply selected to all matching components",
+                    #
+                    cbx_component.menu.add_command(label="Force apply value to all matching components")
+                    cbx_component.menu.entryconfigure("Force apply value to all matching components",
                                                       command=lambda cbx=cbx_component: self.combobox_apply_selected_to_all(cbx, True))
+                    #
                     cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
                     cbx_component.bind('<<ComboboxSelected>>', self.combobox_selected)
                     # cbx_component.bind('<Key>', self.combobox_key)
@@ -673,6 +682,18 @@ class PnPEditor(customtkinter.CTkFrame):
         logging.debug(f"Applying '{selected_component}':")
         self.apply_component_to_matching(selected_idx, selected_component, force)
         self.add_component_if_missing(selected_component)
+
+    def combobox_set_default(self, cbx):
+        selected_idx = self.cbx_component_list.index(cbx)
+        row = glob_proj.pnp_grid.rows()[selected_idx]
+        ftprint = row[glob_proj.pnp_columns.footprint_col]
+        cmnt = row[glob_proj.pnp_columns.comment_col]
+        component_name = ftprint + "_" + cmnt
+        logging.debug(f"Set default <ftprnt>_<cmnt>: '{component_name}'")
+        cbx.set(component_name)
+        # mark
+        lbl_marker = self.lbl_marker_list[selected_idx]
+        lbl_marker.config(background=self.CL_FILTER)
 
     def combobox_apply_filter(self, cbx):
         filter: str = cbx.get().strip()

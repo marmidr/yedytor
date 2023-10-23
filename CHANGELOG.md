@@ -7,6 +7,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Added
   * App title - edited PnP file path
   * popups are centered on main App window
+  * PnP editor - PPM: Set default
 * Changed
 * Deprecated
 * Removed
