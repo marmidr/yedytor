@@ -2,6 +2,17 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.6.3 - 2023-10-23
+
+* Added
+  * App title - edited PnP file path
+  * popups are centered on main App window
+* Changed
+* Deprecated
+* Removed
+* Fixed
+  * keeps First Row number after loading another PnP file
+
 ## 0.6.2 - 2023-10-20
 
 * Added

@@ -29,7 +29,7 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.6.2"
+APP_NAME = "Yedytor v0.6.3"
 
 # -----------------------------------------------------------------------------
 
@@ -130,6 +130,9 @@ glob_components = ComponentsDB()
 
 class HomeFrame(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
+        assert "app" in kwargs
+        self.app = kwargs.pop("app")
+
         super().__init__(master, **kwargs)
 
         self.grid_columnconfigure(1, weight=1)
@@ -200,7 +203,7 @@ class HomeFrame(customtkinter.CTkFrame):
         logging.info(f"Selected PnP(s): {pnp_paths}")
 
         if len(pnp_paths) > 2:
-            MessageBox(dialog_type="o", message="You can only select one or two PnP files of the same type",
+            MessageBox(app=self.app, dialog_type="o", message="You can only select one or two PnP files of the same type",
                         callback=lambda btn: btn)
             return
         elif len(pnp_paths) == 2:
@@ -208,7 +211,7 @@ class HomeFrame(customtkinter.CTkFrame):
             ext1 = os.path.splitext(pnp_paths[0])[1].lower()
             ext2 = os.path.splitext(pnp_paths[1])[1].lower()
             if ext1 != ext2:
-                MessageBox(dialog_type="o", message="You must select two PnP files of the same type",
+                MessageBox(app=self.app, dialog_type="o", message="You must select two PnP files of the same type",
                             callback=lambda btn: btn)
                 return
 
@@ -220,15 +223,19 @@ class HomeFrame(customtkinter.CTkFrame):
                 # reset entire project
                 global glob_proj
                 sep_backup = glob_proj.pnp_separator
+                first_row_backup = glob_proj.pnp_first_row
                 glob_proj = Project()
 
                 glob_proj.pnp_separator = sep_backup
+                glob_proj.pnp_first_row = first_row_backup
                 glob_proj.pnp_path = pnp_paths[0]
                 glob_proj.pnp2_path = pnp_paths[1] if len(pnp_paths) > 1 else ""
                 self.var_pnp.set(glob_proj.pnp_path)
                 self.var_pnp2.set(glob_proj.pnp2_path)
 
                 self.activate_csv_separator()
+                self.app.title(f"{APP_NAME} - {glob_proj.pnp_path}")
+
             except Exception as e:
                 logging.error(f"Cannot open file: {e}")
 
@@ -299,6 +306,9 @@ class PnPView(customtkinter.CTkFrame):
 
 class PnPConfig(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
+        assert "app" in kwargs
+        self.app = kwargs.pop("app")
+
         assert "pnp_view" in kwargs
         self.pnp_view: PnPView = kwargs.pop("pnp_view")
         assert isinstance(self.pnp_view, PnPView)
@@ -354,13 +364,13 @@ class PnPConfig(customtkinter.CTkFrame):
         self.button_load_event()
 
     def var_first_row_event(self, sv: customtkinter.StringVar):
-        new_first_row = sv.get().strip()
-        try:
-            glob_proj.pnp_first_row = int(new_first_row) - 1
-            logging.info(f"  PnP 1st row: {glob_proj.pnp_first_row+1}")
-            self.button_load_event()
-        except Exception as e:
-            logging.error(f"  Invalid row number: {e}")
+        if (new_first_row := sv.get().strip()) != "":
+            try:
+                glob_proj.pnp_first_row = int(new_first_row) - 1
+                logging.info(f"  PnP 1st row: {glob_proj.pnp_first_row+1}")
+                self.button_load_event()
+            except Exception as e:
+                logging.error(f"  Invalid row number: {e}")
 
     def button_load_event(self):
         logging.debug("Load PnP...")
@@ -391,7 +401,7 @@ class PnPConfig(customtkinter.CTkFrame):
         if serialized != "":
             last_cr_result.deserialize(serialized)
         # show the column selector
-        self.column_selector = ColumnsSelector(self, columns=columns,
+        self.column_selector = ColumnsSelector(self, app=self.app, columns=columns,
                                                callback=self.column_selector_callback,
                                                last_result=last_cr_result)
 
@@ -423,10 +433,8 @@ class PnPEditor(customtkinter.CTkFrame):
     CL_MAN_SEL = "green"
 
     def __init__(self, master, **kwargs):
-        app = None
-        if 'app' in kwargs:
-            app = kwargs.pop('app')
-
+        assert 'app' in kwargs
+        self.app = kwargs.pop('app')
         super().__init__(master, **kwargs)
 
         self.pgbar_selected = customtkinter.CTkProgressBar(self)
@@ -459,10 +467,9 @@ class PnPEditor(customtkinter.CTkFrame):
             )
         )
 
-        if not app is None:
-            # apply font to ALL application combobox list
-            app.option_add('*TCombobox*Listbox.font', self.fonts[Config.instance().editor_font_idx][0])
-            app.option_add('*TCombobox*Listbox.background', 'LightBlue')
+        # apply font to ALL application combobox list
+        self.app.option_add('*TCombobox*Listbox.font', self.fonts[Config.instance().editor_font_idx][0])
+        self.app.option_add('*TCombobox*Listbox.background', 'LightBlue')
 
     def load(self):
         self.btn_save.configure(state=tkinter.DISABLED)
@@ -726,7 +733,7 @@ class PnPEditor(customtkinter.CTkFrame):
             self.btn_save.configure(state=tkinter.DISABLED)
             self.save_pnp_to_new_csv_file()
         else:
-            MessageBox(dialog_type="yn",
+            MessageBox(app=self.app, dialog_type="yn",
                        message=f"Only {n_selected[0]} / {n_selected[1]} items have selected PnP component.\n\nSave it now?",
                        callback=self.msgbox_save_callback)
 
@@ -767,7 +774,7 @@ class PnPEditor(customtkinter.CTkFrame):
             logging.info(f"PnP saved to: {csv_path}")
         else:
             logging.warning(f"PnP saved to: {csv_path} with {write_errors} errors")
-            mb = MessageBox(dialog_type="o",
+            mb = MessageBox(app=self.app, dialog_type="o",
                             message=f"Encoding errors occured!\n\n{write_errors} items not saved",
                             callback=lambda btn: btn)
 
@@ -791,6 +798,8 @@ class PnPEditor(customtkinter.CTkFrame):
 
 class ComponentsInfo(customtkinter.CTkFrame):
     def __init__(self, master, **kwargs):
+        assert "app" in kwargs
+        self.app = kwargs.pop("app")
         assert "callback" in kwargs
         self.on_new_components_callback: typing.Callable = kwargs.pop("callback")
 
@@ -812,10 +821,10 @@ class ComponentsInfo(customtkinter.CTkFrame):
         # self.grid_rowconfigure(0, weight=1)
 
     def btn_tou_scanner_event(self):
-        db_scanner.DbScanner(callback=self.scanner_callback, input_type="tou")
+        db_scanner.DbScanner(app=self.app, callback=self.scanner_callback, input_type="tou")
 
     def btn_devlib_scanner_event(self):
-        db_scanner.DbScanner(callback=self.scanner_callback, input_type="devlib")
+        db_scanner.DbScanner(app=self.app, callback=self.scanner_callback, input_type="devlib")
 
     def scanner_callback(self, action: str, input_type: str, new_components: ComponentsDB):
         logging.debug(f"Scanner {input_type}: {action}")
@@ -854,11 +863,14 @@ class ComponentsEditor(customtkinter.CTkFrame):
     COMP_PER_PAGE = 500
 
     def __init__(self, master, **kwargs):
+        assert "app" in kwargs
+        self.app = kwargs.pop("app")
+
         super().__init__(master, **kwargs)
         self.components_pageno = 0
         self.component_filter = ""
 
-        self.components_info = ComponentsInfo(self, callback=lambda: self.reload_components())
+        self.components_info = ComponentsInfo(self, app=self.app, callback=lambda: self.reload_components())
         self.components_info.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
@@ -1033,7 +1045,8 @@ class CtkApp(customtkinter.CTk):
         tab_db_editor = self.tabview.add(self.TAB_COMPONENTS)
 
         # home panel
-        self.home_frame = HomeFrame(tab_home)
+        self.home_frame = HomeFrame(tab_home, app=self)
+        self.home_frame.app = self
         self.home_frame.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
         tab_home.grid_columnconfigure(0, weight=1)
         # tab_home.grid_rowconfigure(1, weight=1)
@@ -1055,7 +1068,7 @@ class CtkApp(customtkinter.CTk):
         # panel with the PnP
         self.pnp_view = PnPView(tab_preview)
         self.pnp_view.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
-        self.pnp_config = PnPConfig(tab_preview, pnp_view=self.pnp_view)
+        self.pnp_config = PnPConfig(tab_preview, app=self, pnp_view=self.pnp_view)
         self.pnp_config.grid(row=1, column=0, padx=5, pady=5, sticky="we")
         self.pnp_config.select_editor = self.tab_select_editor()
         self.home_frame.pnp_config = self.pnp_config
@@ -1070,7 +1083,7 @@ class CtkApp(customtkinter.CTk):
         self.pnp_config.pnp_editor = self.pnp_editor
 
         # panel with DB editor
-        self.components_editor = ComponentsEditor(tab_db_editor)
+        self.components_editor = ComponentsEditor(tab_db_editor, app=self)
         self.components_editor.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
         self.components_editor.components_info.update_components_info()
 

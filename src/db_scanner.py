@@ -20,9 +20,13 @@ class DbScanner(customtkinter.CTkToplevel):
 
     def __init__(self, *args, **kwargs):
         """
+        app=main wnd, so we know how to center the popup
         callback=typing.Callable[[str, ComponentDB], None] - function receiving "y", "n", "o", "c"
         input_type: str = ("tou", "devlib")
         """
+        assert "app" in kwargs
+        app = kwargs.pop("app")
+
         assert "callback" in kwargs
         self.callback: typing.Callable[[str, ComponentsDB], None] = kwargs.pop("callback")
 
@@ -30,7 +34,17 @@ class DbScanner(customtkinter.CTkToplevel):
         self.input_type = kwargs.pop("input_type")
 
         super().__init__(*args, **kwargs)
-        self.geometry("700x600")
+        wnd_w = 700
+        wnd_h = 600
+        self.geometry(f"{wnd_w}x{wnd_h}")
+        # calc position
+        wnd_x = app.winfo_rootx()
+        wnd_x += app.winfo_width()//2
+        wnd_x -= wnd_w//2
+        wnd_y = app.winfo_rooty()
+        wnd_y += app.winfo_height()//2
+        wnd_y -= wnd_h//2
+        self.geometry(f"+{wnd_x}+{wnd_y}")
 
         self.components_dict: dict[str, set[str]] = {}
 

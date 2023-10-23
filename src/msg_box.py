@@ -8,19 +8,35 @@ class MessageBox(customtkinter.CTkToplevel):
     def __init__(self, *args, **kwargs):
         """
         Opens a new MessageBox popup:
+        app=main wnd, so we know how to center the popup
         dialog_type=str - 'yn', 'ync', 'o', 'oc'
         message=str - text of the message
         callback=typing.Callable[[str], None] - function receiving "y", "n", "o", "c"
         """
+        assert "app" in kwargs
+        app = kwargs.pop("app")
+
         assert "dialog_type" in kwargs
         self.dialog_type = kwargs.pop("dialog_type")
+
         assert "message" in kwargs
         self.message = kwargs.pop("message")
+
         assert "callback" in kwargs
         self.callback: typing.Callable[[str], None] = kwargs.pop("callback")
 
         super().__init__(*args, **kwargs)
-        self.geometry("400x150")
+        wnd_w = 400
+        wnd_h = 150
+        self.geometry(f"{wnd_w}x{wnd_h}")
+        # calc position
+        wnd_x = app.winfo_rootx()
+        wnd_x += app.winfo_width()//2
+        wnd_x -= wnd_w//2
+        wnd_y = app.winfo_rooty()
+        wnd_y += app.winfo_height()//2
+        wnd_y -= wnd_h//2
+        self.geometry(f"+{wnd_x}+{wnd_y}")
 
         lbl_message = customtkinter.CTkLabel(self, text=self.message)
         lbl_message.grid(row=0, column=0, pady=15, padx=15, sticky="wens", columnspan=3)

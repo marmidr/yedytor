@@ -11,6 +11,7 @@ PnP files editor, using a footprints defined in the Yamaha .Tou files.
 
 * Yamaha project file
   * .Tou
+  * DevLibEd.Lib
 * [PnP](. "Pick And Place")
   * .xls
   * .xlsx

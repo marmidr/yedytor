@@ -59,11 +59,15 @@ class ColumnsSelectorResult:
 
 class ColumnsSelector(customtkinter.CTkToplevel):
     def __init__(self, *args, **kwargs):
+        assert "app" in kwargs
+        app = kwargs.pop("app")
+
         assert "columns" in kwargs
         columns = kwargs.pop("columns")
 
         assert type(columns) is list
         # logging.debug("columns: {}".format(self.columns))
+
         assert "callback" in kwargs
         self.callback: typing.Callable = kwargs.pop("callback")
 
@@ -71,10 +75,20 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         last_result: ColumnsSelectorResult = kwargs.pop("last_result")
 
         super().__init__(*args, **kwargs)
-        self.geometry("400x360")
+        wnd_w = 400
+        wnd_h = 360
+        self.geometry(f"{wnd_w}x{wnd_h}")
+        # calc position
+        wnd_x = app.winfo_rootx()
+        wnd_x += app.winfo_width()//2
+        wnd_x -= wnd_w//2
+        wnd_y = app.winfo_rooty()
+        wnd_y += app.winfo_height()//2
+        wnd_y -= wnd_h//2
+        self.geometry(f"+{wnd_x}+{wnd_y}")
 
         # prepend column titles with their corresponding index
-        columns = [f"{idx}. {item}" for (idx,item) in enumerate(columns)]
+        columns = [f"{idx+1}. {item}" for (idx,item) in enumerate(columns)]
 
         #
         lbl_col_headers = customtkinter.CTkLabel(self, text="File has column headers")
@@ -210,7 +224,8 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         result.layer_col = self.opt_layer_var.get()
         # extract column index
         def extract_idx(input: str) -> int:
-            return int(input.split(sep=". ")[0])
+            parsed = int(input.split(sep=". ")[0])
+            return parsed-1
         #
         result.id_col = extract_idx(result.id_col)
         result.comment_col = extract_idx(result.comment_col)
