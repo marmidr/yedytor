@@ -2,6 +2,15 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.6.4 - 2023-11-24
+
+* Added
+  * DB components: scroll list to the top when searching by name
+* Changed
+* Deprecated
+* Removed
+* Fixed
+
 ## 0.6.3 - 2023-10-23
 
 * Added

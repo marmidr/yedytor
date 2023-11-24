@@ -29,7 +29,7 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.6.3"
+APP_NAME = "Yedytor v0.6.4"
 
 # -----------------------------------------------------------------------------
 
@@ -947,6 +947,9 @@ class ComponentsEditor(customtkinter.CTkFrame):
         # reload view
         self.load_components()
         self.lbl_pageno.configure(text=self.format_pageno())
+        # scroll the list to the top
+        cmd = self.scrollableframe._scrollbar.cget("command")
+        cmd('moveto', 0)
 
     def mk_components_view(self):
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
