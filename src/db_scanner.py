@@ -34,17 +34,7 @@ class DbScanner(customtkinter.CTkToplevel):
         self.input_type = kwargs.pop("input_type")
 
         super().__init__(*args, **kwargs)
-        wnd_w = 700
-        wnd_h = 600
-        self.geometry(f"{wnd_w}x{wnd_h}")
-        # calc position
-        wnd_x = app.winfo_rootx()
-        wnd_x += app.winfo_width()//2
-        wnd_x -= wnd_w//2
-        wnd_y = app.winfo_rooty()
-        wnd_y += app.winfo_height()//2
-        wnd_y -= wnd_h//2
-        self.geometry(f"+{wnd_x}+{wnd_y}")
+        ui_helpers.window_set_centered(app, self, 700, 600)
 
         self.components_dict: dict[str, set[str]] = {}
 

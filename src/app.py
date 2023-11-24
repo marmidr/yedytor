@@ -795,9 +795,9 @@ class PnPEditor(customtkinter.CTkFrame):
             logging.info(f"PnP saved to: {csv_path}")
         else:
             logging.warning(f"PnP saved to: {csv_path} with {write_errors} errors")
-            mb = MessageBox(app=self.app, dialog_type="o",
-                            message=f"Encoding errors occured!\n\n{write_errors} items not saved",
-                            callback=lambda btn: btn)
+            MessageBox(app=self.app, dialog_type="o",
+                        message=f"Encoding errors occured!\n\n{write_errors} items not saved",
+                        callback=lambda btn: btn)
 
     def update_selected_status(self):
         n_selected = self.count_selected()

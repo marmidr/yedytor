@@ -106,3 +106,17 @@ class ComboboxWithPPM(tkinter.ttk.Combobox):
 
     def show_menu(self, e):
         self.tk.call("tk_popup", self.menu, e.x_root, e.y_root)
+
+def window_set_centered(app: tkinter.Tk, wnd: tkinter.Toplevel, wnd_w: int, wnd_h: int):
+    # set window size
+    wnd.geometry(f"{wnd_w}x{wnd_h}")
+    # calc position
+    wnd_x = app.winfo_rootx()
+    wnd_x += app.winfo_width()//2
+    wnd_x -= wnd_w//2
+    wnd_y = app.winfo_rooty()
+    wnd_y += app.winfo_height()//2
+    wnd_y -= wnd_h//2
+    wnd_y -= 20
+    # set screen position
+    wnd.geometry(f"+{wnd_x}+{wnd_y}")

@@ -3,6 +3,8 @@ import tkinter
 import logging
 import typing
 
+import ui_helpers
+
 # -----------------------------------------------------------------------------
 
 class ColumnsSelectorResult:
@@ -75,17 +77,7 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         last_result: ColumnsSelectorResult = kwargs.pop("last_result")
 
         super().__init__(*args, **kwargs)
-        wnd_w = 400
-        wnd_h = 360
-        self.geometry(f"{wnd_w}x{wnd_h}")
-        # calc position
-        wnd_x = app.winfo_rootx()
-        wnd_x += app.winfo_width()//2
-        wnd_x -= wnd_w//2
-        wnd_y = app.winfo_rooty()
-        wnd_y += app.winfo_height()//2
-        wnd_y -= wnd_h//2
-        self.geometry(f"+{wnd_x}+{wnd_y}")
+        ui_helpers.window_set_centered(app, self, 400, 360)
 
         # prepend column titles with their corresponding index
         columns = [f"{idx+1}. {item}" for (idx,item) in enumerate(columns)]
