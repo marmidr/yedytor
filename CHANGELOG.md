@@ -2,6 +2,18 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.6.5 - 2023-11-25
+
+* Added
+  * CSV reader: detect if ' is used as a quote char instead of "
+* Changed
+  * PnP editor is not reloaded when PnP file (Preview) is reloaded;
+    Click the "Go to editor" to reload editor
+* Deprecated
+* Removed
+* Fixed
+  * PnP column selector: improved support for optional Layer column
+
 ## 0.6.4 - 2023-11-24
 
 * Added

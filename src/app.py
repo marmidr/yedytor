@@ -29,7 +29,7 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.6.4"
+APP_NAME = "Yedytor v0.6.5"
 
 # -----------------------------------------------------------------------------
 
@@ -289,9 +289,6 @@ class PnPView(customtkinter.CTkFrame):
         pnp_txt_grid = glob_proj.pnp_grid.format_grid(glob_proj.pnp_first_row)
         self.textbox.insert("0.0", pnp_txt_grid)
         glob_proj.pnp_grid_dirty = False
-        # refresh editor (if columns were selected)
-        if glob_proj.pnp_columns.valid:
-            self.pnp_editor.load()
 
     def clear_preview(self):
         self.textbox.delete("0.0", tkinter.END)
@@ -376,6 +373,9 @@ class PnPConfig(customtkinter.CTkFrame):
         logging.debug("Load PnP...")
         try:
             self.pnp_view.load_pnp(glob_proj.pnp_path, glob_proj.pnp2_path)
+            # refresh editor (if columns were selected)
+            # if glob_proj.pnp_columns.valid:
+            #     self.pnp_editor.load()
             self.btn_columns.configure(state=tkinter.NORMAL)
         except Exception as e:
             logging.error(f"Cannot load PnP: {e}")
@@ -416,7 +416,7 @@ class PnPConfig(customtkinter.CTkFrame):
             Config.instance().get_section("columns")[glob_proj.get_name().replace(" ", "_")] = serialized
             Config.instance().save()
         except Exception as e:
-            logging.error(f"Can not save columnt in history: {e}")
+            logging.error(f"Cannot save column in history: {e}")
 
     def button_goto_editor_event(self):
         logging.debug(f"Go to Edit page")

@@ -20,7 +20,8 @@ class ColumnsSelectorResult:
         self.layer_col = "" # may be None
 
     def tostr(self) -> str:
-        return f"id={self.id_col}, cmnt={self.comment_col}, ftprnt={self.footprint_col}, x={self.xcoord_col}, y={self.ycoord_col}, rot={self.rot_col}, lr={self.layer_col}"
+        return f"id={self.id_col+1}, cmnt={self.comment_col+1}, ftprnt={self.footprint_col+1}, "\
+               f"x={self.xcoord_col+1}, y={self.ycoord_col+1}, rot={self.rot_col+1}, lr={self.layer_col+1}"
 
     def serialize(self) -> str:
         """Ensures all fields are an integer indexes, creates a string of space-separated numbers"""
@@ -96,7 +97,7 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         lbl_id = customtkinter.CTkLabel(self, text="ID column:")
         lbl_id.grid(row=1, column=0, pady=5, padx=5, sticky="w")
 
-        initial_value = lambda idx: columns[idx] if last_result.valid else ""
+        initial_value = lambda idx: columns[idx] if idx >= 0 and idx < len(columns) and last_result.valid else ""
 
         self.opt_id_var = customtkinter.StringVar(value=initial_value(last_result.id_col))
         opt_id = customtkinter.CTkOptionMenu(self, values=columns,
@@ -225,7 +226,7 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         result.xcoord_col = extract_idx(result.xcoord_col)
         result.ycoord_col = extract_idx(result.ycoord_col)
         result.rot_col = extract_idx(result.rot_col)
-        result.layer_col = extract_idx(result.layer_col) if result.layer_col != "" else None
+        result.layer_col = extract_idx(result.layer_col) if result.layer_col != "" else -1
         result.valid = True
         #
         self.callback(result)
