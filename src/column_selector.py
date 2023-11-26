@@ -97,7 +97,7 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         lbl_id = customtkinter.CTkLabel(self, text="ID column:")
         lbl_id.grid(row=1, column=0, pady=5, padx=5, sticky="w")
 
-        initial_value = lambda idx: columns[idx] if idx >= 0 and idx < len(columns) and last_result.valid else ""
+        initial_value = lambda idx: columns[idx] if last_result.valid and type(idx) is int and idx >= 0 and idx < len(columns) else ""
 
         self.opt_id_var = customtkinter.StringVar(value=initial_value(last_result.id_col))
         opt_id = customtkinter.CTkOptionMenu(self, values=columns,

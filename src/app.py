@@ -29,7 +29,7 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.6.5"
+APP_NAME = "Yedytor v0.6.6"
 
 # -----------------------------------------------------------------------------
 
@@ -931,6 +931,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         # save DB modifications to file
         self.btn_save = customtkinter.CTkButton(self.frame_buttons, text="Save DB", command=self.button_save_event)
         self.btn_save.grid(row=0, column=5, pady=5, padx=5, sticky="e")
+        self.btn_save.configure(state=tkinter.DISABLED)
 
     def reload_components(self):
         # reload view
@@ -1037,9 +1038,9 @@ class ComponentsEditor(customtkinter.CTkFrame):
             self.lbl_pageno.configure(text=self.format_pageno())
 
     def button_save_event(self):
-        logging.debug("Save DB")
         self.store_checkbox_selections()
         glob_components.save_changes()
+        logging.info(f"DB saved to '{glob_components.db_file_path}'")
         self.btn_save.configure(state=tkinter.DISABLED)
         self.components_info.update_components_info()
 

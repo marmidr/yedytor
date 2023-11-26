@@ -2,6 +2,16 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.6.6 - 2023-11-26
+
+* Added
+* Changed
+  * DB Editor: prints the path where the DB is saved
+* Deprecated
+* Removed
+* Fixed
+  * PnP column selector: fix for new document cases (no previous column indexes available)
+
 ## 0.6.5 - 2023-11-25
 
 * Added
