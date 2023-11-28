@@ -2,6 +2,15 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.6.7 - 2023-11-29
+
+* Added
+* Changed
+* Deprecated
+* Removed
+* Fixed
+  * ODS reader - take the "repeated" cell atrribute into account when iterating row's cells
+
 ## 0.6.6 - 2023-11-26
 
 * Added

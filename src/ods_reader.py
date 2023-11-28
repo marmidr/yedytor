@@ -1,4 +1,11 @@
 from odf import opendocument, table
+
+# local copy of odf:
+# import os
+# import sys
+# sys.path.append(os.path.join(os.path.dirname(__file__), "odfpy"))
+# from odfpy.odf import opendocument, table
+
 import logging
 
 from text_grid import TextGrid
@@ -14,7 +21,7 @@ def read_ods_sheet(path: str) -> TextGrid:
     doc = opendocument.load(path)
     tg = TextGrid()
 
-    # with open("odf-dump.xml", "w") as f:
+    # with open(path + "-dump.xml", "w") as f:
     #     f.write(str(doc.xml()))
 
     if "opendocument.spreadsheet" in doc.getMediaType():
@@ -22,9 +29,18 @@ def read_ods_sheet(path: str) -> TextGrid:
             name = tab.getAttrNS(table.TABLENS, u"name")
             logging.info(f"Reading sheet: {name}")
             max_cols = 0
+            REPEATS_ATTR = "number-columns-repeated".replace('-','')
 
             for tablerow in tab.getElementsByType(table.TableRow):
-                row_cells = [str(child).strip() for child in tablerow.childNodes]
+                tablecells = tablerow.getElementsByType(table.TableCell)
+                row_cells = []
+                # when iterating through the row cells, take the "repeat" attribute into account
+                for cell in tablecells:
+                    repeated = cell.getAttribute(REPEATS_ATTR) or 1
+                    repeated = int(repeated)
+                    for _ in range(repeated):
+                        row_cells.append(str(cell))
+
                 max_cols = max(max_cols, len(row_cells))
 
                 # ignore rows with empty cell 'A'
