@@ -2,9 +2,10 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
-## 0.6.7 - 2023-11-29
+## 0.6.7 - 2024-02-23
 
 * Added
+  * PnP editor: remove component by marking it black (will be skipped when writing the output CSV file)
 * Changed
 * Deprecated
 * Removed

@@ -2,7 +2,7 @@
 #
 # PnP files editor, using a footprint components defined in the Yamaha .Tou files.
 #
-# (c) 2023 Mariusz Midor
+# (c) 2023-2024 Mariusz Midor
 # https://github.com/marmidr/yedytor
 
 import customtkinter
@@ -29,7 +29,7 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.6.6"
+APP_NAME = "Yedytor v0.6.7"
 
 # -----------------------------------------------------------------------------
 
@@ -431,6 +431,7 @@ class PnPEditor(customtkinter.CTkFrame):
     CL_FILTER = "yellow"
     CL_AUTO_SEL = "lime"
     CL_MAN_SEL = "green"
+    CL_REMOVED = "black"
 
     def __init__(self, master, **kwargs):
         assert 'app' in kwargs
@@ -475,7 +476,7 @@ class PnPEditor(customtkinter.CTkFrame):
         self.btn_save.configure(state=tkinter.DISABLED)
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
         self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, columnspan=4, sticky="wens")
-        self.entry_list = []
+        self.entry_list: list[tkinter.Entry] = []
         self.lbl_marker_list = []
         self.cbx_component_list = []
         self.lbl_namelength_list = []
@@ -541,9 +542,14 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.menu.entryconfigure("Apply value to all matching components",
                                                       command=lambda cbx=cbx_component: self.combobox_apply_selected_to_all(cbx, False))
                     #
-                    cbx_component.menu.add_command(label="Force apply value to all matching components")
-                    cbx_component.menu.entryconfigure("Force apply value to all matching components",
+                    cbx_component.menu.add_command(label="Apply+override value to all matching components")
+                    cbx_component.menu.entryconfigure("Apply+override value to all matching components",
                                                       command=lambda cbx=cbx_component: self.combobox_apply_selected_to_all(cbx, True))
+                    cbx_component.menu.add_separator()
+                    #
+                    cbx_component.menu.add_command(label="Remove component")
+                    cbx_component.menu.entryconfigure("Remove component",
+                                                      command=lambda cbx=cbx_component: self.combobox_remove_component(cbx))
                     #
                     cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
                     cbx_component.bind('<<ComboboxSelected>>', self.combobox_selected)
@@ -644,8 +650,9 @@ class PnPEditor(customtkinter.CTkFrame):
                     continue
                 marker_bg = self.lbl_marker_list[i].cget("background")
                 # if already selected, skip this item
-                if not force and (marker_bg == self.CL_MAN_SEL):
+                if not force and (marker_bg in (self.CL_MAN_SEL, self.CL_REMOVED)):
                     continue
+
                 if row[glob_proj.pnp_columns.comment_col] == comment and \
                    row[glob_proj.pnp_columns.footprint_col] == ftprint:
                     # found: select the same component
@@ -682,6 +689,20 @@ class PnPEditor(customtkinter.CTkFrame):
         logging.debug(f"Applying '{selected_component}':")
         self.apply_component_to_matching(selected_idx, selected_component, force)
         self.add_component_if_missing(selected_component)
+
+    def combobox_remove_component(self, cbx):
+        cbx.focus_force()
+        selected_idx = self.cbx_component_list.index(cbx)
+        selected_component: str = self.entry_list[selected_idx].get()
+        # remove double spaces
+        selected_component = " ".join(selected_component.split())
+        logging.debug(f"Removing: '{selected_component}'")
+        # add marker that this is a deleted entry
+        self.lbl_marker_list[selected_idx].config(background=self.CL_REMOVED)
+        # clear selection
+        self.cbx_component_list[selected_idx].configure(values=[])
+        self.cbx_component_list[selected_idx].set("")
+        self.update_selected_status()
 
     def combobox_set_default(self, cbx):
         selected_idx = self.cbx_component_list.index(cbx)
@@ -770,6 +791,11 @@ class PnPEditor(customtkinter.CTkFrame):
         with open(csv_path, "w", encoding="UTF-8") as f:
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
                 selected_component = self.cbx_component_list[i].get()
+                marker_bg = self.lbl_marker_list[i].cget("background")
+                if marker_bg == self.CL_REMOVED:
+                    logging.debug(f"Skipped: '{row[glob_proj.pnp_columns.id_col]} | {row[glob_proj.pnp_columns.comment_col]}'")
+                    continue
+
                 yamaha_columns = (
                     selected_component,
                     row[glob_proj.pnp_columns.id_col],
@@ -811,7 +837,7 @@ class PnPEditor(customtkinter.CTkFrame):
         n = 0
         for lbl in self.lbl_marker_list:
             bg = lbl.cget("background")
-            if bg in (self.CL_MAN_SEL, self.CL_AUTO_SEL):
+            if bg in (self.CL_MAN_SEL, self.CL_AUTO_SEL, self.CL_REMOVED):
                 n += 1
         return (n, len(self.lbl_marker_list))
 
