@@ -5,14 +5,15 @@
 # (c) 2023-2024 Mariusz Midor
 # https://github.com/marmidr/yedytor
 
-import customtkinter
 import logging
+import json
 import os
 import sys
 import time
 import tkinter
 import typing
-import json
+
+import customtkinter
 
 import db_scanner
 import ui_helpers
@@ -104,10 +105,12 @@ class HomeFrame(customtkinter.CTkFrame):
 
         self.config.radio_var = tkinter.IntVar(value=Config.instance().editor_font_idx)
         self.config.rb_font0 = customtkinter.CTkRadioButton(self.config, text="12px",
-                                                            variable=self.config.radio_var, value=0, command=self.radiobutton_event)
+                                                            variable=self.config.radio_var,
+                                                            value=0, command=self.radiobutton_event)
         self.config.rb_font0.grid(row=1, column=0, pady=5, padx=5, sticky="w")
         self.config.rb_font1 = customtkinter.CTkRadioButton(self.config, text="16px",
-                                                            variable=self.config.radio_var, value=1, command=self.radiobutton_event)
+                                                            variable=self.config.radio_var,
+                                                            value=1, command=self.radiobutton_event)
         self.config.rb_font1.grid(row=2, column=0, pady=5, padx=5, sticky="w")
 
     def radiobutton_event(self):
@@ -135,16 +138,18 @@ class HomeFrame(customtkinter.CTkFrame):
         logging.info(f"Selected PnP(s): {pnp_paths}")
 
         if len(pnp_paths) > 2:
-            MessageBox(app=self.app, dialog_type="o", message="You can only select one or two PnP files of the same type",
-                        callback=lambda btn: btn)
+            MessageBox(app=self.app, dialog_type="o",
+                       message="You can only select one or two PnP files of the same type",
+                       callback=lambda btn: btn)
             return
-        elif len(pnp_paths) == 2:
+        if len(pnp_paths) == 2:
             # https://docs.python.org/3/library/os.path.html#os.path.splitext
             ext1 = os.path.splitext(pnp_paths[0])[1].lower()
             ext2 = os.path.splitext(pnp_paths[1])[1].lower()
             if ext1 != ext2:
-                MessageBox(app=self.app, dialog_type="o", message="You must select two PnP files of the same type",
-                            callback=lambda btn: btn)
+                MessageBox(app=self.app, dialog_type="o",
+                           message="You must select two PnP files of the same type",
+                           callback=lambda btn: btn)
                 return
 
         self.process_input_files(pnp_paths)
@@ -299,8 +304,11 @@ class PnPConfig(customtkinter.CTkFrame):
         #
         # https://stackoverflow.com/questions/6548837/how-do-i-get-an-event-callback-when-a-tkinter-entry-widget-is-modified
         self.entry_first_row_var = customtkinter.StringVar(value="1")
-        self.entry_first_row_var.trace_add("write", lambda n, i, m, sv=self.entry_first_row_var: self.var_first_row_event(sv))
-        self.entry_first_row = customtkinter.CTkEntry(self, width=60, placeholder_text="first row", textvariable=self.entry_first_row_var)
+        self.entry_first_row_var.trace_add("write", lambda n, i, m,
+                                           sv=self.entry_first_row_var: self.var_first_row_event(sv))
+        self.entry_first_row = customtkinter.CTkEntry(self, width=60,
+                                                      placeholder_text="first row",
+                                                      textvariable=self.entry_first_row_var)
         self.entry_first_row.grid(row=0, column=2, padx=5, pady=5, sticky="w")
 
         #
@@ -351,7 +359,8 @@ class PnPConfig(customtkinter.CTkFrame):
             logging.error(f"Cannot load PnP: {e}")
 
     def update_lbl_columns(self):
-        # self.lbl_columns.configure(text=f"COLUMNS:\n• Footprint: {glob_proj.pnp_columns.footprint_col}\n• Comment: {glob_proj.pnp_columns.comment_col}")
+        # self.lbl_columns.configure(
+            # text=f"COLUMNS:\n• Footprint: {glob_proj.pnp_columns.footprint_col}\n• Comment: {glob_proj.pnp_columns.comment_col}")
         pass
 
     def button_columns_event(self):
@@ -389,7 +398,7 @@ class PnPConfig(customtkinter.CTkFrame):
             logging.error(f"Cannot save column in history: {e}")
 
     def button_goto_editor_event(self):
-        logging.debug(f"Go to Edit page")
+        logging.debug("Go to Edit page")
         # refresh editor
         self.pnp_editor.load()
         self.select_editor()
@@ -463,8 +472,7 @@ class ComponentsIterator:
                     'comment': None
                 }
                 return record
-            else:
-                raise StopIteration
+            raise StopIteration
 
         if self._proj:
             if self._idx < len(self._proj.pnp_grid.rows()):
@@ -487,8 +495,7 @@ class ComponentsIterator:
                     'comment': row[self._proj.pnp_columns.comment_col]
                 }
                 return record
-            else:
-                raise StopIteration
+            raise StopIteration
 
         raise StopIteration
 
@@ -588,7 +595,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
                     # https://www.pythontutorial.net/tkinter/tkinter-combobox/
 
-                    cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cp", values=self.component_names,
+                    cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cp",
+                                                               values=self.component_names,
                                                                font=self.fonts[Config.instance().editor_font_idx][0])
                     self.combobox_add_context_menu(cbx_component)
                     #
@@ -600,7 +608,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.bind("<FocusIn>", self.combobox_focus_in)
                     self.cbx_component_list.append(cbx_component)
 
-                    lbl_length = tkinter.Label(self.scrollableframe, font=self.fonts[Config.instance().editor_font_idx][0])
+                    lbl_length = tkinter.Label(self.scrollableframe,
+                                               font=self.fonts[Config.instance().editor_font_idx][0])
                     lbl_length.grid(row=idx, column=3, padx=1, pady=1, sticky="e")
                     lbl_length.config(foreground="maroon")
                     self.lbl_namelength_list.append(lbl_length)
@@ -631,7 +640,8 @@ class PnPEditor(customtkinter.CTkFrame):
             # update progressbar
             self.update_selected_status()
 
-    def try_select_component(self, cbx: tkinter.ttk.Combobox, lbl_mark: tkinter.Label, lbl_len: tkinter.Label,
+    def try_select_component(self,
+                             cbx: tkinter.ttk.Combobox, lbl_mark: tkinter.Label, lbl_len: tkinter.Label,
                              ftprint: str, cmnt: str):
         try:
             expected_component = ftprint + "_" + cmnt
@@ -640,19 +650,19 @@ class PnPEditor(customtkinter.CTkFrame):
             # mark autoselection
             lbl_mark.config(background=Markers.CL_AUTO_SEL)
             logging.info(f"Matching component found: {expected_component}")
-        except:
+        except Exception:
             # not found; try to create a good filter expression
             # "1206_R_1,2k" -> "1206"
             ftprint_prefix = ftprint.split("_")
             if len(ftprint_prefix):
                 ftprint_prefix = ftprint_prefix[0]
-                filter = ftprint_prefix + " " + cmnt
+                fltr = ftprint_prefix + " " + cmnt
                 # assign a filtered list of components
-                filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
+                filtered_comp_names = list(item.name for item in glob_components.items_filtered(fltr))
                 cbx.configure(values=filtered_comp_names)
                 # set value to the filter
-                cbx.set(filter.lower())
-                if len(filtered_comp_names):
+                cbx.set(fltr.lower())
+                if len(filtered_comp_names) > 0:
                     # mark filter
                     lbl_mark.config(background=Markers.CL_FILTER)
                 else:
@@ -733,25 +743,30 @@ class PnPEditor(customtkinter.CTkFrame):
         #
         cbx_component.menu.add_command(label="Apply value as an items filter")
         cbx_component.menu.entryconfigure("Apply value as an items filter",
-                                            command=lambda cbx=cbx_component: self.combobox_apply_filter(cbx))
+                                            command=lambda cbx=cbx_component: \
+                                                self.combobox_apply_filter(cbx))
         cbx_component.menu.add_separator()
         #
         cbx_component.menu.add_command(label="Set default: <Footprint>_<Comment>")
         cbx_component.menu.entryconfigure("Set default: <Footprint>_<Comment>",
-                                            command=lambda cbx=cbx_component: self.combobox_set_default(cbx))
+                                            command=lambda cbx=cbx_component: \
+                                                self.combobox_set_default(cbx))
         #
         cbx_component.menu.add_command(label="Apply value to all matching components")
         cbx_component.menu.entryconfigure("Apply value to all matching components",
-                                            command=lambda cbx=cbx_component: self.combobox_apply_selected_to_all(cbx, False))
+                                            command=lambda cbx=cbx_component: \
+                                                self.combobox_apply_selected_to_all(cbx, False))
         #
         cbx_component.menu.add_command(label="Apply+override value to all matching components")
         cbx_component.menu.entryconfigure("Apply+override value to all matching components",
-                                            command=lambda cbx=cbx_component: self.combobox_apply_selected_to_all(cbx, True))
+                                            command=lambda cbx=cbx_component: \
+                                                self.combobox_apply_selected_to_all(cbx, True))
         cbx_component.menu.add_separator()
         #
         cbx_component.menu.add_command(label="Remove component")
         cbx_component.menu.entryconfigure("Remove component",
-                                            command=lambda cbx=cbx_component: self.combobox_remove_component(cbx))
+                                            command=lambda cbx=cbx_component: \
+                                                self.combobox_remove_component(cbx))
 
     def combobox_return(self, event):
         self.combobox_apply_filter(event.widget)
@@ -791,27 +806,27 @@ class PnPEditor(customtkinter.CTkFrame):
         lbl_marker.config(background=Markers.CL_FILTER)
 
     def combobox_apply_filter(self, cbx):
-        filter: str = cbx.get().strip()
-        if len(filter) >= 3:
-            filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
-            logging.debug(f"Apply filter '{filter}' -> {len(filtered_comp_names)} matching")
+        fltr: str = cbx.get().strip()
+        if len(fltr) >= 3:
+            filtered_comp_names = list(item.name for item in glob_components.items_filtered(fltr))
+            logging.debug(f"Apply filter '{fltr}' -> {len(filtered_comp_names)} matching")
             cbx.configure(values=filtered_comp_names)
 
             selected_idx = self.cbx_component_list.index(cbx)
             try:
-                self.component_names.index(filter)
+                self.component_names.index(fltr)
                 # filter found on component list: add marker that this is a final value
                 self.lbl_marker_list[selected_idx].config(background=Markers.CL_MAN_SEL)
-            except:
-                if len(filtered_comp_names):
+            except Exception:
+                if len(filtered_comp_names) > 0:
                     # mark this is a filter, not value
                     self.lbl_marker_list[selected_idx].config(background=Markers.CL_FILTER)
                 else:
                     # mark no matching component in database
                     self.lbl_marker_list[selected_idx].config(background=Markers.CL_NOMATCH)
-                self.update_componentname_length_lbl(self.lbl_namelength_list[selected_idx], filter)
+                self.update_componentname_length_lbl(self.lbl_namelength_list[selected_idx], fltr)
         else:
-            logging.debug(f"Filter too short: use full list")
+            logging.debug("Filter too short: use full list")
             cbx.configure(values=self.component_names)
             try:
                 selected_idx = self.cbx_component_list.index(cbx)
@@ -821,7 +836,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
         self.btn_save.configure(state=tkinter.NORMAL)
 
-    def combobox_wheel(self, event):
+    def combobox_wheel(self, _event):
         # logging.debug(f"CB wheel: {event}")
         # block changing value when the list is hidden to avoid accidental modification
         return 'break'
@@ -849,7 +864,7 @@ class PnPEditor(customtkinter.CTkFrame):
         self.save_wip(wip_path)
 
         MessageBox(app=self.app, dialog_type="o",
-                    message=f"Work in progress saved to:\n\n" +
+                    message="Work in progress saved to:\n\n" +
                             f"{os.path.dirname(wip_path)}/\n" +
                             f"{os.path.basename(wip_path)}",
                     callback=lambda btn: btn)
@@ -862,8 +877,8 @@ class PnPEditor(customtkinter.CTkFrame):
             }
             components = []
 
-            for i in range(len(self.entry_list)):
-                cmp_name = self.entry_list[i].get()
+            for i, cmp in enumerate(self.entry_list):
+                cmp_name = cmp.get()
                 cmp_marker = self.lbl_marker_list[i].cget("background")
                 cmp_selection = self.cbx_component_list[i].get()
 
@@ -885,7 +900,8 @@ class PnPEditor(customtkinter.CTkFrame):
             self.save_pnp_to_new_csv_file()
         else:
             MessageBox(app=self.app, dialog_type="yn",
-                       message=f"Only {n_selected[0]} / {n_selected[1]} items have selected PnP component.\n\nSave it now?",
+                       message=f"Only {n_selected[0]} / {n_selected[1]} "\
+                                "items have selected PnP component.\n\nSave it now?",
                        callback=self.msgbox_save_callback)
 
     def msgbox_save_callback(self, btn: str):
@@ -902,7 +918,8 @@ class PnPEditor(customtkinter.CTkFrame):
                 selected_component = self.cbx_component_list[i].get()
                 marker_bg = self.lbl_marker_list[i].cget("background")
                 if marker_bg == Markers.CL_REMOVED:
-                    logging.debug(f"Skipped: '{row[glob_proj.pnp_columns.id_col]} | {row[glob_proj.pnp_columns.comment_col]}'")
+                    logging.debug(f"Skipped: '{row[glob_proj.pnp_columns.id_col]} | "
+                                  f"{row[glob_proj.pnp_columns.comment_col]}'")
                     continue
 
                 yamaha_columns = (
@@ -967,10 +984,12 @@ class ComponentsInfo(customtkinter.CTkFrame):
         frame_buttons = customtkinter.CTkFrame(self)
         frame_buttons.grid(row=0, column=1, sticky="")
 
-        btn_tou_scanner = customtkinter.CTkButton(frame_buttons, text="Tou scanner...", command=self.btn_tou_scanner_event)
+        btn_tou_scanner = customtkinter.CTkButton(frame_buttons, text="Tou scanner...",
+                                                  command=self.btn_tou_scanner_event)
         btn_tou_scanner.grid(row=0, column=0, pady=5, padx=5, sticky="")
 
-        btn_lib_scanner = customtkinter.CTkButton(frame_buttons, text="DevLib scanner...", command=self.btn_devlib_scanner_event)
+        btn_lib_scanner = customtkinter.CTkButton(frame_buttons, text="DevLib scanner...",
+                                                  command=self.btn_devlib_scanner_event)
         btn_lib_scanner.grid(row=1, column=0, pady=5, padx=5, sticky="")
 
         self.grid_columnconfigure(0, weight=1)
@@ -1026,7 +1045,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.components_pageno = 0
         self.component_filter = ""
 
-        self.components_info = ComponentsInfo(self, app=self.app, callback=lambda: self.reload_components())
+        self.components_info = ComponentsInfo(self, app=self.app, callback=self.reload_components)
         self.components_info.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
@@ -1110,17 +1129,17 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
             var = tkinter.IntVar(self.scrollableframe, value=False)
             self.vars_hidden.append(var)
-            chkbttn_hidden = tkinter.Checkbutton(self.scrollableframe, text="Hidden", variable=var, command=self.chkbttn_event)
+            chkbttn_hidden = tkinter.Checkbutton(self.scrollableframe, text="Hidden",
+                                                 variable=var, command=self.chkbttn_event)
             chkbttn_hidden.grid(row=idx_on_page, column=2, padx=5, pady=1, sticky="w")
             self.chkbttns_hidden.append(chkbttn_hidden)
 
     def get_components(self) -> list[Component]:
         global glob_components
         # depending on entered filter, returns filtered or entire list of components
-        if len(self.component_filter):
+        if len(self.component_filter) > 0:
             return glob_components.items_filtered(self.component_filter)
-        else:
-            return glob_components.items_all()
+        return glob_components.items_all()
 
     def format_pageno(self) -> str:
         pageno_str = f"{1 + self.components_pageno} / {1 + len(self.get_components()) // self.COMP_PER_PAGE}"
@@ -1290,7 +1309,7 @@ if __name__ == "__main__":
 
     if (sys.version_info.major < 3) or (sys.version_info.minor < 9):
         logging.error("Required Python version 3.9 or later!")
-        exit()
+        sys.exit()
     else:
         logging.info(
             f"Python version: {sys.version_info.major}.{sys.version_info.minor}"

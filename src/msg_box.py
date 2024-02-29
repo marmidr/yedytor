@@ -1,6 +1,7 @@
-import customtkinter
-# import logging
 import typing
+# import logging
+
+import customtkinter
 
 import ui_helpers
 

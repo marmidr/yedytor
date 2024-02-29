@@ -1,8 +1,8 @@
+import logging
+
 # https://linuxhint.com/read-excel-file-python/
 # https://xlrd.readthedocs.io/en/latest/
-
 import xlrd
-import logging
 
 from text_grid import TextGrid
 
@@ -19,15 +19,15 @@ def read_xls_sheet(path: str) -> TextGrid:
     tg = TextGrid()
 
     # Iterate the loop to read the cell values
-    for r in range(sheet.nrows):
+    for r_idx in range(sheet.nrows):
         row_cells = []
-        for c in range(sheet.ncols):
-            cellobj = sheet.cell(r, c)
+        for c_idx in range(sheet.ncols):
+            cellobj = sheet.cell(r_idx, c_idx)
             cell_val = cellobj.value or ""
 
             # https://xlrd.readthedocs.io/en/latest/api.html#xlrd.sheet.Cell
             if cellobj.ctype == xlrd.XL_CELL_NUMBER:
-                if type(cell_val) is float and int(cell_val) == cell_val:
+                if isinstance(cell_val, float) and int(cell_val) == cell_val:
                     # prevent the conversion of '100' to '100.0'
                     cell_val = int(cell_val)
                 cell_val = repr(cell_val)

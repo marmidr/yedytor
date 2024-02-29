@@ -1,10 +1,11 @@
-import csv_reader
 import logging
 import os
+
+import csv_reader
 import ods_reader
-import text_grid
 import xls_reader
 import xlsx_reader
+import text_grid
 
 from column_selector import ColumnsSelectorResult
 
@@ -33,16 +34,16 @@ class Project:
         }
         return ret
 
-    def from_serializable(self, input: dict):
+    def from_serializable(self, inp: dict):
         """Loads class from an object returned by `to_serializable()`"""
         try:
-            self.pnp_path = input['pnp_path']
-            self.pnp2_path = input['pnp2_path']
-            self.pnp_separator = input['pnp_separator']
-            self.pnp_first_row = input['pnp_first_row']
-            self.pnp_columns.deserialize(input['pnp_columns'])
+            self.pnp_path = inp['pnp_path']
+            self.pnp2_path = inp['pnp2_path']
+            self.pnp_separator = inp['pnp_separator']
+            self.pnp_first_row = inp['pnp_first_row']
+            self.pnp_columns.deserialize(inp['pnp_columns'])
             self.pnp_grid = text_grid.TextGrid()
-            self.pnp_grid.from_serializable(input['pnp_grid'])
+            self.pnp_grid.from_serializable(inp['pnp_grid'])
         except Exception as e:
             logging.error(f"Load from serialized data: {e}")
 
@@ -57,18 +58,17 @@ class Project:
     def translate_separator(sep: str) -> str:
         if sep == "COMMA":
             return ","
-        elif sep == "SEMICOLON":
+        if sep == "SEMICOLON":
             return ";"
-        elif sep == "TAB":
+        if sep == "TAB":
             return "\t"
-        elif sep == "SPACES":
+        if sep == "SPACES":
             return "*sp"
-        elif sep == "FIXED-WIDTH":
+        if sep == "FIXED-WIDTH":
             return "*fw"
-        elif sep == "REGEX":
+        if sep == "REGEX":
             return "*re"
-        else:
-            raise RuntimeError("Unknown CSV separator")
+        raise RuntimeError("Unknown CSV separator")
 
     def get_pnp_delimiter(self) -> str:
         return self.translate_separator(self.pnp_separator)
@@ -103,13 +103,11 @@ class Project:
                 pnp2_grid = csv_reader.read_csv(path2, delim)
 
             log_f = logging.info if pnp2_grid.nrows > 0 else logging.warning
-            log_f("PnP2: {} rows x {} cols".format(pnp2_grid.nrows, pnp2_grid.ncols))
+            log_f(f"PnP2: {pnp2_grid.nrows} rows x {pnp2_grid.ncols} cols")
 
             # merge
             if pnp2_grid.ncols != self.pnp_grid.ncols:
-                raise ValueError("PnP has {} columns, but PnP2 has {} columns".format(
-                    self.pnp_grid.ncols, pnp2_grid.ncols
-                ))
+                raise ValueError(f"PnP has {self.pnp_grid.ncols} columns, but PnP2 has {pnp2_grid.ncols} columns")
 
             self.pnp_grid.nrows += pnp2_grid.nrows
             self.pnp_grid.rows_raw().extend(pnp2_grid.rows)

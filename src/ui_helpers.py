@@ -1,5 +1,5 @@
-import customtkinter
 import tkinter
+import customtkinter
 # import logging
 
 # -----------------------------------------------------------------------------
@@ -29,10 +29,12 @@ def textbox_find_text(textbox: customtkinter.CTkTextbox, needle: str) -> int:
 def entry_set_text(entry: customtkinter.CTkEntry, text: str):
     # delete/insert are not working on disabled widget
     entry_disabled = entry.cget("state") == tkinter.DISABLED
-    if entry_disabled: entry.configure(state=tkinter.NORMAL)
+    if entry_disabled:
+        entry.configure(state=tkinter.NORMAL)
     entry.delete(0, tkinter.END)
     entry.insert(0, text)
-    if entry_disabled: entry.configure(state=tkinter.DISABLED)
+    if entry_disabled:
+        entry.configure(state=tkinter.DISABLED)
 
 
 # https://stackoverflow.com/questions/4266566/stardand-context-menu-in-python-tkinter-text-widget-when-mouse-right-button-is-p
@@ -64,12 +66,12 @@ class EntryWithPPM(tkinter.Entry):
         self.bind_class("Entry", "<Control-a>", self.event_select_all)
         self.bind("<Button-3><ButtonRelease-3>", self.show_menu)
 
-    def event_select_all(self, *args):
+    def event_select_all(self, *_args):
         self.focus_force()
         self.selection_range(0, tkinter.END)
 
-    def show_menu(self, e):
-        self.tk.call("tk_popup", self.menu, e.x_root, e.y_root)
+    def show_menu(self, ev):
+        self.tk.call("tk_popup", self.menu, ev.x_root, ev.y_root)
 
 # seems like bindings (<<Copy>>, ...) are not implemented in Ctk
 # class CtkEntryWithPPM(customtkinter.CTkEntry):
@@ -100,12 +102,12 @@ class ComboboxWithPPM(tkinter.ttk.Combobox):
         self.bind_class("Entry", "<Control-a>", self.event_select_all)
         self.bind("<Button-3><ButtonRelease-3>", self.show_menu)
 
-    def event_select_all(self, *args):
+    def event_select_all(self, *_args):
         self.focus_force()
         self.selection_range(0, tkinter.END)
 
-    def show_menu(self, e):
-        self.tk.call("tk_popup", self.menu, e.x_root, e.y_root)
+    def show_menu(self, ev):
+        self.tk.call("tk_popup", self.menu, ev.x_root, ev.y_root)
 
 def window_set_centered(app: tkinter.Tk, wnd: tkinter.Toplevel, wnd_w: int, wnd_h: int):
     # set window size

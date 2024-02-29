@@ -1,0 +1,129 @@
+[tool.pylint.main]
+
+# Files or directories to be skipped. They should be base names, not paths.
+ignore = ["examples", "doc", "db", "tkhtmlview"]
+
+# Minimum Python version to use for version dependent checks. Will default to the
+# version used to run pylint.
+py-version = "3.9"
+
+# When enabled, pylint would attempt to guess common misconfiguration and emit
+# user-friendly hints instead of false-positive error messages.
+suggestion-mode = true
+
+
+
+[tool.pylint.basic]
+
+# Naming style matching correct argument names.
+argument-naming-style = "snake_case"
+
+# Regular expression matching correct argument names. Overrides argument-naming-
+# style. If left empty, argument names will be checked with the set naming style.
+# argument-rgx =
+
+# Naming style matching correct attribute names.
+attr-naming-style = "snake_case"
+
+# Regular expression matching correct attribute names. Overrides attr-naming-
+# style. If left empty, attribute names will be checked with the set naming
+# style.
+# attr-rgx =
+
+# Bad variable names regexes, separated by a comma. If names match any regex,
+# they will always be refused
+# bad-names-rgxs =
+
+# Naming style matching correct class attribute names.
+class-attribute-naming-style = "any"
+
+# Regular expression matching correct class attribute names. Overrides class-
+# attribute-naming-style. If left empty, class attribute names will be checked
+# with the set naming style.
+# class-attribute-rgx =
+
+# Naming style matching correct class constant names.
+class-const-naming-style = "UPPER_CASE"
+
+# Regular expression matching correct class constant names. Overrides class-
+# const-naming-style. If left empty, class constant names will be checked with
+# the set naming style.
+# class-const-rgx =
+
+# Naming style matching correct class names.
+class-naming-style = "PascalCase"
+
+# Regular expression matching correct class names. Overrides class-naming-style.
+# If left empty, class names will be checked with the set naming style.
+# class-rgx =
+
+# Naming style matching correct constant names.
+const-naming-style = "UPPER_CASE"
+
+# Naming style matching correct function names.
+function-naming-style = "snake_case"
+
+# Regular expression matching correct function names. Overrides function-naming-
+# style. If left empty, function names will be checked with the set naming style.
+# function-rgx =
+
+# Good variable names which should always be accepted, separated by a comma.
+good-names = ["i", "j", "k", "n", "e", "f", "_"]
+
+
+
+[tool.pylint.design]
+
+# Maximum number of arguments for function / method.
+max-args = 6
+
+
+
+[tool.pylint.format]
+
+# Regexp for a line that is allowed to be longer than the limit.
+ignore-long-lines = "^\\s*(# )?<?https?://\\S+>?$"
+
+# Number of spaces of indent required inside a hanging or continued line.
+indent-after-paren = 4
+
+# String used as indentation unit. This is usually "    " (4 spaces) or "\t" (1
+# tab).
+indent-string = "    "
+
+# Maximum number of characters on a single line.
+max-line-length = 120
+
+# Maximum number of lines in a module.
+max-module-lines = 1500
+
+
+[tool.pylint.messages_control]
+
+disable = [
+    "attribute-defined-outside-init",
+    "broad-exception-caught",
+    "fixme",
+    "logging-fstring-interpolation",
+    "logging-not-lazy",
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "too-few-public-methods",
+    "too-many-ancestors",
+    "too-many-instance-attributes",
+    "too-many-public-methods",
+]
+
+
+
+[tool.pylint.refactoring]
+# Maximum number of nested blocks for function / method body
+max-nested-blocks = 5
+
+
+
+[tool.pylint.variables]
+
+# Argument names that match this expression will be ignored.
+ignored-argument-names = "_.*|^ignored_|^unused_"

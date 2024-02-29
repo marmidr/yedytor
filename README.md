@@ -42,6 +42,7 @@ To install required libraries, open the PowerShell and:
 ```ps1
 # .xls reader, .xlsx reader, .ods reader, UI lib, http requests, image formats, natural sorting,
 pip install xlrd openpyxl odfpy customtkinter requests pillow natsort
+# pip3 install -r requirements.txt
 ```
 
 ## How to run
@@ -70,3 +71,12 @@ $ /c/Program\ Files/Python39/python.exe src/app.py
 
   Only UTF-8 files are accepted; if the BOM or PnP file uses ANSI or WINDOWS encoding, use `Notepad++` or other editor to change the encoding to UTF-8
 *
+
+## Testing
+
+Project is checked with the popular tool `pylint`.
+
+```sh
+sudo apt install pylint
+pylint src/project.py
+```

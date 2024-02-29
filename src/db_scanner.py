@@ -1,9 +1,10 @@
-import customtkinter
 import tkinter
 import logging
 import typing
 import os
 import time
+
+import customtkinter
 import natsort
 
 import ui_helpers
@@ -218,7 +219,7 @@ class DbScanner(customtkinter.CTkToplevel):
                     tou_filenames.append(de.name)
                     tou_longest_filename = max(tou_longest_filename, len(de.name))
 
-            if len(tou_filenames):
+            if len(tou_filenames) > 0:
                 logging.info(f"Scanning {len(tou_filenames)} files in {tou_folder}")
                 tou_files: list[TouFile] = []
 
@@ -238,9 +239,9 @@ class DbScanner(customtkinter.CTkToplevel):
             delta = 0
             logging.error(f"Error occured: {e}")
         finally:
-            delta = f"{delta:.03f}s"
-            logging.info(f"{len(tou_filenames)} files scanned in {delta}")
-            self.lbl_scan_time.configure(text=delta)
+            delta_str = f"{delta:.03f}s"
+            logging.info(f"{len(tou_filenames)} files scanned in {delta_str}")
+            self.lbl_scan_time.configure(text=delta_str)
             self.btn_scan.configure(state=tkinter.NORMAL)
 
     def tou_scan_report(self, tou_files: list[TouFile], tou_longest_filename: int):

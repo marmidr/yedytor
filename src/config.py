@@ -30,7 +30,7 @@ class Config:
         return self.__config[sect_name]
 
     def save(self):
-        with open(self.CONFIG_FILE_NAME, 'w') as f:
+        with open(self.CONFIG_FILE_NAME, 'w', encoding="utf-8") as f:
             self.__config.write(f)
 
     @property

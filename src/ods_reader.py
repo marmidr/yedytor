@@ -1,3 +1,5 @@
+import logging
+
 from odf import opendocument, table
 
 # local copy of odf:
@@ -5,8 +7,6 @@ from odf import opendocument, table
 # import sys
 # sys.path.append(os.path.join(os.path.dirname(__file__), "odfpy"))
 # from odfpy.odf import opendocument, table
-
-import logging
 
 from text_grid import TextGrid
 
@@ -26,7 +26,7 @@ def read_ods_sheet(path: str) -> TextGrid:
 
     if "opendocument.spreadsheet" in doc.getMediaType():
         for tab in doc.getElementsByType(table.Table):
-            name = tab.getAttrNS(table.TABLENS, u"name")
+            name = tab.getAttrNS(table.TABLENS, "name")
             logging.info(f"Reading sheet: {name}")
             max_cols = 0
             REPEATS_ATTR = "number-columns-repeated".replace('-','')

@@ -3,13 +3,11 @@ import os
 
 # -----------------------------------------------------------------------------
 
-"""
-The .Tou file consists a number of 320 bytes long records,
-each starting with the 40 bytes long component name.
-"""
-
 TOU_COMPONENT_SIZE = 320
+"""The .Tou file consists a number of 320 bytes long records"""
+
 TOU_COMPONENT_NAME_SIZE = 40
+"""...each starting with the 40 bytes long component name."""
 
 class TouFile:
     def __init__(self, path: str):
@@ -46,4 +44,3 @@ class TouFile:
                         logging.warning(f"    {name_bytes}")
                 else:
                     break
-

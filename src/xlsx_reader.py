@@ -1,8 +1,8 @@
+import logging
+
 # https://linuxhint.com/read-excel-file-python/
 # https://openpyxl.readthedocs.io/en/stable/tutorial.html
-
 import openpyxl
-import logging
 
 from text_grid import TextGrid
 
@@ -25,8 +25,8 @@ def read_xlsx_sheet(path: str) -> TextGrid:
         for cell in row:
             if cell is None:
                 cell = ""
-            elif type(cell) is float or type(cell) is int:
-                if type(cell) is float and int(cell) == float(cell):
+            elif isinstance(cell, float) or isinstance(cell, int):
+                if isinstance(cell, float) and int(cell) == float(cell):
                     # prevent the conversion of '100' to '100.0'
                     cell = int(cell)
                 cell = repr(cell)

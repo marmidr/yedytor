@@ -1,7 +1,7 @@
-import customtkinter
 import tkinter
 import logging
 import typing
+import customtkinter
 
 import ui_helpers
 
@@ -31,24 +31,26 @@ class ColumnsSelectorResult:
             self.xcoord_col, self.ycoord_col, self.rot_col, self.layer_col
         )
         for ent in entities:
-            if not type(ent) is int:
+            if not isinstance(ent, int):
                 raise ValueError(f"{ent} is not of type int")
+
         result = ""
-        for ent in entities: result += f"{ent} "
+        for ent in entities:
+            result += f"{ent} "
         return result
 
     def deserialize(self, serialized: str):
         """Load fields from the string created by serialize()"""
         items = serialized.split()
         setters = [
-            lambda v: self.__setattr__("has_column_headers", v != 0),
-            lambda v: self.__setattr__("id_col", v),
-            lambda v: self.__setattr__("comment_col", v),
-            lambda v: self.__setattr__("footprint_col", v),
-            lambda v: self.__setattr__("xcoord_col", v),
-            lambda v: self.__setattr__("ycoord_col", v),
-            lambda v: self.__setattr__("rot_col", v),
-            lambda v: self.__setattr__("layer_col", v)
+            lambda v: setattr(self, "has_column_headers", v != 0),
+            lambda v: setattr(self, "id_col", v),
+            lambda v: setattr(self, "comment_col", v),
+            lambda v: setattr(self, "footprint_col", v),
+            lambda v: setattr(self, "xcoord_col", v),
+            lambda v: setattr(self, "ycoord_col", v),
+            lambda v: setattr(self, "rot_col", v),
+            lambda v: setattr(self, "layer_col", v)
         ]
         if len(items) > len(setters):
             logging.error(f"Input has {len(items)} fields, while the struct has {len(setters)}.")
@@ -68,7 +70,7 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         assert "columns" in kwargs
         columns = kwargs.pop("columns")
 
-        assert type(columns) is list
+        assert isinstance(columns, list)
         # logging.debug("columns: {}".format(self.columns))
 
         assert "callback" in kwargs
@@ -97,7 +99,11 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         lbl_id = customtkinter.CTkLabel(self, text="ID column:")
         lbl_id.grid(row=1, column=0, pady=5, padx=5, sticky="w")
 
-        initial_value = lambda idx: columns[idx] if last_result.valid and type(idx) is int and idx >= 0 and idx < len(columns) else ""
+        initial_value = lambda idx: columns[idx] \
+                                    if last_result.valid \
+                                    and isinstance(idx, int) \
+                                    and idx >= 0 and idx < len(columns) \
+                                    else ""
 
         self.opt_id_var = customtkinter.StringVar(value=initial_value(last_result.id_col))
         opt_id = customtkinter.CTkOptionMenu(self, values=columns,
@@ -216,8 +222,8 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         result.rot_col = self.opt_rot_var.get()
         result.layer_col = self.opt_layer_var.get()
         # extract column index
-        def extract_idx(input: str) -> int:
-            parsed = int(input.split(sep=". ")[0])
+        def extract_idx(inp: str) -> int:
+            parsed = int(inp.split(sep=". ")[0])
             return parsed-1
         #
         result.id_col = extract_idx(result.id_col)

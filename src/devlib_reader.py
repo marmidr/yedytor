@@ -35,7 +35,7 @@ class DevLibFile:
                 f.seek(DEVLIB_OFFSET + (n * DEVLIB_COMPONENT_SIZE), 0) # seek from the beginning
                 n += 1
                 name_bytes = f.read(DEVLIB_COMPONENT_NAME_SIZE)
-                base_bytes = f.read(DEVLIB_COMPONENT_BASENAME_SIZE)
+                _base_bytes = f.read(DEVLIB_COMPONENT_BASENAME_SIZE)
 
                 if len(name_bytes) == DEVLIB_COMPONENT_NAME_SIZE:
                     # "2512_R_7,5R/5%/1W(3)\x00\x00\x00\x00\x00\x00\x00" -> "2512_R_7,5R/5%/1W(3)"
@@ -68,4 +68,3 @@ class DevLibFile:
                         logging.warning(f"    {name_bytes}")
                 else:
                     break
-

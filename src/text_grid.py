@@ -20,12 +20,12 @@ class TextGrid:
         }
         return ret
 
-    def from_serializable(self, input: dict):
+    def from_serializable(self, inp: dict):
         try:
-            self.nrows = input['nrows']
-            self.ncols = input['ncols']
-            self.firstrow = input['firstrow']
-            self.__rows = input['rows']
+            self.nrows = inp['nrows']
+            self.ncols = inp['ncols']
+            self.firstrow = inp['firstrow']
+            self.__rows = inp['rows']
         except Exception as e:
             logging.error(f"Load from serialized data: {e}")
 
@@ -37,7 +37,7 @@ class TextGrid:
         # https://stackoverflow.com/questions/2184955/test-if-a-variable-is-a-list-or-tuple
         if cell is None:
             cell = ""
-        elif type(cell) is not str:
+        elif not isinstance(cell, str):
             cell = repr(cell)
         return cell
 
@@ -46,12 +46,12 @@ class TextGrid:
         Returns a list of each column width, in chars
         """
         col_max_w = [0 for _ in range(self.ncols)]
-        for r, row in enumerate(self.__rows):
-            if r >= first_row:
-                for c, cell in enumerate(row):
+        for r_idx, row in enumerate(self.__rows):
+            if r_idx >= first_row:
+                for c_idx, cell in enumerate(row):
                     cell = self.format_cell(cell)
                     cell_w = len(cell)
-                    col_max_w[c] = max(col_max_w[c], cell_w)
+                    col_max_w[c_idx] = max(col_max_w[c_idx], cell_w)
         return col_max_w
 
     def format_grid(self, first_row: int, last_row: int = -1) -> str:
@@ -61,12 +61,12 @@ class TextGrid:
         columns_width = self.get_columns_width(first_row)
         grid_formatted = ""
         last_row = len(self.__rows) if last_row == -1 else last_row
-        for r, row in enumerate(self.__rows):
-            if r >= first_row and r <= last_row:
-                row_formatted = "{:0>3} | ".format(r+1)
-                for c, cell in enumerate(row):
+        for r_idx, row in enumerate(self.__rows):
+            if r_idx >= first_row and r_idx <= last_row:
+                row_formatted = "{:0>3} | ".format(r_idx+1)
+                for c_idx, cell in enumerate(row):
                     cell = self.format_cell(cell)
-                    to_fill = max(columns_width[c] - len(cell), 0)
+                    to_fill = max(columns_width[c_idx] - len(cell), 0)
                     fill = " " * to_fill
                     cell += f"{fill} | "
                     row_formatted += cell

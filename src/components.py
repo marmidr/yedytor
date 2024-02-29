@@ -39,7 +39,7 @@ class ComponentsDB:
 
         if "components_dict" in kwargs:
             components_dict = kwargs.pop("components_dict")
-            assert type(components_dict) is dict
+            assert isinstance(components_dict, dict)
             # https://docs.python.org/3/library/stdtypes.html?#dict.items
             for item in components_dict.items():
                 # add all component variants into the same flat list
@@ -87,7 +87,7 @@ class ComponentsDB:
 
     def copy_attributes(self, old_items: list[Component]):
         """Iterate over components and apply 'hidden' attribute from an old components"""
-        old_items_dict = dict([(v.name, v) for v in old_items])
+        old_items_dict = dict((v.name, v) for v in old_items)
         for item in self.__items:
             if old_item := old_items_dict.get(item.name):
                 item.hidden = old_item.hidden
@@ -120,14 +120,16 @@ class ComponentsDB:
         """Returns the number of valid components"""
         n = 0
         for item in self.__items:
-            if not item.hidden: n += 1
+            if not item.hidden:
+                n += 1
         return n
 
     def count_hidden(self) -> int:
         """Returns the number of hidden components"""
         n = 0
         for item in self.__items:
-            if item.hidden: n += 1
+            if item.hidden:
+                n += 1
         return n
 
     def items_all(self) -> list[Component]:
@@ -135,8 +137,11 @@ class ComponentsDB:
         return self.__items
 
     def items_filtered(self, needle: str, ignore_hidden: bool=True) -> list[Component]:
-        """Returns components containing the needle"""
-        """Needle: space-separated keywords: "603", "603 2k2", ..."""
+        """
+        Returns components containing the needle
+        :needle: space-separated keywords: "603", "603 2k2", ...
+        :return List
+        """
         needle = '*' + '*'.join(needle.split(' ')) + '*'
         result = []
         for item in self.__items:
