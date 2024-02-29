@@ -5,11 +5,7 @@
 yedytor.ini
 bookmarks.json
 
-examples/*.py
-examples/*.xls
-examples/tou*/
-examples/devlib
-examples/tou*/*.csv
+examples/
 __pycache__/
 htmlcov/
 db*/

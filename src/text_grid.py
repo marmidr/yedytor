@@ -1,3 +1,4 @@
+import logging
 
 class TextGrid:
     """
@@ -9,6 +10,24 @@ class TextGrid:
         self.ncols = 0
         self.firstrow = 0
         self.__rows: list[list[str]] = []
+
+    def to_serializable(self) -> dict:
+        ret = {
+            'nrows': self.nrows,
+            'ncols': self.ncols,
+            'firstrow': self.firstrow,
+            'rows': self.__rows
+        }
+        return ret
+
+    def from_serializable(self, input: dict):
+        try:
+            self.nrows = input['nrows']
+            self.ncols = input['ncols']
+            self.firstrow = input['firstrow']
+            self.__rows = input['rows']
+        except Exception as e:
+            logging.error(f"Load from serialized data: {e}")
 
     @staticmethod
     def format_cell(cell) -> str:

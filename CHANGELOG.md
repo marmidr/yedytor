@@ -2,6 +2,16 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.7.0 - 2024-02-29
+
+* Added
+  * PnP editor: button to save Work In Progress;
+    a JSON file is created in the folder the PnP file was loaded
+* Changed
+* Deprecated
+* Removed
+* Fixed
+
 ## 0.6.7 - 2024-02-23
 
 * Added
