@@ -2,6 +2,15 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.7.1 - 2024-03-01
+
+* Added
+  * PnP editor: CbxDropdown list recreated for WiP
+* Changed
+* Deprecated
+* Removed
+* Fixed
+
 ## 0.7.0 - 2024-02-29
 
 * Added

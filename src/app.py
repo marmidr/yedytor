@@ -11,7 +11,7 @@ import os
 import sys
 import time
 import tkinter
-import typing
+from typing import Callable
 
 import customtkinter
 
@@ -27,7 +27,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.7.0"
+APP_NAME = "Yedytor v0.7.1"
 
 # -----------------------------------------------------------------------------
 
@@ -458,7 +458,7 @@ class ComponentsIterator:
         return self
 
     def __next__(self):
-        # if provided, prefer WiP records instead of current project
+        # if provided, prefer WiP records over the current project
         if self._wip_components:
             if self._idx < len(self._wip_components):
                 wip_cmp = self._wip_components[self._idx]
@@ -624,6 +624,12 @@ class PnPEditor(customtkinter.CTkFrame):
                         # iterating over items from WiP file
                         lbl_marker.config(background=Markers.MARKERS_MAP_INV[record['marker']])
                         cbx_component.set(record['selection'])
+                        if record['marker'] == Markers.MARKERS_MAP[Markers.CL_FILTER]:
+                            item_splitted: list[str] = record['item'].split("|")
+                            if len(item_splitted) == 3:
+                                ftprnt = item_splitted[1].strip()
+                                cmnt = item_splitted[2].strip()
+                                self.prepare_cbx_dropdown_list(cbx_component, ftprnt, cmnt)
                         self.update_componentname_length_lbl(lbl_length, cbx_component.get())
 
                     if idx == idx_threshold:
@@ -651,27 +657,43 @@ class PnPEditor(customtkinter.CTkFrame):
             lbl_mark.config(background=Markers.CL_AUTO_SEL)
             logging.info(f"Matching component found: {expected_component}")
         except Exception:
-            # not found; try to create a good filter expression
-            # "1206_R_1,2k" -> "1206"
-            ftprint_prefix = ftprint.split("_")
-            if len(ftprint_prefix):
-                ftprint_prefix = ftprint_prefix[0]
-                fltr = ftprint_prefix + " " + cmnt
-                # assign a filtered list of components
-                filtered_comp_names = list(item.name for item in glob_components.items_filtered(fltr))
-                cbx.configure(values=filtered_comp_names)
-                # set value to the filter
-                cbx.set(fltr.lower())
-                if len(filtered_comp_names) > 0:
-                    # mark filter
-                    lbl_mark.config(background=Markers.CL_FILTER)
-                else:
-                    # remove filter and assign all components
-                    cbx.set("")
-                    cbx.configure(values=self.component_names)
-                    # mark no matching component in database
-                    lbl_mark.config(background=Markers.CL_NOMATCH)
+            # exact component not found
+            dropdown_created = self.prepare_cbx_dropdown_list(cbx, ftprint, cmnt)
+
+            if dropdown_created:
+                # mark filter
+                lbl_mark.config(background=Markers.CL_FILTER)
+            else:
+                # mark no matching component in database
+                lbl_mark.config(background=Markers.CL_NOMATCH)
         self.update_componentname_length_lbl(lbl_len, cbx.get())
+
+    def prepare_cbx_dropdown_list(self, cbx: tkinter.ttk.Combobox, ftprint: str, cmnt: str) -> bool:
+        # "1206_R_1,2k" -> "1206"
+        ftprint_prefix = ftprint.split("_")
+        if len(ftprint_prefix) > 0:
+            # create a proposal list based on a footprint and comment
+            ftprint_prefix = ftprint_prefix[0]
+            fltr = ftprint_prefix + " " + cmnt
+            filtered_comp_names = list(item.name for item in glob_components.items_filtered(fltr))
+            if len(filtered_comp_names) > 0:
+                cbx.configure(values=filtered_comp_names)
+                cbx.set(fltr.lower())
+                return True
+
+        # create component list proposal based only on comment
+        fltr = cmnt
+        filtered_comp_names = list(item.name for item in glob_components.items_filtered(fltr))
+
+        if len(filtered_comp_names) > 0:
+            cbx.configure(values=filtered_comp_names)
+            cbx.set(fltr.lower())
+            return True
+
+        # remove filter and assign all components
+        cbx.set("")
+        cbx.configure(values=self.component_names)
+        return False
 
     def update_componentname_length_lbl(self, lbl: tkinter.Label, comp_name: str):
         COMPONENT_MAX_LEN = 38
@@ -974,7 +996,7 @@ class ComponentsInfo(customtkinter.CTkFrame):
         assert "app" in kwargs
         self.app = kwargs.pop("app")
         assert "callback" in kwargs
-        self.on_new_components_callback: typing.Callable = kwargs.pop("callback")
+        self.on_new_components_callback: Callable = kwargs.pop("callback")
 
         super().__init__(master, **kwargs)
 
@@ -1279,7 +1301,7 @@ class CtkApp(customtkinter.CTk):
         # UI ready
         logging.info('Application ready.')
 
-    def get_tab_select_editor_fn(self):
+    def get_tab_select_editor_fn(self) -> Callable:
         # return a closure
         appwnd = self
         return lambda: appwnd.tabview.set(appwnd.TAB_EDITOR)

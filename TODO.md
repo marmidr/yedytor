@@ -29,11 +29,11 @@
   [x] możliwość oznaczenia jako Hidden
   [x] przeniesienie z Home info o bazie i przycisku do skanera
 [ ] osobne PnP dla top/bottom - po edycji trzeba zapisać osobno?
-[ ] zapisywanie niekompletnego edytowanego pliku, z możliwością kontynuacji
-[ ] zapisywanie niekompletnego - jak zapisać filtr, żeby odróżniał sie w pliku od prawdziwego komponentu?
+[x] zapisywanie niekompletnego edytowanego pliku, z możliwością kontynuacji
 [x] przed zapisaniem sprawdź status każdego komponentu, zabroń zapisać jeśli nie-zielone
 [x] progressbar: wybrane/wszystkie
 [x] popupy - centrować na głównym bo uciekają
 [x] wybór kolumn: pozycje oznaczać od 1, nie od 0
 [x] nazwa pliku PnP w tutule okna
 [x] 1row ignorowany po wczytaniu nowego pliku PnP
+[ ] 4 wątki wyszukiwania komponentu na podstawie Comment+Footprint
