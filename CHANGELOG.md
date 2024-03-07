@@ -2,7 +2,7 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
-## 0.7.1 - 2024-03-01
+## 0.7.1 - 2024-03-07
 
 * Added
   * PnP editor: CbxDropdown list recreated for WiP
@@ -10,6 +10,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Deprecated
 * Removed
 * Fixed
+  * Application title is updated when WiP file is loaded
 
 ## 0.7.0 - 2024-02-29
 
