@@ -489,7 +489,6 @@ class PnPEditor(customtkinter.CTkFrame):
                 editor_items = pnp_editor_helpers.prepare_editor_items(glob_components, glob_proj, wip_items)
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
-                # 38s
                 logging.info(f"Items prepared in {delta}")
 
                 # restart time measure

@@ -7,6 +7,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Added
   * PnP editor: CbxDropdown list recreated for WiP
 * Changed
+  * use multiprocessing for faster component matching during PnP editor creation
 * Deprecated
 * Removed
 * Fixed

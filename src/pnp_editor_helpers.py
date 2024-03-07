@@ -1,7 +1,6 @@
-#
-
+import functools
 import logging
-# import multiprocessing
+import multiprocessing
 
 from components import ComponentsDB
 from project import Project
@@ -56,7 +55,7 @@ class ItemsIterator:
             self._id_max_w = id_max_w
             self._fprint_max_w = fprint_max_w
 
-    def length(self):
+    def length(self) -> int:
         if self._wip_items:
             return len(self._wip_items)
         if self._proj:
@@ -66,7 +65,7 @@ class ItemsIterator:
     def __iter__(self):
         return self
 
-    def __next__(self):
+    def __next__(self) -> dict:
         # if provided, prefer WiP records over the current project
         if self._wip_items:
             if self._idx < len(self._wip_items):
@@ -117,24 +116,38 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
     names_visible = components.names_visible()
     out = []
 
-    for record in items_iterator:
-        if record['footprint']:
-            # iterating over Project items
-            try_find_exact(components, names_visible, record)
-        else:
-            # iterating over WiP items
-            if record['marker'] == Markers.MARKERS_MAP[Markers.CL_FILTER]:
-                item_splitted: list[str] = record['item'].split("|")
-                if len(item_splitted) == 3:
-                    record['footprint'] = item_splitted[1].strip()
-                    record['comment'] = item_splitted[2].strip()
-                    try_find_matching(components, names_visible, record)
+    # # 24s
+    # for record in items_iterator:
+    #     _process_records(record, components, names_visible)
+    #     out.append(record)
 
-        out.append(record)
+    # processes=1 -> 26s
+    # processes=4 -> 10s
+    # processes=8 -> 9s
+    # https://stackoverflow.com/questions/40283772/python-3-why-does-only-functions-and-partials-work-in-multiprocessing-apply-asy
+    process_fn = functools.partial(_process_records, components=components, names_visible=names_visible)
+    with multiprocessing.Pool(processes=None) as pool:
+        out = pool.map(process_fn, items_iterator)
+
     return out
 
 
-def try_find_exact(components: ComponentsDB, names_visible: list[str], record: dict):
+def _process_records(record: dict, components: ComponentsDB, names_visible: list[str]):
+    if record['footprint']:
+        # iterating over Project items
+        _try_find_exact(components, names_visible, record)
+    else:
+        # iterating over WiP items
+        if record['marker'] == Markers.MARKERS_MAP[Markers.CL_FILTER]:
+            item_splitted: list[str] = record['item'].split("|")
+            if len(item_splitted) == 3:
+                record['footprint'] = item_splitted[1].strip()
+                record['comment'] = item_splitted[2].strip()
+                _try_find_matching(components, names_visible, record)
+    return record
+
+
+def _try_find_exact(components: ComponentsDB, names_visible: list[str], record: dict):
     """
     Try to find exact component using footprint and comment
     """
@@ -143,16 +156,18 @@ def try_find_exact(components: ComponentsDB, names_visible: list[str], record: d
 
     try:
         expected_component = ftprint + "_" + cmnt
-        names_visible.index(expected_component) # may raise exception if not found
+        # raise exception if not found:
+        names_visible.index(expected_component)
         # if we are here - matching comonent was found
         record['selection'] = expected_component
+        # record['cbx_items'] -> not needed
         record['marker'] = Markers.MARKERS_MAP[Markers.CL_AUTO_SEL]
         logging.info(f"Matching component found: {expected_component}")
     except Exception:
-        try_find_matching(components, names_visible, record)
+        _try_find_matching(components, names_visible, record)
 
 
-def try_find_matching(components: ComponentsDB, names_visible: list[str], record: dict):
+def _try_find_matching(components: ComponentsDB, names_visible: list[str], record: dict):
     """
     Try to match component from the DB using item footprint nad comment
     """
