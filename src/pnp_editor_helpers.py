@@ -78,7 +78,8 @@ class ItemsIterator:
                     'selection': wip_cmp['selection'],
                     'footprint': None,
                     'comment': None,
-                    'cbx_items': []
+                    'cbx_items': [],
+                    'rotation': wip_cmp['rotation'],
                 }
                 return record
             raise StopIteration
@@ -92,9 +93,12 @@ class ItemsIterator:
                 self._idx += 1
 
                 item = "{id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
-                    id=row[0], id_w=self._id_max_w,
-                    ftprint=row[self._proj.pnp_columns.footprint_col], fprint_w=self._fprint_max_w,
-                    cmnt=row[self._proj.pnp_columns.comment_col])
+                    id=row[0],
+                    id_w=self._id_max_w,
+                    ftprint=row[self._proj.pnp_columns.footprint_col],
+                    fprint_w=self._fprint_max_w,
+                    cmnt=row[self._proj.pnp_columns.comment_col]
+                )
 
                 record = {
                     'item': item,
@@ -102,7 +106,8 @@ class ItemsIterator:
                     'selection': None,
                     'footprint': row[self._proj.pnp_columns.footprint_col],
                     'comment': row[self._proj.pnp_columns.comment_col],
-                    'cbx_items': []
+                    'cbx_items': [],
+                    'rotation': row[self._proj.pnp_columns.rot_col],
                 }
                 return record
             raise StopIteration

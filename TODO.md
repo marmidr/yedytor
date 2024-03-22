@@ -36,4 +36,4 @@
 [x] wybór kolumn: pozycje oznaczać od 1, nie od 0
 [x] nazwa pliku PnP w tutule okna
 [x] 1row ignorowany po wczytaniu nowego pliku PnP
-[ ] 4 wątki wyszukiwania komponentu na podstawie Comment+Footprint
+[x] 4 wątki wyszukiwania komponentu na podstawie Comment+Footprint

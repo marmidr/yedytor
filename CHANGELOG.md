@@ -2,6 +2,16 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.8.0 - 2024-03-22
+
+* Added
+  * PnP editor: ComboBox for Rotation
+* Changed
+  * component filter: happy to have 2 characters, not 3
+* Deprecated
+* Removed
+* Fixed
+
 ## 0.7.1 - 2024-03-07
 
 * Added

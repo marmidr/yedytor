@@ -29,7 +29,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.7.1"
+APP_NAME = "Yedytor v0.8.0"
 
 # -----------------------------------------------------------------------------
 
@@ -522,8 +522,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.bind('<<ComboboxSelected>>', self.cbx_components_selected)
                     # cbx_component.bind('<Key>', self.combobox_key)
                     cbx_component.bind("<Return>", self.cbx_components_return)
-                    cbx_component.bind("<MouseWheel>", self.cbx_components_wheel)
-                    cbx_component.bind("<FocusIn>", self.cbx_components_focus_in)
+                    cbx_component.bind("<MouseWheel>", self.cbx_wheel)
+                    cbx_component.bind("<FocusIn>", self.cbx_focus_in)
                     cbx_component.set(record['selection'])
                     cbx_component.configure(values=record['cbx_items'])
                     self.cbx_component_list.append(cbx_component)
@@ -535,10 +535,15 @@ class PnPEditor(customtkinter.CTkFrame):
                     self.lbl_namelength_list.append(lbl_length)
                     self.update_componentname_length_lbl(lbl_length, record['selection'])
 
-                    cbx_rotation = tkinter.ttk.Combobox(self.scrollableframe, width=4,
+                    cbx_rotation = tkinter.ttk.Combobox(self.scrollableframe, width=5,
                                                         values=("0", "90", "180", "270"),
                                                         font=self.fonts[Config.instance().editor_font_idx][0])
                     cbx_rotation.grid(row=idx, column=4, padx=5, pady=1, sticky="we")
+                    cbx_rotation.bind('<<ComboboxSelected>>', self.cbx_rotation_selected)
+                    cbx_rotation.bind("<Return>", self.cbx_rotation_return)
+                    cbx_rotation.bind("<MouseWheel>", self.cbx_wheel)
+                    cbx_rotation.bind("<FocusIn>", self.cbx_focus_in)
+                    cbx_rotation.set(record['rotation'])
                     self.cbx_rotation_list.append(cbx_rotation)
 
                     if idx == idx_threshold:
@@ -689,9 +694,9 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def cbx_components_apply_filter(self, cbx):
         fltr: str = cbx.get().strip()
-        if len(fltr) >= 3:
+        if len(fltr) >= 2:
             filtered_comp_names = list(item.name for item in glob_components.items_filtered(fltr))
-            logging.debug(f"Apply filter '{fltr}' -> {len(filtered_comp_names)} matching")
+            logging.info(f"Apply filter '{fltr}' -> {len(filtered_comp_names)} matching")
             cbx.configure(values=filtered_comp_names)
 
             selected_idx = self.cbx_component_list.index(cbx)
@@ -708,7 +713,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     self.lbl_marker_list[selected_idx].config(background=Markers.CL_NOMATCH)
                 self.update_componentname_length_lbl(self.lbl_namelength_list[selected_idx], fltr)
         else:
-            logging.debug("Filter too short: use full list")
+            logging.info("Filter too short: use full list")
             cbx.configure(values=self.component_names)
             try:
                 selected_idx = self.cbx_component_list.index(cbx)
@@ -718,13 +723,12 @@ class PnPEditor(customtkinter.CTkFrame):
 
         self.btn_save.configure(state=tkinter.NORMAL)
 
-    def cbx_components_wheel(self, _event):
+    def cbx_wheel(self, _event):
         # logging.debug(f"CB wheel: {event}")
         # block changing value when the list is hidden to avoid accidental modification
         return 'break'
-        # pass
 
-    def cbx_components_focus_in(self, event):
+    def cbx_focus_in(self, event):
         # logging.debug(f"CB focus_in: {event}")
         try:
             # restore normal font on previous item
@@ -735,13 +739,28 @@ class PnPEditor(customtkinter.CTkFrame):
                 self.cbx_rotation_list[self.focused_idx].config(font=new_font)
 
             # set bold font in new item
-            self.focused_idx = self.cbx_component_list.index(event.widget)
+            #   depending which CBX was clicked:
+            if event.widget in self.cbx_component_list:
+                self.focused_idx = self.cbx_component_list.index(event.widget)
+            elif event.widget in self.cbx_rotation_list:
+                self.focused_idx = self.cbx_rotation_list.index(event.widget)
+
             new_font = self.fonts[Config.instance().editor_font_idx][1]
             self.entry_list[self.focused_idx].config(font=new_font)
             self.cbx_component_list[self.focused_idx].config(font=new_font)
             self.cbx_rotation_list[self.focused_idx].config(font=new_font)
         except Exception as e:
             logging.debug(f"focus_in: {e}")
+
+    def cbx_rotation_selected(self, event):
+        rot: str = event.widget.get().strip()
+        logging.debug(f"Rotation selected: {rot}")
+        self.btn_save.configure(state=tkinter.NORMAL)
+
+    def cbx_rotation_return(self, event):
+        rot: str = event.widget.get().strip()
+        logging.debug(f"Rotation entered: {rot}")
+        self.btn_save.configure(state=tkinter.NORMAL)
 
     def button_save_wip_event(self):
         logging.debug("Saving Work-In-Progress")
@@ -767,11 +786,13 @@ class PnPEditor(customtkinter.CTkFrame):
                 cmp_name = cmp.get()
                 cmp_marker = self.lbl_marker_list[i].cget("background")
                 cmp_selection = self.cbx_component_list[i].get()
+                cmp_rotation = self.cbx_rotation_list[i].get()
 
                 record = {
                     'item': cmp_name,
                     'marker': Markers.MARKERS_MAP[cmp_marker],
-                    'selection': cmp_selection
+                    'selection': cmp_selection,
+                    'rotation': cmp_rotation
                 }
                 components.append(record)
 
@@ -802,6 +823,7 @@ class PnPEditor(customtkinter.CTkFrame):
         with open(csv_path, "w", encoding="UTF-8") as f:
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
                 selected_component = self.cbx_component_list[i].get()
+                selected_rotation = self.cbx_rotation_list[i].get()
                 marker_bg = self.lbl_marker_list[i].cget("background")
                 if marker_bg == Markers.CL_REMOVED:
                     logging.debug(f"Skipped: '{row[glob_proj.pnp_columns.id_col]} | "
@@ -815,7 +837,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     row[glob_proj.pnp_columns.xcoord_col],
                     row[glob_proj.pnp_columns.ycoord_col],
                     "",
-                    row[glob_proj.pnp_columns.rot_col],
+                    selected_rotation,
                     row[glob_proj.pnp_columns.layer_col] if glob_proj.pnp_columns.layer_col else ""
                 )
 
