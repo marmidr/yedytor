@@ -126,7 +126,7 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
     # processes=8 -> 9s
     # https://stackoverflow.com/questions/40283772/python-3-why-does-only-functions-and-partials-work-in-multiprocessing-apply-asy
     process_fn = functools.partial(_process_records, components=components, names_visible=names_visible)
-    with multiprocessing.Pool(processes=None) as pool:
+    with multiprocessing.Pool(processes=4) as pool:
         out = pool.map(process_fn, items_iterator)
 
     return out

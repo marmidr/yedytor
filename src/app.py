@@ -460,6 +460,7 @@ class PnPEditor(customtkinter.CTkFrame):
         self.lbl_marker_list = []
         self.cbx_component_list = []
         self.lbl_namelength_list = []
+        self.cbx_rotation_list = []
         self.focused_idx = None
 
         # if we are here, user already selected the PnP file first row
@@ -485,6 +486,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 progress_prc = 0
                 idx_threshold = progress_step
 
+                logging.info(f"Preparing editor data...")
                 started_at = time.monotonic()
                 editor_items = pnp_editor_helpers.prepare_editor_items(glob_components, glob_proj, wip_items)
                 delta = time.monotonic() - started_at
@@ -515,14 +517,13 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cp",
                                                                values=self.component_names,
                                                                font=self.fonts[Config.instance().editor_font_idx][0])
-                    self.combobox_add_context_menu(cbx_component)
-                    #
+                    self.cbx_components_add_context_menu(cbx_component)
                     cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
-                    cbx_component.bind('<<ComboboxSelected>>', self.combobox_selected)
+                    cbx_component.bind('<<ComboboxSelected>>', self.cbx_components_selected)
                     # cbx_component.bind('<Key>', self.combobox_key)
-                    cbx_component.bind("<Return>", self.combobox_return)
-                    cbx_component.bind("<MouseWheel>", self.combobox_wheel)
-                    cbx_component.bind("<FocusIn>", self.combobox_focus_in)
+                    cbx_component.bind("<Return>", self.cbx_components_return)
+                    cbx_component.bind("<MouseWheel>", self.cbx_components_wheel)
+                    cbx_component.bind("<FocusIn>", self.cbx_components_focus_in)
                     cbx_component.set(record['selection'])
                     cbx_component.configure(values=record['cbx_items'])
                     self.cbx_component_list.append(cbx_component)
@@ -534,6 +535,12 @@ class PnPEditor(customtkinter.CTkFrame):
                     self.lbl_namelength_list.append(lbl_length)
                     self.update_componentname_length_lbl(lbl_length, record['selection'])
 
+                    cbx_rotation = tkinter.ttk.Combobox(self.scrollableframe, width=4,
+                                                        values=("0", "90", "180", "270"),
+                                                        font=self.fonts[Config.instance().editor_font_idx][0])
+                    cbx_rotation.grid(row=idx, column=4, padx=5, pady=1, sticky="we")
+                    self.cbx_rotation_list.append(cbx_rotation)
+
                     if idx == idx_threshold:
                         progress_prc += 10
                         idx_threshold += progress_step
@@ -542,7 +549,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
                 logging.info(f"{len(editor_items)} elements added in {delta}")
-                self.scrollableframe.grid_columnconfigure(0, weight=2)
+                self.scrollableframe.grid_columnconfigure(0, weight=3)
                 self.scrollableframe.grid_columnconfigure(2, weight=1)
 
             # update progressbar
@@ -561,7 +568,7 @@ class PnPEditor(customtkinter.CTkFrame):
         return glob_proj.pnp_columns.footprint_col < glob_proj.pnp_grid.ncols \
             and glob_proj.pnp_columns.comment_col < glob_proj.pnp_grid.ncols
 
-    def combobox_selected(self, event):
+    def cbx_components_selected(self, event):
         selected_component: str = event.widget.get().strip()
         logging.debug(f"CB selected: {selected_component}")
         selected_idx = self.cbx_component_list.index(event.widget)
@@ -613,40 +620,40 @@ class PnPEditor(customtkinter.CTkFrame):
     # def combobox_key(self, event):
     #     logging.debug(f"CB key: {event}")
 
-    def combobox_add_context_menu(self, cbx_component):
+    def cbx_components_add_context_menu(self, cbx_component):
         cbx_component.menu.add_separator()
         #
         cbx_component.menu.add_command(label="Apply value as an items filter")
         cbx_component.menu.entryconfigure("Apply value as an items filter",
                                             command=lambda cbx=cbx_component: \
-                                            self.combobox_apply_filter(cbx))
+                                            self.cbx_components_apply_filter(cbx))
         cbx_component.menu.add_separator()
         #
         cbx_component.menu.add_command(label="Set default: <Footprint>_<Comment>")
         cbx_component.menu.entryconfigure("Set default: <Footprint>_<Comment>",
                                             command=lambda cbx=cbx_component: \
-                                            self.combobox_set_default(cbx))
+                                            self.cbx_components_set_default(cbx))
         #
         cbx_component.menu.add_command(label="Apply value to all matching components")
         cbx_component.menu.entryconfigure("Apply value to all matching components",
                                             command=lambda cbx=cbx_component: \
-                                            self.combobox_apply_selected_to_all(cbx, False))
+                                            self.cbx_components_apply_selected_to_all(cbx, False))
         #
         cbx_component.menu.add_command(label="Apply+override value to all matching components")
         cbx_component.menu.entryconfigure("Apply+override value to all matching components",
                                             command=lambda cbx=cbx_component: \
-                                            self.combobox_apply_selected_to_all(cbx, True))
+                                            self.cbx_components_apply_selected_to_all(cbx, True))
         cbx_component.menu.add_separator()
         #
         cbx_component.menu.add_command(label="Remove component")
         cbx_component.menu.entryconfigure("Remove component",
                                             command=lambda cbx=cbx_component: \
-                                            self.combobox_remove_component(cbx))
+                                            self.cbx_components_remove_component(cbx))
 
-    def combobox_return(self, event):
-        self.combobox_apply_filter(event.widget)
+    def cbx_components_return(self, event):
+        self.cbx_components_apply_filter(event.widget)
 
-    def combobox_apply_selected_to_all(self, cbx, force: bool):
+    def cbx_components_apply_selected_to_all(self, cbx, force: bool):
         cbx.focus_force()
         selected_idx = self.cbx_component_list.index(cbx)
         selected_component: str = cbx.get().strip()
@@ -654,7 +661,7 @@ class PnPEditor(customtkinter.CTkFrame):
         self.apply_component_to_matching(selected_idx, selected_component, force)
         self.add_component_if_missing(selected_component)
 
-    def combobox_remove_component(self, cbx):
+    def cbx_components_remove_component(self, cbx):
         cbx.focus_force()
         selected_idx = self.cbx_component_list.index(cbx)
         selected_component: str = self.entry_list[selected_idx].get()
@@ -668,7 +675,7 @@ class PnPEditor(customtkinter.CTkFrame):
         self.cbx_component_list[selected_idx].set("")
         self.update_selected_status()
 
-    def combobox_set_default(self, cbx):
+    def cbx_components_set_default(self, cbx):
         selected_idx = self.cbx_component_list.index(cbx)
         row = glob_proj.pnp_grid.rows()[selected_idx]
         ftprint = row[glob_proj.pnp_columns.footprint_col]
@@ -680,7 +687,7 @@ class PnPEditor(customtkinter.CTkFrame):
         lbl_marker = self.lbl_marker_list[selected_idx]
         lbl_marker.config(background=Markers.CL_FILTER)
 
-    def combobox_apply_filter(self, cbx):
+    def cbx_components_apply_filter(self, cbx):
         fltr: str = cbx.get().strip()
         if len(fltr) >= 3:
             filtered_comp_names = list(item.name for item in glob_components.items_filtered(fltr))
@@ -711,24 +718,28 @@ class PnPEditor(customtkinter.CTkFrame):
 
         self.btn_save.configure(state=tkinter.NORMAL)
 
-    def combobox_wheel(self, _event):
+    def cbx_components_wheel(self, _event):
         # logging.debug(f"CB wheel: {event}")
         # block changing value when the list is hidden to avoid accidental modification
         return 'break'
         # pass
 
-    def combobox_focus_in(self, event):
+    def cbx_components_focus_in(self, event):
         # logging.debug(f"CB focus_in: {event}")
         try:
             # restore normal font on previous item
             if not self.focused_idx is None and self.focused_idx < len(self.entry_list):
-                self.entry_list[self.focused_idx].config(font=self.fonts[Config.instance().editor_font_idx][0])
-                self.cbx_component_list[self.focused_idx].config(font=self.fonts[Config.instance().editor_font_idx][0])
+                new_font = self.fonts[Config.instance().editor_font_idx][0]
+                self.entry_list[self.focused_idx].config(font=new_font)
+                self.cbx_component_list[self.focused_idx].config(font=new_font)
+                self.cbx_rotation_list[self.focused_idx].config(font=new_font)
 
             # set bold font in new item
             self.focused_idx = self.cbx_component_list.index(event.widget)
-            self.entry_list[self.focused_idx].config(font=self.fonts[Config.instance().editor_font_idx][1])
-            self.cbx_component_list[self.focused_idx].config(font=self.fonts[Config.instance().editor_font_idx][1])
+            new_font = self.fonts[Config.instance().editor_font_idx][1]
+            self.entry_list[self.focused_idx].config(font=new_font)
+            self.cbx_component_list[self.focused_idx].config(font=new_font)
+            self.cbx_rotation_list[self.focused_idx].config(font=new_font)
         except Exception as e:
             logging.debug(f"focus_in: {e}")
 
