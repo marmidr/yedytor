@@ -2,6 +2,16 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.8.2 - 2024-03-23
+
+* Added
+* Changed
+* Deprecated
+* Removed
+* Fixed
+  * saving edited file to a new CSV
+  * when loading a small project, percents in console does not cross a 100%
+
 ## 0.8.1 - 2024-03-23
 
 * Added

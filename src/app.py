@@ -29,7 +29,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.8.1"
+APP_NAME = "Yedytor v0.8.2"
 
 # -----------------------------------------------------------------------------
 
@@ -503,16 +503,16 @@ class PnPEditor(customtkinter.CTkFrame):
                     footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_columns.footprint_col]))
                     id_max_w = max(id_max_w, len(row[0]))
 
-                progress_step = len(glob_proj.pnp_grid.rows()) // 10
-                progress_prc = 0
-                idx_threshold = progress_step
-
                 logging.info(f"Preparing editor data...")
                 started_at = time.monotonic()
                 editor_items = pnp_editor_helpers.prepare_editor_items(glob_components, glob_proj, wip_items)
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
                 logging.info(f"Items prepared in {delta}")
+
+                progress_step = len(editor_items) / 10
+                progress_prc = 0
+                idx_threshold = progress_step
 
                 # restart time measure
                 logging.info(f"Creating editor ...")
@@ -567,10 +567,14 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_rotation.set(record['rotation'])
                     self.cbx_rotation_list.append(cbx_rotation)
 
-                    if idx == idx_threshold:
+                    if idx == int(idx_threshold):
                         progress_prc += 10
                         idx_threshold += progress_step
                         logging.info(f"  {progress_prc:3} %")
+
+                if progress_prc < 100:
+                    progress_prc = 100
+                    logging.info(f"  {progress_prc:3} %")
 
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
@@ -837,7 +841,7 @@ class PnPEditor(customtkinter.CTkFrame):
             self.save_pnp_to_new_csv_file()
 
     def save_pnp_to_new_csv_file(self):
-        csv_path = os.path.splitext(glob_proj.pnp_path)[0]
+        csv_path = glob_proj.pnp_path
         if not os.path.exists(csv_path):
             logging.warning(f"Oryginal file: '{csv_path}' not found")
             if glob_proj.wip_path and os.path.exists(glob_proj.wip_path):
@@ -847,6 +851,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 logging.error(f"WiP file: '{csv_path}' also not found")
                 return
 
+        csv_path = os.path.splitext(csv_path)[0]
         csv_path += "_edited.csv"
         write_errors = 0
 
