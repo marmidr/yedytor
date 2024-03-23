@@ -70,3 +70,13 @@ class Config:
     @devlib_path.setter
     def devlib_path(self, path: str):
         self.get_section("common")["devlib_path"] = path
+
+    @property
+    def color_logs(self) -> bool:
+        enabled = self.get_section("common").get("color_logs", fallback=False)
+        return enabled == "True"
+
+    @color_logs.setter
+    def color_logs(self, enable: bool):
+        new_en = str(enable)
+        self.get_section("common")["color_logs"] = new_en

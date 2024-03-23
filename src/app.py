@@ -29,7 +29,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.8.0"
+APP_NAME = "Yedytor v0.8.1"
 
 # -----------------------------------------------------------------------------
 
@@ -100,24 +100,44 @@ class HomeFrame(customtkinter.CTkFrame):
         sep_h.grid(row=5, column=0, pady=5, padx=5, columnspan=4, sticky="we")
 
         #
-        self.config = customtkinter.CTkFrame(self)
-        self.config.grid(row=6, column=0, pady=5, padx=5, columnspan=4, sticky="we")
-        self.config.lbl_font = customtkinter.CTkLabel(self.config, text="PnP Editor font size:")
-        self.config.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
+        self.config_font = customtkinter.CTkFrame(self)
+        self.config_font.grid(row=6, column=0, pady=5, padx=5, columnspan=1, sticky="we")
+        self.config_font.lbl_font = customtkinter.CTkLabel(self.config_font, text="PnP Editor font size:")
+        self.config_font.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
 
-        self.config.radio_var = tkinter.IntVar(value=Config.instance().editor_font_idx)
-        self.config.rb_font0 = customtkinter.CTkRadioButton(self.config, text="12px",
-                                                            variable=self.config.radio_var,
-                                                            value=0, command=self.radiobutton_event)
-        self.config.rb_font0.grid(row=1, column=0, pady=5, padx=5, sticky="w")
-        self.config.rb_font1 = customtkinter.CTkRadioButton(self.config, text="16px",
-                                                            variable=self.config.radio_var,
-                                                            value=1, command=self.radiobutton_event)
-        self.config.rb_font1.grid(row=2, column=0, pady=5, padx=5, sticky="w")
+        self.config_font.radio_var = tkinter.IntVar(value=Config.instance().editor_font_idx)
+        self.config_font.rb_font0 = customtkinter.CTkRadioButton(self.config_font, text="12px",
+                                                                variable=self.config_font.radio_var,
+                                                                value=0, command=self.radiobutton_event)
+        self.config_font.rb_font0.grid(row=1, column=0, pady=5, padx=5, sticky="w")
+        self.config_font.rb_font1 = customtkinter.CTkRadioButton(self.config_font, text="16px",
+                                                                variable=self.config_font.radio_var,
+                                                                value=1, command=self.radiobutton_event)
+        self.config_font.rb_font1.grid(row=2, column=0, pady=5, padx=5, sticky="w")
+
+        #
+        self.config_logs = customtkinter.CTkFrame(self)
+        self.config_logs.grid(row=6, column=1, pady=5, padx=5, columnspan=1, sticky="wns")
+        self.config_logs.lbl_font = customtkinter.CTkLabel(self.config_logs, text="Console:")
+        self.config_logs.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
+
+        self.config_logs.colorlogs_var = customtkinter.BooleanVar(value=Config.instance().color_logs)
+        self.config_logs.chx_color_logs = customtkinter.CTkCheckBox(self.config_logs,
+                                                        text="Use colors in logs",
+                                                        command=self.checkbox_event,
+                                                        variable=self.config_logs.colorlogs_var,
+                                                        checkbox_width=18, checkbox_height=18)
+        self.config_logs.chx_color_logs.grid(row=1, column=0, pady=5, padx=5, sticky="w")
+
 
     def radiobutton_event(self):
-        Config.instance().editor_font_idx = self.config.radio_var.get()
-        # logging.debug(f"RB event: {config.editor_font_idx}")
+        Config.instance().editor_font_idx = self.config_font.radio_var.get()
+        # logging.debug(f"RB event: {self.config_font.editor_font_idx}")
+        Config.instance().save()
+
+    def checkbox_event(self):
+        Config.instance().color_logs = self.config_logs.colorlogs_var.get()
+        # logging.debug(f"CHBX event: {Config.instance().color_logs}")
         Config.instance().save()
 
     def clear_previews(self):
@@ -1195,25 +1215,35 @@ class CtkApp(customtkinter.CTk):
 # -----------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    # logger config with dimmed time
-    # https://docs.python.org/3/howto/logging.html
-    logging.basicConfig(format='\033[30m%(asctime)s\033[39m %(levelname)s: %(message)s',
-                        datefmt='%H:%M:%S',
-                        level=logging.DEBUG)
-    # https://stackoverflow.com/questions/384076/how-can-i-color-python-logging-output
+    if Config.instance().color_logs:
+        # logger config with dimmed time
+        # https://docs.python.org/3/howto/logging.html
+        logging.basicConfig(format='\033[30m%(asctime)s\033[39m %(levelname)s: %(message)s',
+                            datefmt='%H:%M:%S',
+                            level=logging.DEBUG)
 
-    ANSI_FG_WHITE=  "\033[1;37m"
-    ANSI_FG_YELLOW= "\033[1;33m"
-    ANSI_FG_RED=    "\033[1;31m"
-    ANSI_FG_DEFAULT="\033[1;0m"
+        # https://stackoverflow.com/questions/384076/how-can-i-color-python-logging-output
+        ANSI_FG_WHITE=  "\033[1;37m"
+        ANSI_FG_YELLOW= "\033[1;33m"
+        ANSI_FG_RED=    "\033[1;31m"
+        ANSI_FG_DEFAULT="\033[1;0m"
 
-    # logging.addLevelName(logging.INFO,    "\033[1;37m%s\033[1;0m" % logging.getLevelName(logging.INFO))
-    logging.addLevelName(logging.DEBUG,    "DEBUG")
-    logging.addLevelName(logging.INFO,    f"{ANSI_FG_WHITE}INFO {ANSI_FG_DEFAULT}")
-    logging.addLevelName(logging.WARNING, f"{ANSI_FG_YELLOW}WARN {ANSI_FG_DEFAULT}")
-    logging.addLevelName(logging.ERROR,   f"{ANSI_FG_RED}ERROR{ANSI_FG_DEFAULT}")
+        # logging.addLevelName(logging.INFO,    "\033[1;37m%s\033[1;0m" % logging.getLevelName(logging.INFO))
+        logging.addLevelName(logging.DEBUG,    "DEBUG")
+        logging.addLevelName(logging.INFO,    f"{ANSI_FG_WHITE}INFO {ANSI_FG_DEFAULT}")
+        logging.addLevelName(logging.WARNING, f"{ANSI_FG_YELLOW}WARN {ANSI_FG_DEFAULT}")
+        logging.addLevelName(logging.ERROR,   f"{ANSI_FG_RED}ERROR{ANSI_FG_DEFAULT}")
+    else:
+        logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+                            datefmt='%H:%M:%S',
+                            level=logging.DEBUG)
+        logging.addLevelName(logging.DEBUG,   "DEBUG")
+        logging.addLevelName(logging.INFO,    "INFO ")
+        logging.addLevelName(logging.WARNING, "WARN ")
+        logging.addLevelName(logging.ERROR,   "ERROR")
 
-    logging.info(f"{APP_NAME}   (c) 2023")
+
+    logging.info(f"{APP_NAME}   (c) 2023-2024")
 
     if (sys.version_info.major < 3) or (sys.version_info.minor < 9):
         logging.error("Required Python version 3.9 or later!")

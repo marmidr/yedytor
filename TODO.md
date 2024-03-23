@@ -37,3 +37,8 @@
 [x] nazwa pliku PnP w tutule okna
 [x] 1row ignorowany po wczytaniu nowego pliku PnP
 [x] 4 wątki wyszukiwania komponentu na podstawie Comment+Footprint
+[x] logi - opcjonalne kolorowanie (konsola CMD jest nieczytelna)
+[ ] weryfikacja wczytanego projektu:
+    [ ] parametry Rotation są liczbami: 0, 90, 180, 270, 360
+    [ ] parametry Layer są tylko dwa
+[ ] xls: rotation 180.00 -> 180
