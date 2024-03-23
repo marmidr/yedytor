@@ -14,6 +14,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
     edited CSV is saved in the location of the loaded WiP file
   * number in XLS written as 1.00 is treated as text, not number;
     parser tries to detect such a situations and convert the value to int
+  * component matching fixed for records where footprint is empty
 
 ## 0.8.0 - 2024-03-22
 

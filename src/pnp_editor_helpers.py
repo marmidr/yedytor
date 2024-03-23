@@ -120,28 +120,27 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
     items_iterator = ItemsIterator(project, wip_items)
     names_visible = components.names_visible()
     out = []
+    use_multiprocess = True
 
-    # # 24s
-    # for record in items_iterator:
-    #     _process_records(record, components, names_visible)
-    #     out.append(record)
-
-    # processes=1 -> 26s
-    # processes=4 -> 10s
-    # processes=8 -> 9s
-    # https://stackoverflow.com/questions/40283772/python-3-why-does-only-functions-and-partials-work-in-multiprocessing-apply-asy
-    process_fn = functools.partial(_process_records, components=components, names_visible=names_visible)
-    with multiprocessing.Pool(processes=4) as pool:
-        out = pool.map(process_fn, items_iterator)
+    if use_multiprocess:
+        # processes=1 -> 26s
+        # processes=4 -> 10s
+        # processes=8 -> 9s
+        # https://stackoverflow.com/questions/40283772/python-3-why-does-only-functions-and-partials-work-in-multiprocessing-apply-asy
+        process_fn = functools.partial(_process_records, components=components, names_visible=names_visible)
+        with multiprocessing.Pool(processes=4) as pool:
+            out = pool.map(process_fn, items_iterator)
+    else:
+        # single thread: 24s
+        for record in items_iterator:
+            _process_records(record, components, names_visible)
+            out.append(record)
 
     return out
 
 
 def _process_records(record: dict, components: ComponentsDB, names_visible: list[str]):
-    if record['footprint']:
-        # iterating over Project items
-        _try_find_exact(components, names_visible, record)
-    else:
+    if record['marker']:
         # iterating over WiP items
         if record['marker'] == Markers.MARKERS_MAP[Markers.CL_FILTER]:
             item_splitted: list[str] = record['item'].split("|")
@@ -149,6 +148,10 @@ def _process_records(record: dict, components: ComponentsDB, names_visible: list
                 record['footprint'] = item_splitted[1].strip()
                 record['comment'] = item_splitted[2].strip()
                 _try_find_matching(components, names_visible, record)
+    else:
+        # iterating over Project items
+        _try_find_exact(components, names_visible, record)
+
     return record
 
 
