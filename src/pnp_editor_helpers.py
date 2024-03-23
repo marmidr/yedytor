@@ -185,8 +185,15 @@ def _try_find_matching(components: ComponentsDB, names_visible: list[str], recor
     ftprint_prefix = ftprint.split("_")
 
     if len(ftprint_prefix) > 0:
-        # create a proposal list based on a footprint and comment
         ftprint_prefix = ftprint_prefix[0]
+
+        # "CAPC0805(2012)100_L" -> "0805"
+        for ftprint_sz in ("0402", "0603", "0805", "1206", "1210", "2512"):
+            if ftprint_sz in ftprint_prefix:
+                ftprint_prefix = ftprint_sz
+                break
+
+        # create a proposal list based on a footprint and comment
         fltr = ftprint_prefix + " " + cmnt
         filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
         if len(filtered_comp_names) > 0:

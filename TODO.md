@@ -42,5 +42,5 @@
     [ ] parametry Rotation są liczbami: 0, 90, 180, 270, 360
     [ ] parametry Layer są tylko dwa
 [x] xls: rotation 180.00 -> 180
-[ ] gdy element M0805 12k, to próbować szukać znanych footprintów (402, 603, 805, 1206 itd)
+[x] gdy element M0805 12k, to próbować szukać znanych footprintów (402, 603, 805, 1206 itd)
     w członie footprintu i wstawiać samą liczbę do filtra

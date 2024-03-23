@@ -6,6 +6,9 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
 * Added
   * Option: colorful logs in the console/CMD
+  * PnP editor: filter created for "CAPC0805(2012)100_L | 100nF" (unknown footprint):
+    * was: "100nf"
+    * now: "0805 100nf"
 * Changed
 * Deprecated
 * Removed
