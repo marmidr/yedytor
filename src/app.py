@@ -208,6 +208,7 @@ class HomeFrame(customtkinter.CTkFrame):
                 global glob_proj
                 glob_proj = Project()
                 glob_proj.from_serializable(wip['project'])
+                glob_proj.wip_path = wip_path.name
 
                 self.app.title(f"{APP_NAME} - {glob_proj.pnp_path} (WiP)")
 
@@ -837,6 +838,15 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def save_pnp_to_new_csv_file(self):
         csv_path = os.path.splitext(glob_proj.pnp_path)[0]
+        if not os.path.exists(csv_path):
+            logging.warning(f"Oryginal file: '{csv_path}' not found")
+            if glob_proj.wip_path and os.path.exists(glob_proj.wip_path):
+                csv_path : str = glob_proj.wip_path
+                csv_path = csv_path.removesuffix("_wip.json")
+            else:
+                logging.error(f"WiP file: '{csv_path}' also not found")
+                return
+
         csv_path += "_edited.csv"
         write_errors = 0
 

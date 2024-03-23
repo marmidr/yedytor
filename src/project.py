@@ -20,6 +20,7 @@ class Project:
         self.pnp_grid_dirty = False
         self.pnp_first_row = 0
         self.pnp_columns = ColumnsSelectorResult()
+        self.wip_path = None
 
     def to_serializable(self) -> dict:
         """Returns class as a dict, containing only basic types, dictionaries and arrays"""

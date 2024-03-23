@@ -10,6 +10,8 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Deprecated
 * Removed
 * Fixed
+  * if WiP file loaded and no original PnP file exists,
+    edited CSV is saved in the location of the loaded WiP file
 
 ## 0.8.0 - 2024-03-22
 
