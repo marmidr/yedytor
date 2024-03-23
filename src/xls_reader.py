@@ -26,11 +26,24 @@ def read_xls_sheet(path: str) -> TextGrid:
             cell_val = cellobj.value or ""
 
             # https://xlrd.readthedocs.io/en/latest/api.html#xlrd.sheet.Cell
-            if cellobj.ctype == xlrd.XL_CELL_NUMBER:
+            if cellobj.ctype in (xlrd.XL_CELL_NUMBER, xlrd.XL_CELL_TEXT):
                 if isinstance(cell_val, float) and int(cell_val) == cell_val:
                     # prevent the conversion of '100' to '100.0'
                     cell_val = int(cell_val)
-                cell_val = repr(cell_val)
+                    cell_val = repr(cell_val)
+                elif isinstance(cell_val, str):
+                    # '5.00' is text
+                    try:
+                        cell_val_fl = float(cell_val) # may rise exc.
+                        if int(cell_val_fl) == cell_val_fl:
+                            # '90.00' -> 90
+                            cell_val = int(cell_val_fl)
+                        else:
+                            # '5.10' -> 5.1
+                            cell_val = cell_val_fl
+                        cell_val = repr(cell_val)
+                    except Exception:
+                        pass
             # change multiline cells into single-line
             cell_val = cell_val.replace("\n", " ⏎ ")
             row_cells.append(cell_val.strip())

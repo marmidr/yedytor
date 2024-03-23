@@ -12,6 +12,8 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Fixed
   * if WiP file loaded and no original PnP file exists,
     edited CSV is saved in the location of the loaded WiP file
+  * number in XLS written as 1.00 is treated as text, not number;
+    parser tries to detect such a situations and convert the value to int
 
 ## 0.8.0 - 2024-03-22
 
