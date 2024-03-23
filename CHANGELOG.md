@@ -6,10 +6,12 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
 * Added
 * Changed
+  * yedytor.ini saved as UTF-8
 * Deprecated
 * Removed
 * Fixed
   * saving edited file to a new CSV
+  * Multiprocessing disabled due to problems with some files
   * when loading a small project, percents in console does not cross a 100%
 
 ## 0.8.1 - 2024-03-23

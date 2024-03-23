@@ -120,7 +120,8 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
     items_iterator = ItemsIterator(project, wip_items)
     names_visible = components.names_visible()
     out = []
-    use_multiprocess = True
+    # use_multiprocess = True
+    use_multiprocess = False
 
     if use_multiprocess:
         # processes=1 -> 26s
@@ -128,7 +129,7 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
         # processes=8 -> 9s
         # https://stackoverflow.com/questions/40283772/python-3-why-does-only-functions-and-partials-work-in-multiprocessing-apply-asy
         process_fn = functools.partial(_process_records, components=components, names_visible=names_visible)
-        with multiprocessing.Pool(processes=4) as pool:
+        with multiprocessing.Pool(processes=6) as pool:
             out = pool.map(process_fn, items_iterator)
     else:
         # single thread: 24s
@@ -170,7 +171,7 @@ def _try_find_exact(components: ComponentsDB, names_visible: list[str], record: 
         record['selection'] = expected_component
         # record['cbx_items'] -> not needed
         record['marker'] = Markers.MARKERS_MAP[Markers.CL_AUTO_SEL]
-        logging.info(f"Matching component found: {expected_component}")
+        logging.info(f"  Matching component found: {expected_component}")
     except Exception:
         _try_find_matching(components, names_visible, record)
 

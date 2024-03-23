@@ -20,7 +20,7 @@ class Config:
         self.__config = configparser.ConfigParser()
 
         if os.path.isfile(self.CONFIG_FILE_NAME):
-            self.__config.read(self.CONFIG_FILE_NAME)
+            self.__config.read(self.CONFIG_FILE_NAME, encoding="utf-8")
 
     def get_section(self, sect_name: str) -> configparser.SectionProxy:
         try:
