@@ -29,7 +29,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.8.2"
+APP_NAME = "Yedytor v0.8.3"
 
 # -----------------------------------------------------------------------------
 
@@ -123,7 +123,7 @@ class HomeFrame(customtkinter.CTkFrame):
 
         self.config_logs.colorlogs_var = customtkinter.BooleanVar(value=Config.instance().color_logs)
         self.config_logs.chx_color_logs = customtkinter.CTkCheckBox(self.config_logs,
-                                                        text="Use colors in logs",
+                                                        text="Colorful logs",
                                                         command=self.checkbox_event,
                                                         variable=self.config_logs.colorlogs_var,
                                                         checkbox_width=18, checkbox_height=18)
@@ -140,14 +140,22 @@ class HomeFrame(customtkinter.CTkFrame):
         # logging.debug(f"CHBX event: {Config.instance().color_logs}")
         Config.instance().save()
 
-    def clear_previews(self):
+    def clear_pnp_previews(self):
         self.var_pnp.set("")
         self.var_pnp2.set("")
         self.pnp_view.clear_preview()
+        self.pnp_config.entry_first_row_var.set("1")
 
     def button_browse_event(self):
         logging.debug("Browse for PnP")
-        self.clear_previews()
+        try:
+            glob_proj.loading = True
+            self.load_pnp()
+        finally:
+            glob_proj.loading = False
+
+    def load_pnp(self):
+        self.clear_pnp_previews()
 
         # https://docs.python.org/3/library/dialog.html
         pnp_paths = tkinter.filedialog.askopenfilenames(
@@ -161,8 +169,8 @@ class HomeFrame(customtkinter.CTkFrame):
 
         if len(pnp_paths) > 2:
             MessageBox(app=self.app, dialog_type="o",
-                       message="You can only select one or two PnP files of the same type",
-                       callback=lambda btn: btn)
+                    message="You can only select one or two PnP files of the same type",
+                    callback=lambda btn: btn)
             return
         if len(pnp_paths) == 2:
             # https://docs.python.org/3/library/os.path.html#os.path.splitext
@@ -170,8 +178,8 @@ class HomeFrame(customtkinter.CTkFrame):
             ext2 = os.path.splitext(pnp_paths[1])[1].lower()
             if ext1 != ext2:
                 MessageBox(app=self.app, dialog_type="o",
-                           message="You must select two PnP files of the same type",
-                           callback=lambda btn: btn)
+                        message="You must select two PnP files of the same type",
+                        callback=lambda btn: btn)
                 return
 
         self.process_input_files(pnp_paths)
@@ -190,6 +198,7 @@ class HomeFrame(customtkinter.CTkFrame):
         )
 
         if wip_path:
+            self.clear_pnp_previews()
             logging.info(f"Selected WiP: {wip_path.name}")
 
             with open(wip_path.name, "r", encoding="UTF-8") as f:
@@ -207,15 +216,20 @@ class HomeFrame(customtkinter.CTkFrame):
                 # reset entire project
                 global glob_proj
                 glob_proj = Project()
-                glob_proj.from_serializable(wip['project'])
-                glob_proj.wip_path = wip_path.name
+                glob_proj.loading = True
 
-                self.app.title(f"{APP_NAME} - {glob_proj.pnp_path} (WiP)")
+                try:
+                    glob_proj.from_serializable(wip['project'])
+                    glob_proj.wip_path = wip_path.name
 
-                logging.info("Restore PnP editor...")
-                self.app.pnp_editor.load(wip['components'])
-                logging.info("Open the PnP editor page")
-                self.app.get_tab_select_editor_fn()()
+                    self.app.title(f"{APP_NAME} - {glob_proj.pnp_path} (WiP)")
+
+                    logging.info("Restore PnP editor...")
+                    self.app.pnp_editor.load(wip['components'])
+                    logging.info("Open the PnP editor page")
+                    self.app.get_tab_select_editor_fn()()
+                finally:
+                    glob_proj.loading = False
 
     def process_input_files(self, pnp_paths: list[str]):
         if len(pnp_paths) and os.path.isfile(pnp_paths[0]):
@@ -359,11 +373,17 @@ class PnPConfig(customtkinter.CTkFrame):
         self.btn_goto_editor.grid(row=0, column=8, pady=5, padx=5, sticky="")
 
     def opt_separator_event(self, new_sep: str):
+        if glob_proj.loading:
+            return
+
         logging.info(f"  PnP separator: {new_sep}")
         glob_proj.pnp_separator = new_sep
         self.button_load_event()
 
     def var_first_row_event(self, sv: customtkinter.StringVar):
+        if glob_proj.loading:
+            return
+
         if (new_first_row := sv.get().strip()) != "":
             try:
                 glob_proj.pnp_first_row = int(new_first_row) - 1
@@ -508,7 +528,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 editor_items = pnp_editor_helpers.prepare_editor_items(glob_components, glob_proj, wip_items)
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
-                logging.info(f"Items prepared in {delta}")
+                logging.info(f"  {len(editor_items)} items prepared in {delta}")
 
                 progress_step = len(editor_items) / 10
                 progress_prc = 0
@@ -578,7 +598,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
-                logging.info(f"{len(editor_items)} elements added in {delta}")
+                logging.info(f"Editor for {len(editor_items)} elements created in {delta}")
                 self.scrollableframe.grid_columnconfigure(0, weight=3)
                 self.scrollableframe.grid_columnconfigure(2, weight=1)
 

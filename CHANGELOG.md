@@ -2,6 +2,16 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.8.3 - 2024-03-23
+
+* Added
+  * on project opening/restoring wip: reset the PnP preview 1st row value to 1
+* Changed
+* Deprecated
+* Removed
+* Fixed
+  * opening a two-file project
+
 ## 0.8.2 - 2024-03-23
 
 * Added
@@ -11,7 +21,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Removed
 * Fixed
   * saving edited file to a new CSV
-  * Multiprocessing disabled due to problems with some files
+  * multiprocessing disabled due to problems with some files
   * when loading a small project, percents in console does not cross a 100%
 
 ## 0.8.1 - 2024-03-23

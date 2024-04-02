@@ -44,3 +44,4 @@
 [x] xls: rotation 180.00 -> 180
 [x] gdy element M0805 12k, to próbować szukać znanych footprintów (402, 603, 805, 1206 itd)
     w członie footprintu i wstawiać samą liczbę do filtra
+[x] przy wczytywaniu projektu ustawiać pole FirstRow na "1".

@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "src\\app.py",
             "console": "integratedTerminal",
-            "justMyCode": false,
+            "justMyCode": true,
         },
         {
             "name": "Python: debug current file",

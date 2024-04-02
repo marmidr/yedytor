@@ -39,6 +39,7 @@ class ItemsIterator:
 
     def __init__(self, project: Project, wip_items: list[dict] = None):
         self._proj = project
+        self._proj_rows = None
         self._wip_items = wip_items
         self._idx = 0
         self._id_max_w = None
@@ -49,7 +50,8 @@ class ItemsIterator:
             id_max_w = 0
             fprint_max_w = 0
             fprint_col = self._proj.pnp_columns.footprint_col
-            for row in self._proj.pnp_grid.rows():
+            rows = self._proj.pnp_grid.rows()
+            for row in rows:
                 fprint_max_w = max(fprint_max_w, len(row[fprint_col]))
                 id_max_w = max(id_max_w, len(row[0]))
             self._id_max_w = id_max_w
@@ -81,15 +83,22 @@ class ItemsIterator:
                     'cbx_items': [],
                     'rotation': wip_cmp['rotation'],
                 }
+                # print(f"{self._idx}. {record['item']}")
                 return record
+
+            # print(f"STOP1")
             raise StopIteration
 
         if self._proj:
-            if self._idx < len(self._proj.pnp_grid.rows()):
+            if self._proj_rows is None:
+                # cache the list, because each call to rows() creates a new list
+                self._proj_rows = self._proj.pnp_grid.rows()
+
+            if self._idx < len(self._proj_rows):
                 if not self._id_max_w:
                     self._find_max_id_footprint_width()
 
-                row = self._proj.pnp_grid.rows()[self._idx]
+                row = self._proj_rows[self._idx]
                 self._idx += 1
 
                 item = "{id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
@@ -109,9 +118,13 @@ class ItemsIterator:
                     'cbx_items': [],
                     'rotation': row[self._proj.pnp_columns.rot_col],
                 }
+                # print(f"{self._idx}. {record['item']}")
                 return record
+
+            # print(f"STOP2")
             raise StopIteration
 
+        # print(f"STOP3")
         raise StopIteration
 
 # -----------------------------------------------------------------------------
@@ -120,6 +133,8 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
     items_iterator = ItemsIterator(project, wip_items)
     names_visible = components.names_visible()
     out = []
+
+    # works with `wip_items``, hangs the app for `project`:
     # use_multiprocess = True
     use_multiprocess = False
 
@@ -129,8 +144,14 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
         # processes=8 -> 9s
         # https://stackoverflow.com/questions/40283772/python-3-why-does-only-functions-and-partials-work-in-multiprocessing-apply-asy
         process_fn = functools.partial(_process_records, components=components, names_visible=names_visible)
-        with multiprocessing.Pool(processes=6) as pool:
-            out = pool.map(process_fn, items_iterator)
+
+        # https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing.pool
+        with multiprocessing.Pool(processes=4) as pool:
+            # out = pool.map(process_fn, items_iterator)
+            #
+            # best results for chunksize=8:
+            it = pool.imap(process_fn, items_iterator, chunksize=8)
+            out = [item for item in it]
     else:
         # single thread: 24s
         for record in items_iterator:

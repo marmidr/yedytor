@@ -21,6 +21,7 @@ class Project:
         self.pnp_first_row = 0
         self.pnp_columns = ColumnsSelectorResult()
         self.wip_path = None
+        self.loading = False
 
     def to_serializable(self) -> dict:
         """Returns class as a dict, containing only basic types, dictionaries and arrays"""
@@ -111,4 +112,4 @@ class Project:
                 raise ValueError(f"PnP has {self.pnp_grid.ncols} columns, but PnP2 has {pnp2_grid.ncols} columns")
 
             self.pnp_grid.nrows += pnp2_grid.nrows
-            self.pnp_grid.rows_raw().extend(pnp2_grid.rows)
+            self.pnp_grid.rows_raw().extend(pnp2_grid.rows())
