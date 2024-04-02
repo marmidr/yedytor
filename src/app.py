@@ -145,6 +145,7 @@ class HomeFrame(customtkinter.CTkFrame):
         self.var_pnp2.set("")
         self.pnp_view.clear_preview()
         self.pnp_config.entry_first_row_var.set("1")
+        self.pnp_config.progres_set(0)
 
     def button_browse_event(self):
         logging.debug("Browse for PnP")
@@ -372,6 +373,26 @@ class PnPConfig(customtkinter.CTkFrame):
                                                 command=self.button_goto_editor_event)
         self.btn_goto_editor.grid(row=0, column=8, pady=5, padx=5, sticky="")
 
+        #
+        self.prgrbar_prepare = customtkinter.CTkProgressBar(self)
+        self.prgrbar_prepare.grid(row=0, column=9, pady=5, padx=5, sticky="we")
+        self.prgrbar_prepare.set(0)
+
+    def progres_set(self, progress: float):
+        self.prgrbar_prepare.set(progress)
+        self.update()
+
+    # def progres_determinate(self):
+    #     self.prgrbar_prepare.stop()
+    #     self.prgrbar_prepare.configure(mode="determinate")
+    #     self.prgrbar_prepare.set(0)
+    #     self.update()
+
+    # def progres_indeterminate(self):
+    #     self.prgrbar_prepare.configure(mode="indeterminate")
+    #     self.prgrbar_prepare.start()
+    #     self.update()
+
     def opt_separator_event(self, new_sep: str):
         if glob_proj.loading:
             return
@@ -524,13 +545,14 @@ class PnPEditor(customtkinter.CTkFrame):
                     id_max_w = max(id_max_w, len(row[0]))
 
                 logging.info(f"Preparing editor data...")
+                self.app.pnp_config.progres_set(0)
                 started_at = time.monotonic()
                 editor_items = pnp_editor_helpers.prepare_editor_items(glob_components, glob_proj, wip_items)
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
                 logging.info(f"  {len(editor_items)} items prepared in {delta}")
 
-                progress_step = len(editor_items) / 10
+                progress_step = len(editor_items) / 20
                 progress_prc = 0
                 idx_threshold = progress_step
 
@@ -588,12 +610,15 @@ class PnPEditor(customtkinter.CTkFrame):
                     self.cbx_rotation_list.append(cbx_rotation)
 
                     if idx == int(idx_threshold):
-                        progress_prc += 10
+                        progress_prc += 5
                         idx_threshold += progress_step
-                        logging.info(f"  {progress_prc:3} %")
+                        if progress_prc % 10 == 0:
+                            logging.info(f"  {progress_prc:3} %")
+                        self.app.pnp_config.progres_set(progress_prc/100)
 
                 if progress_prc < 100:
                     progress_prc = 100
+                    self.app.pnp_config.progres_set(1)
                     logging.info(f"  {progress_prc:3} %")
 
                 delta = time.monotonic() - started_at

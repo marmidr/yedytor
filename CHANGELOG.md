@@ -7,6 +7,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Added
   * on project opening/restoring wip: reset the PnP preview 1st row value to 1
   * component matching: cache results (270 items: 21s -> 8s)
+  * PnP preview: progress bar for editor preparation progress
 * Changed
 * Deprecated
 * Removed
