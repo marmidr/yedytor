@@ -42,6 +42,11 @@ class PnpItem:
         self.cbx_items = list()
         self.rotation = ""
 
+    def __repr__(self) -> str:
+        if not (self.footprint is None or self.comment is None):
+            return self.footprint + "|" + self.comment
+        raise RuntimeError("PnpItem without footprint/comment attributes")
+
 # -----------------------------------------------------------------------------
 
 class ItemsIterator:
@@ -88,11 +93,20 @@ class ItemsIterator:
 
                 pnpitem = PnpItem()
                 pnpitem.item = wip_cmp['item']
-                pnpitem.marker = wip_cmp['marker'],
+                pnpitem.marker = wip_cmp['marker']
                 pnpitem.selection = wip_cmp['selection']
                 pnpitem.footprint = None
                 pnpitem.comment = None
                 pnpitem.rotation = wip_cmp['rotation']
+
+                # "C42  | SMC_B              | 100u/10V "
+                item_splitted: list[str] = pnpitem.item.split("|")
+                if len(item_splitted) == 3:
+                    pnpitem.footprint = item_splitted[1].strip()
+                    pnpitem.comment = item_splitted[2].strip()
+                else:
+                    raise RuntimeError(f"Invalid item: '{pnpitem.item}'")
+
                 return pnpitem
 
             # print(f"STOP1")
@@ -136,20 +150,20 @@ class ItemsIterator:
 # -----------------------------------------------------------------------------
 
 def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: list[dict] = None) -> list[PnpItem]:
+    # works well with `wip_items`, hangs the app for `project`:
+    USE_MULTIPROCESS = False
+
     items_iterator = ItemsIterator(project, wip_items)
     names_visible = components.names_visible()
     out = []
 
-    # works with `wip_items``, hangs the app for `project`:
-    # use_multiprocess = True
-    use_multiprocess = False
-
-    if use_multiprocess:
+    if USE_MULTIPROCESS:
         # processes=1 -> 26s
         # processes=4 -> 10s
         # processes=8 -> 9s
         # https://stackoverflow.com/questions/40283772/python-3-why-does-only-functions-and-partials-work-in-multiprocessing-apply-asy
-        process_fn = functools.partial(_process_pnpitem, components=components, names_visible=names_visible)
+        cache = dict()
+        process_fn = functools.partial(_process_pnpitem, components=components, names_visible=names_visible, cache=cache)
 
         # https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing.pool
         with multiprocessing.Pool(processes=4) as pool:
@@ -160,25 +174,41 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
             out = [item for item in it]
     else:
         # single thread: 24s
+        cache = dict()
         for pnpitem in items_iterator:
-            _process_pnpitem(pnpitem, components, names_visible)
+            _process_pnpitem(pnpitem, components, names_visible, cache)
             out.append(pnpitem)
 
     return out
 
-# @functools.cache
-def _process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible: list[str]) -> PnpItem:
+def _process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible: list[str], cache: dict) -> PnpItem:
+    # cache the component matching results:
+    USE_CACHE = True
+
+    if USE_CACHE:
+        # for 270 items: 21s -> 8s
+        # for 506 items: 41s -> 7s
+        if cached := cache.get(repr(pnpitem)):
+            pnpitem.selection = cached['selection']
+            pnpitem.cbx_items = cached['cbx_items']
+            pnpitem.marker = cached['marker']
+            return pnpitem
+
     if pnpitem.marker:
         # iterating over WiP items
         if pnpitem.marker == Markers.MARKERS_MAP[Markers.CL_FILTER]:
-            item_splitted: list[str] = pnpitem.item.split("|")
-            if len(item_splitted) == 3:
-                pnpitem.footprint = item_splitted[1].strip()
-                pnpitem.comment = item_splitted[2].strip()
-                _try_find_matching(components, names_visible, pnpitem)
+            _try_find_matching(components, names_visible, pnpitem)
     else:
         # iterating over Project items
         _try_find_exact(components, names_visible, pnpitem)
+
+    if USE_CACHE:
+        cached = {
+            'selection' : pnpitem.selection,
+            'cbx_items' : pnpitem.cbx_items,
+            'marker' : pnpitem.marker,
+        }
+        cache[repr(pnpitem)] = cached
 
     return pnpitem
 
@@ -221,7 +251,7 @@ def _try_find_matching(components: ComponentsDB, names_visible: list[str], pnpit
                 ftprint_prefix = ftprint_sz
                 break
 
-        # create a proposal list based on a footprint and comment
+        # create a proposition list based on a footprint and the comment
         fltr = ftprint_prefix + " " + cmnt
         filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
         if len(filtered_comp_names) > 0:
@@ -230,7 +260,7 @@ def _try_find_matching(components: ComponentsDB, names_visible: list[str], pnpit
             pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_FILTER]
             return
 
-    # create component list proposal based only on comment
+    # create component list proposition based only on the comment
     fltr = cmnt
     filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
 

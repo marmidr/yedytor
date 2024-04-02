@@ -2,10 +2,11 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
-## 0.8.3 - 2024-03-23
+## 0.8.3 - 2024-04-02
 
 * Added
   * on project opening/restoring wip: reset the PnP preview 1st row value to 1
+  * component matching: cache results (270 items: 21s -> 8s)
 * Changed
 * Deprecated
 * Removed
