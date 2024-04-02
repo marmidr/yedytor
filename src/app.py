@@ -538,18 +538,18 @@ class PnPEditor(customtkinter.CTkFrame):
                 logging.info(f"Creating editor ...")
                 started_at = time.monotonic()
 
-                for idx, record in enumerate(editor_items):
+                for idx, pnpitem in enumerate(editor_items):
                     entry_pnp = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
                                                         font=self.fonts[Config.instance().editor_font_idx][0])
                     entry_pnp.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
 
-                    ui_helpers.entry_set_text(entry_pnp, record['item'])
+                    ui_helpers.entry_set_text(entry_pnp, pnpitem.item)
                     self.entry_list.append(entry_pnp)
                     # entry_pnp.configure(state=tkinter.DISABLED)
 
                     lbl_marker = tkinter.Label(self.scrollableframe, text=" ")
                     lbl_marker.grid(row=idx, column=1, padx=5, pady=1, sticky="")
-                    lbl_marker.config(background=Markers.MARKERS_MAP_INV[record['marker']])
+                    lbl_marker.config(background=Markers.MARKERS_MAP_INV[pnpitem.marker])
                     self.lbl_marker_list.append(lbl_marker)
 
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
@@ -565,8 +565,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.bind("<Return>", self.cbx_components_return)
                     cbx_component.bind("<MouseWheel>", self.cbx_wheel)
                     cbx_component.bind("<FocusIn>", self.cbx_focus_in)
-                    cbx_component.set(record['selection'])
-                    cbx_component.configure(values=record['cbx_items'])
+                    cbx_component.set(pnpitem.selection)
+                    cbx_component.configure(values=pnpitem.cbx_items)
                     self.cbx_component_list.append(cbx_component)
 
                     lbl_length = tkinter.Label(self.scrollableframe,
@@ -574,7 +574,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     lbl_length.grid(row=idx, column=3, padx=1, pady=1, sticky="e")
                     lbl_length.config(foreground="maroon")
                     self.lbl_namelength_list.append(lbl_length)
-                    self.update_componentname_length_lbl(lbl_length, record['selection'])
+                    self.update_componentname_length_lbl(lbl_length, pnpitem.selection)
 
                     cbx_rotation = tkinter.ttk.Combobox(self.scrollableframe, width=5,
                                                         values=("0", "90", "180", "270"),
@@ -584,7 +584,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_rotation.bind("<Return>", self.cbx_rotation_return)
                     cbx_rotation.bind("<MouseWheel>", self.cbx_wheel)
                     cbx_rotation.bind("<FocusIn>", self.cbx_focus_in)
-                    cbx_rotation.set(record['rotation'])
+                    cbx_rotation.set(pnpitem.rotation)
                     self.cbx_rotation_list.append(cbx_rotation)
 
                     if idx == int(idx_threshold):

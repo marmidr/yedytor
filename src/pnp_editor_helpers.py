@@ -32,6 +32,18 @@ class Markers:
 
 # -----------------------------------------------------------------------------
 
+class PnpItem:
+    def __init__(self):
+        self.item = ""
+        self.marker = None
+        self.selection = None
+        self.footprint = ""
+        self.comment = ""
+        self.cbx_items = list()
+        self.rotation = ""
+
+# -----------------------------------------------------------------------------
+
 class ItemsIterator:
     """
     Iterates over project rows from CSV or items read from the `*_wip.JSON` file
@@ -67,24 +79,21 @@ class ItemsIterator:
     def __iter__(self):
         return self
 
-    def __next__(self) -> dict:
+    def __next__(self) -> PnpItem:
         # if provided, prefer WiP records over the current project
         if self._wip_items:
             if self._idx < len(self._wip_items):
                 wip_cmp = self._wip_items[self._idx]
                 self._idx += 1
 
-                record = {
-                    'item': wip_cmp['item'],
-                    'marker': wip_cmp['marker'],
-                    'selection': wip_cmp['selection'],
-                    'footprint': None,
-                    'comment': None,
-                    'cbx_items': [],
-                    'rotation': wip_cmp['rotation'],
-                }
-                # print(f"{self._idx}. {record['item']}")
-                return record
+                pnpitem = PnpItem()
+                pnpitem.item = wip_cmp['item']
+                pnpitem.marker = wip_cmp['marker'],
+                pnpitem.selection = wip_cmp['selection']
+                pnpitem.footprint = None
+                pnpitem.comment = None
+                pnpitem.rotation = wip_cmp['rotation']
+                return pnpitem
 
             # print(f"STOP1")
             raise StopIteration
@@ -109,17 +118,14 @@ class ItemsIterator:
                     cmnt=row[self._proj.pnp_columns.comment_col]
                 )
 
-                record = {
-                    'item': item,
-                    'marker': None,
-                    'selection': None,
-                    'footprint': row[self._proj.pnp_columns.footprint_col],
-                    'comment': row[self._proj.pnp_columns.comment_col],
-                    'cbx_items': [],
-                    'rotation': row[self._proj.pnp_columns.rot_col],
-                }
-                # print(f"{self._idx}. {record['item']}")
-                return record
+                pnpitem = PnpItem()
+                pnpitem.item = item
+                pnpitem.marker = None
+                pnpitem.selection = None
+                pnpitem.footprint = row[self._proj.pnp_columns.footprint_col]
+                pnpitem.comment = row[self._proj.pnp_columns.comment_col]
+                pnpitem.rotation = row[self._proj.pnp_columns.rot_col]
+                return pnpitem
 
             # print(f"STOP2")
             raise StopIteration
@@ -129,7 +135,7 @@ class ItemsIterator:
 
 # -----------------------------------------------------------------------------
 
-def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: list[dict] = None) -> list[dict]:
+def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: list[dict] = None) -> list[PnpItem]:
     items_iterator = ItemsIterator(project, wip_items)
     names_visible = components.names_visible()
     out = []
@@ -143,7 +149,7 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
         # processes=4 -> 10s
         # processes=8 -> 9s
         # https://stackoverflow.com/questions/40283772/python-3-why-does-only-functions-and-partials-work-in-multiprocessing-apply-asy
-        process_fn = functools.partial(_process_records, components=components, names_visible=names_visible)
+        process_fn = functools.partial(_process_pnpitem, components=components, names_visible=names_visible)
 
         # https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing.pool
         with multiprocessing.Pool(processes=4) as pool:
@@ -154,55 +160,55 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
             out = [item for item in it]
     else:
         # single thread: 24s
-        for record in items_iterator:
-            _process_records(record, components, names_visible)
-            out.append(record)
+        for pnpitem in items_iterator:
+            _process_pnpitem(pnpitem, components, names_visible)
+            out.append(pnpitem)
 
     return out
 
-
-def _process_records(record: dict, components: ComponentsDB, names_visible: list[str]):
-    if record['marker']:
+# @functools.cache
+def _process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible: list[str]) -> PnpItem:
+    if pnpitem.marker:
         # iterating over WiP items
-        if record['marker'] == Markers.MARKERS_MAP[Markers.CL_FILTER]:
-            item_splitted: list[str] = record['item'].split("|")
+        if pnpitem.marker == Markers.MARKERS_MAP[Markers.CL_FILTER]:
+            item_splitted: list[str] = pnpitem.item.split("|")
             if len(item_splitted) == 3:
-                record['footprint'] = item_splitted[1].strip()
-                record['comment'] = item_splitted[2].strip()
-                _try_find_matching(components, names_visible, record)
+                pnpitem.footprint = item_splitted[1].strip()
+                pnpitem.comment = item_splitted[2].strip()
+                _try_find_matching(components, names_visible, pnpitem)
     else:
         # iterating over Project items
-        _try_find_exact(components, names_visible, record)
+        _try_find_exact(components, names_visible, pnpitem)
 
-    return record
+    return pnpitem
 
 
-def _try_find_exact(components: ComponentsDB, names_visible: list[str], record: dict):
+def _try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem: PnpItem):
     """
     Try to find exact component using footprint and comment
     """
-    ftprint = record['footprint']
-    cmnt = record['comment']
+    ftprint = pnpitem.footprint
+    cmnt = pnpitem.comment
 
     try:
         expected_component = ftprint + "_" + cmnt
         # raise exception if not found:
         names_visible.index(expected_component)
         # if we are here - matching comonent was found
-        record['selection'] = expected_component
+        pnpitem.selection = expected_component
         # record['cbx_items'] -> not needed
-        record['marker'] = Markers.MARKERS_MAP[Markers.CL_AUTO_SEL]
+        pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_AUTO_SEL]
         logging.info(f"  Matching component found: {expected_component}")
     except Exception:
-        _try_find_matching(components, names_visible, record)
+        _try_find_matching(components, names_visible, pnpitem)
 
 
-def _try_find_matching(components: ComponentsDB, names_visible: list[str], record: dict):
+def _try_find_matching(components: ComponentsDB, names_visible: list[str], pnpitem: PnpItem):
     """
     Try to match component from the DB using item footprint nad comment
     """
-    ftprint = record['footprint']
-    cmnt = record['comment']
+    ftprint = pnpitem.footprint
+    cmnt = pnpitem.comment
     # "1206_R_1,2k" -> "1206"
     ftprint_prefix = ftprint.split("_")
 
@@ -219,9 +225,9 @@ def _try_find_matching(components: ComponentsDB, names_visible: list[str], recor
         fltr = ftprint_prefix + " " + cmnt
         filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
         if len(filtered_comp_names) > 0:
-            record['selection'] = fltr.lower()
-            record['cbx_items'] = filtered_comp_names
-            record['marker'] = Markers.MARKERS_MAP[Markers.CL_FILTER]
+            pnpitem.selection = fltr.lower()
+            pnpitem.cbx_items = filtered_comp_names
+            pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_FILTER]
             return
 
     # create component list proposal based only on comment
@@ -229,12 +235,12 @@ def _try_find_matching(components: ComponentsDB, names_visible: list[str], recor
     filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
 
     if len(filtered_comp_names) > 0:
-        record['selection'] = fltr.lower()
-        record['cbx_items'] = filtered_comp_names
-        record['marker'] = Markers.MARKERS_MAP[Markers.CL_FILTER]
+        pnpitem.selection = fltr.lower()
+        pnpitem.cbx_items = filtered_comp_names
+        pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_FILTER]
         return
 
     # remove filter and assign all components
-    record['selection'] = ""
-    record['cbx_items'] = names_visible
-    record['marker'] = Markers.MARKERS_MAP[Markers.CL_NOMATCH]
+    pnpitem.selection = ""
+    pnpitem.cbx_items = names_visible
+    pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_NOMATCH]
