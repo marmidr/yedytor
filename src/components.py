@@ -80,24 +80,23 @@ class ComponentsDB:
         else:
             logging.warning(f"No DB files found in {db_folder}")
 
+    def _iterate_reader(self, csv_file):
+        reader = csv.reader(csv_file, delimiter="\t")
+        self.__items.clear()
+        for row in reader:
+            row_cells = [cell.strip() for cell in row]
+            self.__items.append(Component(name=row_cells[0], hidden=row_cells[1] == "x"))
+
     def _load_csv(self, path: str):
         try:
             f = open(path, "r", encoding="utf-8")
-            reader = csv.reader(f, delimiter="\t")
-            self.__items.clear()
-            for row in reader:
-                row_cells = [cell.strip() for cell in row]
-                self.__items.append(Component(name=row_cells[0], hidden=row_cells[1] == "x"))
+            self._iterate_reader(f)
 
         except Exception as e:
             logging.warning(f"  Not an UTF-8 encoding - opening in legacy ANSI mode")
             # for backward-compatibility, to open older DB file not saved as UTF-8
             f = open(path, "r", encoding="ansi")
-            reader = csv.reader(f, delimiter="\t")
-            self.__items.clear()
-            for row in reader:
-                row_cells = [cell.strip() for cell in row]
-                self.__items.append(Component(name=row_cells[0], hidden=row_cells[1] == "x"))
+            self._iterate_reader(f)
 
     def add_new(self, new_items: list[Component]) -> int:
         """Iterate over new_items to add components not existing in current db"""

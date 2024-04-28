@@ -1322,4 +1322,4 @@ if __name__ == "__main__":
     if glob_components.dirty:
         logging.info('Saving the components database...')
         glob_components.save_changes()
-    logging.debug('Program ended.')
+    logging.info('Program ended.')
