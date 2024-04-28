@@ -16,7 +16,23 @@ class Component:
         self.hidden = False
         """Known, but don't show on the list"""
         if "hidden" in kwargs:
-            self.hidden = kwargs.pop("hidden")
+            hid = kwargs.pop("hidden")
+            if isinstance(hid, bool):
+                self.hidden = hid
+
+        self.aliases = ""
+        """Semicolon-separated alternative names"""
+        if "aliases" in kwargs:
+            al = kwargs.pop("aliases")
+            if isinstance(al, str):
+                self.aliases = al
+
+    # def get_aliases(self) -> list[str]:
+    #     al = self.aliases.split(";")
+    #     return al
+
+    # def set_aliases(self, al: list[str]):
+    #     self.aliases = al.join(";")
 
     def __lt__(self, other) -> bool:
         # required by sort()
@@ -85,7 +101,12 @@ class ComponentsDB:
         self.__items.clear()
         for row in reader:
             row_cells = [cell.strip() for cell in row]
-            self.__items.append(Component(name=row_cells[0], hidden=row_cells[1] == "x"))
+            hidd = row_cells[1] == "x"
+            al = row_cells[2] if len(row_cells) >= 3 else ""
+            self.__items.append(Component(
+                                    name=row_cells[0],
+                                    hidden=hidd,
+                                    aliases=al))
 
     def _load_csv(self, path: str):
         try:
@@ -111,16 +132,19 @@ class ComponentsDB:
 
         return added
 
+    def _save_csv(self, db_file_path: str):
+        with open(db_file_path, "w", encoding="utf-8") as f:
+            for item in self.__items:
+                hidden="x" if item.hidden else "_"
+                f.write(f"\"{item.name}\"\t{hidden}\t\"{item.aliases}\"\n")
+
     def save_new(self, db_folder: str):
         """Save local DB to a CSV file with date-time"""
         self.__items.sort()
         now = time.strftime(self.FILENAME_DATE_FMT)
         db_file_path = os.path.join(db_folder, f"components__{now}.csv")
         try:
-            with open(db_file_path, "w", encoding="utf-8") as f:
-                for item in self.__items:
-                    hidden="x" if item.hidden else "_"
-                    f.write(f"\"{item.name}\"\t{hidden}\n")
+            self._save_csv(db_file_path)
             self.db_file_path = db_file_path
         except Exception as e:
             logging.error(f"Error saving to file '{db_file_path}: {e}'")
@@ -129,10 +153,7 @@ class ComponentsDB:
         """Save local DB to the same file"""
         self.__items.sort()
         try:
-            with open(self.db_file_path, "w", encoding="utf-8") as f:
-                for item in self.__items:
-                    hidden="x" if item.hidden else "_"
-                    f.write(f"\"{item.name}\"\t{hidden}\n")
+            self._save_csv(self.db_file_path)
             self.dirty = False
         except Exception as e:
             logging.error(f"Error saving changes to file '{self.db_file_path}: {e}'")
@@ -157,17 +178,18 @@ class ComponentsDB:
         """Returns all components"""
         return self.__items
 
-    def items_filtered(self, needle: str, ignore_hidden: bool=True) -> list[Component]:
+    def items_filtered(self, needle: str, show_hidden: bool=False) -> list[Component]:
         """
         Returns components containing the needle
         :needle: space-separated keywords: "603", "603 2k2", ...
+        :show_hidden: show components with the Hidden atrribute set
         :return List
         """
         needle = '*' + '*'.join(needle.split(' ')) + '*'
         result = []
         for item in self.__items:
-            if (not ignore_hidden) or (ignore_hidden and not item.hidden):
-                if fnmatch.fnmatch(item.name, needle):
+            if show_hidden or not item.hidden:
+                if fnmatch.fnmatch(f"{item.name};{item.aliases}", needle):
                     result.append(item)
         return result
 

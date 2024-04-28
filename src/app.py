@@ -1070,7 +1070,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         sep_v.grid(row=0, column=4, pady=2, padx=5, sticky="ns")
 
         # save DB modifications to file
-        self.btn_save = customtkinter.CTkButton(self.frame_buttons, text="Save DB", command=self.button_save_event)
+        self.btn_save = customtkinter.CTkButton(self.frame_buttons, text="Save edited components to DB", command=self.button_save_event)
         self.btn_save.grid(row=0, column=5, pady=5, padx=5, sticky="e")
         self.btn_save.configure(state=tkinter.DISABLED)
 
@@ -1095,12 +1095,14 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
     def mk_components_view(self):
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
-        self.scrollableframe.grid(row=1, column=0, padx=5, pady=5, columnspan=5, sticky="wens")
+        self.scrollableframe.grid(row=1, column=0, padx=5, pady=5, columnspan=6, sticky="wens")
         self.scrollableframe.grid_columnconfigure(1, weight=2)
         self.scrollableframe.grid_columnconfigure(2, weight=1)
+        self.scrollableframe.grid_columnconfigure(3, weight=1)
         # create all widgets only once, keeping them in arrays
         self.lbls_rowno = []
         self.entrys_name = []
+        self.entrys_alias = []
         self.chkbttns_hidden = []
         self.vars_hidden = []
         self.editor_font = customtkinter.CTkFont(family="Consolas")
@@ -1114,11 +1116,17 @@ class ComponentsEditor(customtkinter.CTkFrame):
             entry_name.grid(row=idx_on_page, column=1, padx=5, pady=1, sticky="we")
             self.entrys_name.append(entry_name)
 
-            var = tkinter.IntVar(self.scrollableframe, value=False)
-            self.vars_hidden.append(var)
+            entry_alias = ui_helpers.EntryWithPPM(self.scrollableframe, font=self.editor_font)
+            entry_alias.grid(row=idx_on_page, column=2, padx=5, pady=1, sticky="we")
+            entry_alias.bind("<Return>", self.entry_alias_return)
+            entry_alias.bind("<FocusOut>", self.entry_alias_return)
+            self.entrys_alias.append(entry_alias)
+
+            chkbtn_var = tkinter.IntVar(self.scrollableframe, value=False)
+            self.vars_hidden.append(chkbtn_var)
             chkbttn_hidden = tkinter.Checkbutton(self.scrollableframe, text="Hidden",
-                                                 variable=var, command=self.chkbttn_event)
-            chkbttn_hidden.grid(row=idx_on_page, column=2, padx=5, pady=1, sticky="w")
+                                                 variable=chkbtn_var, command=self.chkbttn_hidden_event)
+            chkbttn_hidden.grid(row=idx_on_page, column=3, padx=5, pady=1, sticky="w")
             self.chkbttns_hidden.append(chkbttn_hidden)
 
     def get_components(self) -> list[Component]:
@@ -1136,6 +1144,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         components = self.get_components()
         logging.debug(f"DB Editor: {len(components)} components")
         components_subrange = components[self.components_pageno * self.COMP_PER_PAGE:]
+        self.btn_save.configure(state=tkinter.DISABLED)
 
         for idx_on_page, component in enumerate(components_subrange):
             if idx_on_page == self.COMP_PER_PAGE:
@@ -1144,6 +1153,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
             idx_absolute = idx_on_page + (self.components_pageno * self.COMP_PER_PAGE)
             self.lbls_rowno[idx_on_page].configure(text=f"{idx_absolute+1:04}.")
             ui_helpers.entry_set_text(self.entrys_name[idx_on_page], component.name)
+            ui_helpers.entry_set_text(self.entrys_alias[idx_on_page], component.aliases)
             self.vars_hidden[idx_on_page].set(component.hidden)
 
         # clear remaining fields
@@ -1152,20 +1162,27 @@ class ComponentsEditor(customtkinter.CTkFrame):
             ui_helpers.entry_set_text(self.entrys_name[i], "")
             self.vars_hidden[i].set(False)
 
-    def chkbttn_event(self):
+    def chkbttn_hidden_event(self):
+        self.btn_save.configure(state=tkinter.NORMAL)
+        logging.debug("Hidden attribute changed")
+
+    def entry_alias_return(self, event):
+        aliases = event.widget.get().strip()
+        logging.debug(f"New aliases: {aliases}")
         self.btn_save.configure(state=tkinter.NORMAL)
 
-    def store_checkbox_selections(self):
+    def store_component_modifications(self):
         components_subrange = self.get_components()[self.components_pageno * self.COMP_PER_PAGE:]
         for idx_on_page, component in enumerate(components_subrange):
             if idx_on_page == self.COMP_PER_PAGE:
                 break
             component.hidden = self.vars_hidden[idx_on_page].get() == 1
+            component.aliases = self.entrys_alias[idx_on_page].get().strip()
 
     def button_prev_event(self):
         logging.debug("prev page")
         if self.components_pageno > 0:
-            self.store_checkbox_selections()
+            self.store_component_modifications()
             self.components_pageno -= 1
             self.load_components()
             self.lbl_pageno.configure(text=self.format_pageno())
@@ -1173,13 +1190,13 @@ class ComponentsEditor(customtkinter.CTkFrame):
     def button_next_event(self):
         logging.debug("next page")
         if self.components_pageno < len(self.get_components()) // self.COMP_PER_PAGE:
-            self.store_checkbox_selections()
+            self.store_component_modifications()
             self.components_pageno += 1
             self.load_components()
             self.lbl_pageno.configure(text=self.format_pageno())
 
     def button_save_event(self):
-        self.store_checkbox_selections()
+        self.store_component_modifications()
         glob_components.save_changes()
         logging.info(f"DB saved to '{glob_components.db_file_path}'")
         self.btn_save.configure(state=tkinter.DISABLED)
