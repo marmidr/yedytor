@@ -45,3 +45,11 @@
 [x] gdy element M0805 12k, to próbować szukać znanych footprintów (402, 603, 805, 1206 itd)
     w członie footprintu i wstawiać samą liczbę do filtra
 [x] przy wczytywaniu projektu ustawiać pole FirstRow na "1".
+[x] obsługa DevLibEd2.Lib
+[x] dodawanie nowych komponentów zamiast zastępować bazę tą z importu
+[ ] alias dla komponentu jako dodatkowa opcja wyszukiwania dopasowania
+  [ ] aliasy w osobnym pliku
+[ ] edytor - list recently used
+    [ ] pamiętać ostatnie wybory komponentu dla danego filtra, przy robieniu listy sortować wg. ostatniego użycia
+    [ ] trzymać w osobnym pliku jako klucz(filtr) : lista[nazwa komponentów]
+[ ] zapamiętywać drugi plik pnp: recent_pnp2_path

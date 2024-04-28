@@ -2,6 +2,19 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 0.9.0 - 2024-04-27
+
+* Added
+  * support for DevLibEd2.Lib file format
+  * support for Non-UTF encoding in Yamaha DevLib components library
+* Changed
+  * components CSV database now uses UTF-8 encoding
+  * components DB update: now the new components are added to existing DB,
+    instead of replacing the existing DB with a new one
+* Deprecated
+* Removed
+* Fixed
+
 ## 0.8.3 - 2024-04-02
 
 * Added

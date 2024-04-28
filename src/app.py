@@ -29,7 +29,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.8.3"
+APP_NAME = "Yedytor v0.9.0"
 
 # -----------------------------------------------------------------------------
 
@@ -997,11 +997,12 @@ class ComponentsInfo(customtkinter.CTkFrame):
 
             if not os.path.isdir(db_directory):
                 os.mkdir(db_directory)
-            # replace old database with a new one, but applying 'hidden' attribute from the one components
+            # since the user can add it's own components to the working database,
+            # we only add a new components do the working db instead of replacing it with the new one
             global glob_components
-            new_components.copy_attributes(glob_components.items_all())
-            new_components.save_new(db_directory)
-            glob_components = new_components
+            added = glob_components.add_new(new_components.items_all())
+            logging.info(f"Added {added} new components to the database")
+            glob_components.save_new(db_directory)
             self.update_components_info()
             # update components view
             self.on_new_components_callback()

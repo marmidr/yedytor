@@ -74,30 +74,51 @@ class ComponentsDB:
                 logging.warning(f"Unable to parse file datetime: {e}")
                 self.db_date = "?, ?"
 
-            self.__items.clear()
             # read csv file
-            with open(last_db_path, "r") as f:
-                reader = csv.reader(f, delimiter="\t")
-                for row in reader:
-                    row_cells = [cell.strip() for cell in row]
-                    self.__items.append(Component(name=row_cells[0], hidden=row_cells[1] == "x"))
-                self.db_file_path = last_db_path
+            self._load_csv(last_db_path)
+            self.db_file_path = last_db_path
         else:
             logging.warning(f"No DB files found in {db_folder}")
 
-    def copy_attributes(self, old_items: list[Component]):
-        """Iterate over components and apply 'hidden' attribute from an old components"""
-        old_items_dict = dict((v.name, v) for v in old_items)
-        for item in self.__items:
-            if old_item := old_items_dict.get(item.name):
-                item.hidden = old_item.hidden
+    def _load_csv(self, path: str):
+        try:
+            f = open(path, "r", encoding="utf-8")
+            reader = csv.reader(f, delimiter="\t")
+            self.__items.clear()
+            for row in reader:
+                row_cells = [cell.strip() for cell in row]
+                self.__items.append(Component(name=row_cells[0], hidden=row_cells[1] == "x"))
+
+        except Exception as e:
+            logging.warning(f"  Not an UTF-8 encoding - opening in legacy ANSI mode")
+            # for backward-compatibility, to open older DB file not saved as UTF-8
+            f = open(path, "r", encoding="ansi")
+            reader = csv.reader(f, delimiter="\t")
+            self.__items.clear()
+            for row in reader:
+                row_cells = [cell.strip() for cell in row]
+                self.__items.append(Component(name=row_cells[0], hidden=row_cells[1] == "x"))
+
+    def add_new(self, new_items: list[Component]) -> int:
+        """Iterate over new_items to add components not existing in current db"""
+        items_set = set(item.name for item in self.__items)
+        added = 0
+
+        for new_item in new_items:
+            if not new_item.name in items_set:
+                self.__items.append(new_item)
+                logging.debug(f"  + {new_item.name}")
+                added += 1
+
+        return added
 
     def save_new(self, db_folder: str):
         """Save local DB to a CSV file with date-time"""
+        self.__items.sort()
         now = time.strftime(self.FILENAME_DATE_FMT)
         db_file_path = os.path.join(db_folder, f"components__{now}.csv")
         try:
-            with open(db_file_path, "w") as f:
+            with open(db_file_path, "w", encoding="utf-8") as f:
                 for item in self.__items:
                     hidden="x" if item.hidden else "_"
                     f.write(f"\"{item.name}\"\t{hidden}\n")
@@ -107,8 +128,9 @@ class ComponentsDB:
 
     def save_changes(self):
         """Save local DB to the same file"""
+        self.__items.sort()
         try:
-            with open(self.db_file_path, "w") as f:
+            with open(self.db_file_path, "w", encoding="utf-8") as f:
                 for item in self.__items:
                     hidden="x" if item.hidden else "_"
                     f.write(f"\"{item.name}\"\t{hidden}\n")

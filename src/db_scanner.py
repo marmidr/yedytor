@@ -84,7 +84,7 @@ class DbScanner(customtkinter.CTkToplevel):
         self.textbox_components.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
 
         self.btn_savecomponents = customtkinter.CTkButton(tab_components,
-                                                          text="Save components as CSV...",
+                                                          text="Export components to CSV...",
                                                           command=self.btn_savecomponents_event)
         self.btn_savecomponents.grid(row=1, column=0, pady=2, padx=5, sticky="e")
 
@@ -92,7 +92,7 @@ class DbScanner(customtkinter.CTkToplevel):
         sep_h = tkinter.ttk.Separator(self, orient='horizontal')
         sep_h.grid(row=4, column=0, columnspan=4, pady=1, padx=5, sticky="we",)
 
-        self.btn_ok = customtkinter.CTkButton(self, text="Save new components to DB", command=self.button_ok_event)
+        self.btn_ok = customtkinter.CTkButton(self, text="Add new components to the working DB", command=self.button_ok_event)
         self.btn_ok.grid(row=5, column=1, pady=5, padx=5, sticky="we")
         self.btn_ok.configure(state=tkinter.DISABLED)
 
