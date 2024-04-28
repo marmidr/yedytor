@@ -65,8 +65,6 @@ class HomeFrame(customtkinter.CTkFrame):
         self.entry_pnp_path = customtkinter.CTkEntry(self, textvariable=self.var_pnp)
         self.entry_pnp_path.grid(row=0, column=1, pady=5, padx=5, columnspan=2, sticky="we")
         self.entry_pnp_path.configure(state=tkinter.DISABLED)
-        # restore last path from config
-        self.var_pnp.set(Config.instance().recent_pnp_path)
 
         btn_browse = customtkinter.CTkButton(self, text="Browse...", command=self.button_browse_event)
         btn_browse.grid(row=0, column=3, pady=5, padx=5, sticky="e")
@@ -233,7 +231,7 @@ class HomeFrame(customtkinter.CTkFrame):
                     glob_proj.loading = False
 
     def process_input_files(self, pnp_paths: list[str]):
-        if len(pnp_paths) and os.path.isfile(pnp_paths[0]):
+        if len(pnp_paths) > 0 and os.path.isfile(pnp_paths[0]):
             try:
                 # reset entire project
                 global glob_proj
@@ -254,7 +252,7 @@ class HomeFrame(customtkinter.CTkFrame):
             except Exception as e:
                 logging.error(f"Cannot open file: {e}")
 
-            Config.instance().recent_pnp_path = pnp_paths[0]
+            Config.instance().recent_pnp_path = pnp_paths
             Config.instance().save()
         else:
             if len(pnp_paths):
@@ -1263,7 +1261,7 @@ class CtkApp(customtkinter.CTk):
         tab_preview.grid_rowconfigure(0, weight=1)
 
         #
-        self.home_frame.process_input_files([Config.instance().recent_pnp_path])
+        self.home_frame.process_input_files([Config.instance().recent_pnp_path, Config.instance().recent_pnp2_path])
 
         # UI ready
         logging.info('Application ready.')

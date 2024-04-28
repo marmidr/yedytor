@@ -52,4 +52,4 @@
 [ ] edytor - list recently used
     [ ] pamiętać ostatnie wybory komponentu dla danego filtra, przy robieniu listy sortować wg. ostatniego użycia
     [ ] trzymać w osobnym pliku jako klucz(filtr) : lista[nazwa komponentów]
-[ ] zapamiętywać drugi plik pnp: recent_pnp2_path
+[x] zapamiętywać drugi plik pnp: recent_pnp2_path

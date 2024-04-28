@@ -49,9 +49,17 @@ class Config:
         path = self.get_section("common").get("recent_pnp_path", fallback="")
         return path
 
+    @property
+    def recent_pnp2_path(self) -> str:
+        path = self.get_section("common").get("recent_pnp2_path", fallback="")
+        return path
+
     @recent_pnp_path.setter
-    def recent_pnp_path(self, path: str):
-        self.get_section("common")["recent_pnp_path"] = path
+    def recent_pnp_path(self, paths: list[str]):
+        path1 = paths[0] if len(paths) > 0 else ""
+        path2 = paths[1] if len(paths) > 1 else ""
+        self.get_section("common")["recent_pnp_path"] = path1
+        self.get_section("common")["recent_pnp2_path"] = path2
 
     @property
     def tou_directory_path(self) -> str:
