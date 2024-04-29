@@ -224,6 +224,7 @@ class HomeFrame(customtkinter.CTkFrame):
                     self.app.title(f"{APP_NAME} - {glob_proj.pnp_path} (WiP)")
 
                     logging.info("Restore PnP editor...")
+                    self.app.get_tab_select_preview_fn()()
                     self.app.pnp_editor.load(wip['components'])
                     logging.info("Open the PnP editor page")
                     self.app.get_tab_select_editor_fn()()
@@ -1291,6 +1292,11 @@ class CtkApp(customtkinter.CTk):
         # return a closure
         appwnd = self
         return lambda: appwnd.tabview.set(appwnd.TAB_EDITOR)
+
+    def get_tab_select_preview_fn(self) -> Callable:
+        # return a closure
+        appwnd = self
+        return lambda: appwnd.tabview.set(appwnd.TAB_PREVIEW)
 
 # -----------------------------------------------------------------------------
 
