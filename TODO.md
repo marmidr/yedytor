@@ -48,7 +48,7 @@
 [x] obsługa DevLibEd2.Lib
 [x] dodawanie nowych komponentów zamiast zastępować bazę tą z importu
 [x] alias dla komponentu jako dodatkowa opcja wyszukiwania dopasowania
-[ ] edytor - list recently used
+[ ] edytor - last recently used
     [ ] pamiętać ostatnie wybory komponentu dla danego filtra, przy robieniu listy sortować wg. ostatniego użycia
     [ ] trzymać w osobnym pliku jako klucz(filtr) : lista[nazwa komponentów]
 [x] zapamiętywać drugi plik pnp: recent_pnp2_path

@@ -1039,21 +1039,17 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
         self.mk_components_view()
 
-        #
-        global glob_components
-        if not glob_components or len(glob_components.items_all()) == 0:
-            logging.info("DB editor: components DB is empty")
-        else:
-            self.load_components()
-
         self.frame_buttons = customtkinter.CTkFrame(self)
         self.frame_buttons.grid(row=2, column=0, pady=5, padx=5, sticky="we")
         self.frame_buttons.grid_columnconfigure(3, weight=1)
 
         self.entry_filter_var = customtkinter.StringVar(value="")
         self.entry_filter_var.trace_add("write", lambda n, i, m, sv=self.entry_filter_var: self.var_filter_event(sv))
-        self.entry_filter = ui_helpers.EntryWithPPM(self.frame_buttons, width=40, textvariable=self.entry_filter_var)
+        self.entry_filter = ui_helpers.EntryWithPPM(self.frame_buttons, width=40, placeholder_text="Filter; use * ?")
         self.entry_filter.grid(row=0, column=0, padx=5, pady=5, sticky="we")
+        # textvariable added later to avoid trace event while setting a placeholder text
+        self.entry_filter.configure(textvariable=self.entry_filter_var)
+        self.entry_filter.put_placeholder()
 
         # change components page, view contains up to self.COMP_PER_PAGE items
         self.btn_page_prev = customtkinter.CTkButton(self.frame_buttons, text="<", command=self.button_prev_event)
@@ -1074,6 +1070,13 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.btn_save.grid(row=0, column=5, pady=5, padx=5, sticky="e")
         self.btn_save.configure(state=tkinter.DISABLED)
 
+        #
+        global glob_components
+        if not glob_components or len(glob_components.items_all()) == 0:
+            logging.info("DB editor: components DB is empty")
+        else:
+            self.load_components()
+
     def reload_components(self):
         # reload view
         self.components_pageno = 0
@@ -1081,7 +1084,10 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.lbl_pageno.configure(text=self.format_pageno())
 
     def var_filter_event(self, sv: customtkinter.StringVar):
-        self.component_filter = sv.get().strip()
+        filter = sv.get().strip()
+        if filter == self.entry_filter.placeholder_text:
+            return
+        self.component_filter = filter
         # correct the page index
         npages = 1 + len(self.get_components()) // self.COMP_PER_PAGE
         if self.components_pageno >= npages:
@@ -1105,21 +1111,21 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.entrys_alias = []
         self.chkbttns_hidden = []
         self.vars_hidden = []
-        self.editor_font = customtkinter.CTkFont(family="Consolas")
+        font_size = 12 if Config.instance().editor_font_idx == 0 else 16
+        self.editor_font = customtkinter.CTkFont(family="Consolas", size=font_size)
 
         for idx_on_page in range(self.COMP_PER_PAGE):
             lbl_rowno = tkinter.Label(self.scrollableframe, text="", justify="right")
             lbl_rowno.grid(row=idx_on_page, column=0, padx=5, pady=1, sticky="w")
             self.lbls_rowno.append(lbl_rowno)
 
-            entry_name = ui_helpers.EntryWithPPM(self.scrollableframe, font=self.editor_font)
+            entry_name = ui_helpers.EntryWithPPM(self.scrollableframe, font=self.editor_font, menuitems="c")
             entry_name.grid(row=idx_on_page, column=1, padx=5, pady=1, sticky="we")
             self.entrys_name.append(entry_name)
 
-            entry_alias = ui_helpers.EntryWithPPM(self.scrollableframe, font=self.editor_font)
+            entry_alias = ui_helpers.EntryWithPPM(self.scrollableframe, font=self.editor_font, placeholder_text="alias1;")
             entry_alias.grid(row=idx_on_page, column=2, padx=5, pady=1, sticky="we")
             entry_alias.bind("<Return>", self.entry_alias_return)
-            entry_alias.bind("<FocusOut>", self.entry_alias_return)
             self.entrys_alias.append(entry_alias)
 
             chkbtn_var = tkinter.IntVar(self.scrollableframe, value=False)
@@ -1142,14 +1148,12 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
     def load_components(self):
         components = self.get_components()
-        logging.debug(f"DB Editor: {len(components)} components")
+        # logging.debug(f"DB Editor: {len(components)} components")
         components_subrange = components[self.components_pageno * self.COMP_PER_PAGE:]
-        self.btn_save.configure(state=tkinter.DISABLED)
 
         for idx_on_page, component in enumerate(components_subrange):
             if idx_on_page == self.COMP_PER_PAGE:
                 break
-
             idx_absolute = idx_on_page + (self.components_pageno * self.COMP_PER_PAGE)
             self.lbls_rowno[idx_on_page].configure(text=f"{idx_absolute+1:04}.")
             ui_helpers.entry_set_text(self.entrys_name[idx_on_page], component.name)

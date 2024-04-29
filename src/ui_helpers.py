@@ -31,8 +31,20 @@ def entry_set_text(entry: customtkinter.CTkEntry, text: str):
     entry_disabled = entry.cget("state") == tkinter.DISABLED
     if entry_disabled:
         entry.configure(state=tkinter.NORMAL)
-    entry.delete(0, tkinter.END)
-    entry.insert(0, text)
+
+    try:
+        if text:
+            entry.delete('0', tkinter.END)
+            entry.insert('0', text)
+            entry['fg'] = entry.default_fg_color # may throw
+        else:
+            ph = entry.placeholder_text  # may throw
+            entry.delete('0', tkinter.END)
+            entry.insert('0', ph)
+            entry['fg'] = entry.placeholder_color
+    except Exception as e:
+        pass
+
     if entry_disabled:
         entry.configure(state=tkinter.DISABLED)
 
@@ -50,6 +62,9 @@ def _wgt_install_standard_menu(wgt, items: str):
     if "p" in items:
         wgt.menu.add_command(label="Paste")
         wgt.menu.entryconfigure("Paste", command=lambda: wgt.focus_force() or wgt.event_generate("<<Paste>>"))
+    if "l" in items:
+        wgt.menu.add_command(label="Clear")
+        wgt.menu.entryconfigure("Clear", command=lambda: wgt.focus_force() or wgt.delete(0, tkinter.END))
 
     wgt.menu.add_separator()
     wgt.menu.add_command(label="Select all")
@@ -58,13 +73,27 @@ def _wgt_install_standard_menu(wgt, items: str):
 
 class EntryWithPPM(tkinter.Entry):
     def __init__(self, *args, **kwargs):
-        menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxp"
+        """
+        Creates an entry with Popup menu and a placeholder text
+        :menuitems: additional menu items
+        :placeholder_text: a prompt in case of empty entry
+        """
+        menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxpl"
+        self.placeholder_text = kwargs.pop("placeholder_text") if "placeholder_text" in kwargs else ""
+        self.placeholder_color = "gray"
         tkinter.Entry.__init__(self, *args, **kwargs)
+        self.default_fg_color = self['fg']
+        # override default 'get' method to handle placeholder correctly
+        self.__get_orig = self.get
+        self.get = self._get
 
         _wgt_install_standard_menu(self, menuitems)
         # overwrite default class binding so we don't need to return "break"
         self.bind_class("Entry", "<Control-a>", self.event_select_all)
         self.bind("<Button-3><ButtonRelease-3>", self.show_menu)
+        self.bind("<FocusIn>", self.foc_in)
+        self.bind("<FocusOut>", self.foc_out)
+        self.put_placeholder()
 
     def event_select_all(self, *_args):
         self.focus_force()
@@ -72,6 +101,32 @@ class EntryWithPPM(tkinter.Entry):
 
     def show_menu(self, ev):
         self.tk.call("tk_popup", self.menu, ev.x_root, ev.y_root)
+
+    def set_text(self, text: str):
+        self.delete('0', 'end')
+        self.insert('0', text)
+
+    def put_placeholder(self):
+        if not self.__get_orig() and self.placeholder_text:
+            self.set_text(self.placeholder_text)
+            self['fg'] = self.placeholder_color
+
+    def foc_in(self, *args):
+        if self['fg'] == self.placeholder_color:
+            self.set_text('')
+            self['fg'] = self.default_fg_color
+
+    def foc_out(self, *args):
+        self.put_placeholder()
+
+    def _get(self) -> str:
+        txt = self.__get_orig()
+        if txt != self.placeholder_text:
+            return txt
+        return ""
+
+    def get_raw(self) -> str:
+        return self.__get_orig()
 
 # seems like bindings (<<Copy>>, ...) are not implemented in Ctk
 # class CtkEntryWithPPM(customtkinter.CTkEntry):
