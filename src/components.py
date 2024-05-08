@@ -40,6 +40,103 @@ class Component:
 
 # -----------------------------------------------------------------------------
 
+class ComponentLRU:
+    """Least Recently Used for a given component filter"""
+
+    def __init__(self, fltr="", lru_components:list[str]=None):
+        self.filter = fltr
+        self.lru = lru_components if lru_components else []
+
+    def on_select(self, selection: str):
+        """put the new selection on the top of the LRU list"""
+        try:
+            self.lru.remove(selection)
+        except Exception:
+            pass
+        finally:
+            self.lru.insert(0, selection)
+
+    def __lt__(self, other) -> bool:
+        # required by sort()
+        return self.filter < other.filter
+
+# -----------------------------------------------------------------------------
+
+class ComponentsLRU:
+    LRU_MAX_LEN = 5
+
+    def __init__(self):
+        self.lru: list[ComponentLRU] = []
+        self._db_folder = ""
+        self.dirty = False
+
+    def load(self, db_folder: str):
+        self._db_folder = db_folder
+        lru_file_path = os.path.join(self._db_folder, "lru.csv")
+        self._load_csv(lru_file_path)
+
+    def save_changes(self):
+        self.lru.sort()
+        lru_file_path = os.path.join(self._db_folder, "lru.csv")
+        self._save_csv(lru_file_path)
+        self.dirty = False
+
+    def arrange(self, filter: str, items_to_arrange: list[str]):
+        filter = filter.strip()
+        for cmp in self.lru:
+            if cmp.filter == filter:
+                # make a sets, remove from items_to_arrange items found in LRU
+                lru_set = set(cmp.lru)
+                to_arrange_set = set(items_to_arrange)
+                to_arrange_set -= lru_set
+                items_to_arrange.clear()
+                items_to_arrange.extend(to_arrange_set)
+                items_to_arrange.sort()
+                # insert LRU at the top of items_to_arrange
+                for item in cmp.lru[::-1]:
+                    items_to_arrange.insert(0, item)
+                return
+        # not found? create a new entry, with empty LRU
+        self.lru.append(ComponentLRU(filter))
+        self.dirty = True
+
+    def on_select(self, filter: str, selection: str):
+        for cmp in self.lru:
+            if cmp.filter == filter:
+                cmp.on_select(selection)
+
+    def _iterate_reader(self, csv_file):
+        reader = csv.reader(csv_file, delimiter="\t")
+        self.lru.clear()
+        for row in reader:
+            row_cells = [cell.strip() for cell in row]
+            if len(row_cells) > 0:
+                self.lru.append(ComponentLRU(row_cells[0], row_cells[1:]))
+
+    def _load_csv(self, path: str):
+        if os.path.exists(path):
+            try:
+                f = open(path, "r", encoding="utf-8")
+                self._iterate_reader(f)
+            except Exception as e:
+                logging.error(f"  LRU: not an UTF-8 encoding")
+        else:
+                logging.warning(f"  LRU file not found")
+
+    def _save_csv(self, path: str):
+        with open(path, "w", encoding="utf-8") as f:
+            for idx, item in enumerate(self.lru):
+                if idx == self.LRU_MAX_LEN:
+                    break
+                f.write(f"\"{item.filter}\"")
+                for comp in item.lru:
+                    if comp: # only not-empty
+                        f.write(f"\t\"{comp}\"")
+                f.write("\n")
+
+
+# -----------------------------------------------------------------------------
+
 class ComponentsDB:
     FILENAME_DATE_FMT = "%Y%m%d_%H%M%S"
 
@@ -52,6 +149,8 @@ class ComponentsDB:
         """list of components"""
         self.dirty = False
         """list updated during operation"""
+        self.lru_items = ComponentsLRU()
+        """least recently used"""
 
         if "components_dict" in kwargs:
             components_dict = kwargs.pop("components_dict")
@@ -93,6 +192,7 @@ class ComponentsDB:
             # read csv file
             self._load_csv(last_db_path)
             self.db_file_path = last_db_path
+            self.lru_items.load(db_folder)
         else:
             logging.warning(f"No DB files found in {db_folder}")
 
@@ -103,16 +203,14 @@ class ComponentsDB:
             row_cells = [cell.strip() for cell in row]
             hidd = row_cells[1] == "x"
             al = row_cells[2] if len(row_cells) >= 3 else ""
-            self.__items.append(Component(
-                                    name=row_cells[0],
-                                    hidden=hidd,
-                                    aliases=al))
+            self.__items.append(Component(name=row_cells[0],
+                                          hidden=hidd,
+                                          aliases=al))
 
     def _load_csv(self, path: str):
         try:
             f = open(path, "r", encoding="utf-8")
             self._iterate_reader(f)
-
         except Exception as e:
             logging.warning(f"  Not an UTF-8 encoding - opening in legacy ANSI mode")
             # for backward-compatibility, to open older DB file not saved as UTF-8

@@ -29,7 +29,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v0.9.0"
+APP_NAME = "Yedytor v1.0.0"
 
 # -----------------------------------------------------------------------------
 
@@ -586,6 +586,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.bind("<Return>", self.cbx_components_return)
                     cbx_component.bind("<MouseWheel>", self.cbx_wheel)
                     cbx_component.bind("<FocusIn>", self.cbx_focus_in)
+                    cbx_component.filter = pnpitem.selection # keep the original filter
                     cbx_component.set(pnpitem.selection)
                     cbx_component.configure(values=pnpitem.cbx_items)
                     self.cbx_component_list.append(cbx_component)
@@ -643,10 +644,12 @@ class PnPEditor(customtkinter.CTkFrame):
             and glob_proj.pnp_columns.comment_col < glob_proj.pnp_grid.ncols
 
     def cbx_components_selected(self, event):
+        filter = event.widget.filter
         selected_component: str = event.widget.get().strip()
-        logging.debug(f"CB selected: {selected_component}")
+        logging.debug(f"CB selected: '{selected_component}' for '{filter}'")
         selected_idx = self.cbx_component_list.index(event.widget)
         self.apply_component_to_matching(selected_idx, selected_component)
+        glob_components.lru_items.on_select(filter, selected_component)
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def apply_component_to_matching(self, selected_idx: int, selected_component: str, force: bool = False):
@@ -1345,8 +1348,13 @@ if __name__ == "__main__":
 
     ctkapp = CtkApp()
     ctkapp.mainloop()
+
     # app exitting
     if glob_components.dirty:
         logging.info('Saving the components database...')
         glob_components.save_changes()
+
+    if glob_components.lru_items.dirty:
+        glob_components.lru_items.save_changes()
+
     logging.info('Program ended.')

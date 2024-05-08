@@ -191,7 +191,7 @@ def _process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible: 
         if cached := cache.get(repr(pnpitem)):
             pnpitem.selection = cached['selection']
             pnpitem.cbx_items = cached['cbx_items']
-            pnpitem.marker = cached['marker']
+            pnpitem.marker    = cached['marker']
             return pnpitem
 
     if pnpitem.marker:
@@ -206,7 +206,7 @@ def _process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible: 
         cached = {
             'selection' : pnpitem.selection,
             'cbx_items' : pnpitem.cbx_items,
-            'marker' : pnpitem.marker,
+            'marker'    : pnpitem.marker,
         }
         cache[repr(pnpitem)] = cached
 
@@ -258,6 +258,7 @@ def _try_find_matching(components: ComponentsDB, names_visible: list[str], pnpit
             pnpitem.selection = fltr.lower()
             pnpitem.cbx_items = filtered_comp_names
             pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_FILTER]
+            components.lru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
             return
 
     # create component list proposition based only on the comment
@@ -268,6 +269,7 @@ def _try_find_matching(components: ComponentsDB, names_visible: list[str], pnpit
         pnpitem.selection = fltr.lower()
         pnpitem.cbx_items = filtered_comp_names
         pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_FILTER]
+        components.lru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
         return
 
     # remove filter and assign all components

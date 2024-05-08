@@ -2,6 +2,17 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.0.0 - 2024-05-08
+
+* Added
+  * keeps the list of recently used components for given footprint+comment filter
+    * components from the LRU list are on the top of of the dropdown combobox list
+    * list is kept in the `db/lru.csv`
+* Changed
+* Deprecated
+* Removed
+* Fixed
+
 ## 0.9.0 - 2024-04-29
 
 * Added

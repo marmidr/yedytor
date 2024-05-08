@@ -151,6 +151,7 @@ class ComboboxWithPPM(tkinter.ttk.Combobox):
     def __init__(self, *args, **kwargs):
         menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxp"
         tkinter.ttk.Combobox.__init__(self, *args, **kwargs)
+        self.filter = ""
 
         _wgt_install_standard_menu(self, menuitems)
         # overwrite default class binding so we don't need to return "break"
