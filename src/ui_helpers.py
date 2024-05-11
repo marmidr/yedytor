@@ -85,7 +85,7 @@ class EntryWithPPM(tkinter.Entry):
         self.default_fg_color = self['fg']
         # override default 'get' method to handle placeholder correctly
         self.__get_orig = self.get
-        self.get = self._get
+        self.get = self.__get
 
         _wgt_install_standard_menu(self, menuitems)
         # overwrite default class binding so we don't need to return "break"
@@ -119,7 +119,7 @@ class EntryWithPPM(tkinter.Entry):
     def foc_out(self, *args):
         self.put_placeholder()
 
-    def _get(self) -> str:
+    def __get(self) -> str:
         txt = self.__get_orig()
         if txt != self.placeholder_text:
             return txt
@@ -134,7 +134,7 @@ class EntryWithPPM(tkinter.Entry):
 #         menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxp"
 #         customtkinter.CTkEntry.__init__(self, *args, **kwargs)
 
-#         _wgt_install_standard_menu(self, menuitems)
+#         __wgt_install_standard_menu(self, menuitems)
 #         # overwrite default class binding so we don't need to return "break"
 #         self.bind_class("Entry", "<Control-a>", self.event_select_all)
 #         self.bind("<Button-3><ButtonRelease-3>", self.show_menu)
@@ -151,7 +151,6 @@ class ComboboxWithPPM(tkinter.ttk.Combobox):
     def __init__(self, *args, **kwargs):
         menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxp"
         tkinter.ttk.Combobox.__init__(self, *args, **kwargs)
-        self.filter = ""
 
         _wgt_install_standard_menu(self, menuitems)
         # overwrite default class binding so we don't need to return "break"

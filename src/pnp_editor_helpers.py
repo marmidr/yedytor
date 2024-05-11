@@ -55,30 +55,30 @@ class ItemsIterator:
     """
 
     def __init__(self, project: Project, wip_items: list[dict] = None):
-        self._proj = project
-        self._proj_rows = None
-        self._wip_items = wip_items
-        self._idx = 0
-        self._id_max_w = None
-        self._fprint_max_w = None
+        self.__proj = project
+        self.__proj_rows = None
+        self.__wip_items = wip_items
+        self.__idx = 0
+        self.__id_max_w = None
+        self.__fprint_max_w = None
 
-    def _find_max_id_footprint_width(self):
-        if self._proj:
+    def __find_max_id_footprint_width(self):
+        if self.__proj:
             id_max_w = 0
             fprint_max_w = 0
-            fprint_col = self._proj.pnp_columns.footprint_col
-            rows = self._proj.pnp_grid.rows()
+            fprint_col = self.__proj.pnp_columns.footprint_col
+            rows = self.__proj.pnp_grid.rows()
             for row in rows:
                 fprint_max_w = max(fprint_max_w, len(row[fprint_col]))
                 id_max_w = max(id_max_w, len(row[0]))
-            self._id_max_w = id_max_w
-            self._fprint_max_w = fprint_max_w
+            self.__id_max_w = id_max_w
+            self.__fprint_max_w = fprint_max_w
 
     def length(self) -> int:
-        if self._wip_items:
-            return len(self._wip_items)
-        if self._proj:
-            return len(self._proj.pnp_grid.rows())
+        if self.__wip_items:
+            return len(self.__wip_items)
+        if self.__proj:
+            return len(self.__proj.pnp_grid.rows())
         return 0
 
     def __iter__(self):
@@ -86,10 +86,10 @@ class ItemsIterator:
 
     def __next__(self) -> PnpItem:
         # if provided, prefer WiP records over the current project
-        if self._wip_items:
-            if self._idx < len(self._wip_items):
-                wip_cmp = self._wip_items[self._idx]
-                self._idx += 1
+        if self.__wip_items:
+            if self.__idx < len(self.__wip_items):
+                wip_cmp = self.__wip_items[self.__idx]
+                self.__idx += 1
 
                 pnpitem = PnpItem()
                 pnpitem.item = wip_cmp['item']
@@ -112,33 +112,33 @@ class ItemsIterator:
             # print(f"STOP1")
             raise StopIteration
 
-        if self._proj:
-            if self._proj_rows is None:
+        if self.__proj:
+            if self.__proj_rows is None:
                 # cache the list, because each call to rows() creates a new list
-                self._proj_rows = self._proj.pnp_grid.rows()
+                self.__proj_rows = self.__proj.pnp_grid.rows()
 
-            if self._idx < len(self._proj_rows):
-                if not self._id_max_w:
-                    self._find_max_id_footprint_width()
+            if self.__idx < len(self.__proj_rows):
+                if not self.__id_max_w:
+                    self.__find_max_id_footprint_width()
 
-                row = self._proj_rows[self._idx]
-                self._idx += 1
+                row = self.__proj_rows[self.__idx]
+                self.__idx += 1
 
                 item = "{id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
                     id=row[0],
-                    id_w=self._id_max_w,
-                    ftprint=row[self._proj.pnp_columns.footprint_col],
-                    fprint_w=self._fprint_max_w,
-                    cmnt=row[self._proj.pnp_columns.comment_col]
+                    id_w=self.__id_max_w,
+                    ftprint=row[self.__proj.pnp_columns.footprint_col],
+                    fprint_w=self.__fprint_max_w,
+                    cmnt=row[self.__proj.pnp_columns.comment_col]
                 )
 
                 pnpitem = PnpItem()
                 pnpitem.item = item
                 pnpitem.marker = None
                 pnpitem.selection = None
-                pnpitem.footprint = row[self._proj.pnp_columns.footprint_col]
-                pnpitem.comment = row[self._proj.pnp_columns.comment_col]
-                pnpitem.rotation = row[self._proj.pnp_columns.rot_col]
+                pnpitem.footprint = row[self.__proj.pnp_columns.footprint_col]
+                pnpitem.comment = row[self.__proj.pnp_columns.comment_col]
+                pnpitem.rotation = row[self.__proj.pnp_columns.rot_col]
                 return pnpitem
 
             # print(f"STOP2")
@@ -163,7 +163,7 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
         # processes=8 -> 9s
         # https://stackoverflow.com/questions/40283772/python-3-why-does-only-functions-and-partials-work-in-multiprocessing-apply-asy
         cache = dict()
-        process_fn = functools.partial(_process_pnpitem, components=components, names_visible=names_visible, cache=cache)
+        process_fn = functools.partial(__process_pnpitem, components=components, names_visible=names_visible, cache=cache)
 
         # https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing.pool
         with multiprocessing.Pool(processes=4) as pool:
@@ -176,12 +176,12 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
         # single thread: 24s
         cache = dict()
         for pnpitem in items_iterator:
-            _process_pnpitem(pnpitem, components, names_visible, cache)
+            __process_pnpitem(pnpitem, components, names_visible, cache)
             out.append(pnpitem)
 
     return out
 
-def _process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible: list[str], cache: dict) -> PnpItem:
+def __process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible: list[str], cache: dict) -> PnpItem:
     # cache the component matching results:
     USE_CACHE = True
 
@@ -197,10 +197,10 @@ def _process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible: 
     if pnpitem.marker:
         # iterating over WiP items
         if pnpitem.marker == Markers.MARKERS_MAP[Markers.CL_FILTER]:
-            _try_find_matching(components, names_visible, pnpitem)
+            __try_find_matching(components, names_visible, pnpitem)
     else:
         # iterating over Project items
-        _try_find_exact(components, names_visible, pnpitem)
+        __try_find_exact(components, names_visible, pnpitem)
 
     if USE_CACHE:
         cached = {
@@ -213,7 +213,7 @@ def _process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible: 
     return pnpitem
 
 
-def _try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem: PnpItem):
+def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem: PnpItem):
     """
     Try to find exact component using footprint and comment
     """
@@ -230,10 +230,10 @@ def _try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem:
         pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_AUTO_SEL]
         logging.info(f"  Matching component found: {expected_component}")
     except Exception:
-        _try_find_matching(components, names_visible, pnpitem)
+        __try_find_matching(components, names_visible, pnpitem)
 
 
-def _try_find_matching(components: ComponentsDB, names_visible: list[str], pnpitem: PnpItem):
+def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpitem: PnpItem):
     """
     Try to match component from the DB using item footprint nad comment
     """

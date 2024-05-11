@@ -24,11 +24,11 @@ class DevLibFile:
         # self.items: dict[str, list[(str, str)]] = {}
         self.items: dict[str, list[str]] = {}
         """dictionary with lower-case component name : list of component names"""
-        if not self._scan(path, True):
+        if not self.__scan(path, True):
             self.items.clear()
-            self._scan(path, False)
+            self.__scan(path, False)
 
-    def _scan(self, path: str, lib_v1: bool) -> bool:
+    def __scan(self, path: str, lib_v1: bool) -> bool:
         with open(path, "rb") as f:
             header_bytes = f.read(len(DEVLIB_HEADER))
             header_str = header_bytes.decode()
@@ -58,7 +58,7 @@ class DevLibFile:
                     # if (nul_idx := base_bytes.find(0)) >= 0:
                     #     base_bytes = base_bytes[0:nul_idx]
 
-                    if name_str := self._decode_name(n, name_bytes):
+                    if name_str := self.__decode_name(n, name_bytes):
                         if name_str.endswith(")"):
                             # "2512_R_7,5R/5%/1W(3)" -> "2512_R_7,5R/5%/1W"
                             if (par_open_idx := name_str.rfind("(")) >= 0:
@@ -80,7 +80,7 @@ class DevLibFile:
 
         return True
 
-    def _decode_name(self, idx: int, input: bytes) -> str:
+    def __decode_name(self, idx: int, input: bytes) -> str:
         try:
             # name_str = name_bytes.decode(encoding="utf-8", errors="replace")
             name_str = input.decode(encoding="utf-8", errors="strict")
