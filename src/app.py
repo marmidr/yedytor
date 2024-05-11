@@ -23,13 +23,13 @@ from pnp_editor_helpers import Markers
 from column_selector import ColumnsSelector, ColumnsSelectorResult
 from msg_box import MessageBox
 from tkhtmlview import HTMLLabel
-from components import Component, ComponentsDB
+from components import Component, ComponentsDB, ComponentsLRU
 from config import Config
 from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.0.0"
+APP_NAME = "Yedytor v1.0.1"
 
 # -----------------------------------------------------------------------------
 
@@ -647,6 +647,11 @@ class PnPEditor(customtkinter.CTkFrame):
         filter = event.widget.filter
         selected_component: str = event.widget.get().strip()
         logging.debug(f"CB selected: '{selected_component}' for '{filter}'")
+        if selected_component == ComponentsLRU.SPACER_ITEM:
+            logging.debug("  spacer - selection ignored")
+            # restore filter value
+            event.widget.set(filter)
+            return
         selected_idx = self.cbx_component_list.index(event.widget)
         self.apply_component_to_matching(selected_idx, selected_component)
         glob_components.lru_items.on_select(filter, selected_component)

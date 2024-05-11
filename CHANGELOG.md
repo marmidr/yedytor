@@ -2,6 +2,16 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.0.1 - 2024-05-11
+
+* Added
+  * PnP editor - LRU items separated from other items in drop-down menu
+* Changed
+* Deprecated
+* Removed
+* Fixed
+  * PnP editor - LRU list saving to the CSV file
+
 ## 1.0.0 - 2024-05-08
 
 * Added

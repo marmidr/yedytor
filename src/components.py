@@ -64,6 +64,7 @@ class ComponentLRU:
 
 class ComponentsLRU:
     LRU_MAX_LEN = 5
+    SPACER_ITEM = "————————=————————=————————=————————"
 
     def __init__(self):
         self.lru: list[ComponentLRU] = []
@@ -95,6 +96,7 @@ class ComponentsLRU:
                     items_to_arrange.clear()
                     items_to_arrange.extend(to_arrange_set)
                     items_to_arrange.sort()
+                    items_to_arrange.insert(0, self.SPACER_ITEM)
                     # insert LRU at the top of items_to_arrange
                     for item in component.lru[::-1]:
                         items_to_arrange.insert(0, item)
@@ -107,6 +109,7 @@ class ComponentsLRU:
         for component in self.lru:
             if component.filter == filter:
                 component.on_select(selection)
+                self.dirty = True
                 break
 
     def __iterate_reader(self, csv_file):
@@ -129,14 +132,17 @@ class ComponentsLRU:
 
     def __save_csv(self, path: str):
         with open(path, "w", encoding="utf-8") as f:
-            for idx, item in enumerate(self.lru):
-                if idx == self.LRU_MAX_LEN:
-                    break
-                f.write(f"\"{item.filter}\"")
-                for comp in item.lru:
-                    if comp: # only not-empty
-                        f.write(f"\t\"{comp}\"")
-                f.write("\n")
+            for item in self.lru:
+                # only items with not-empty LRU list
+                if item.lru:
+                    f.write(f"\"{item.filter}\"")
+                    # store a limited number of recently used
+                    for idx, comp in enumerate(item.lru):
+                        if idx == self.LRU_MAX_LEN:
+                            break
+                        if comp: # only not-empty entries
+                            f.write(f"\t\"{comp}\"")
+                    f.write("\n")
 
 
 # -----------------------------------------------------------------------------
