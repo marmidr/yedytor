@@ -6,7 +6,9 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
 * Added
   * PnP editor - LRU items separated from other items in drop-down menu
+  * LRU list is, on app load, cleaned up from components that are no longer existing or hidden
 * Changed
+  * PnP editor context menu: "Apply value as an items filter" -> "Update drop-down items (apply filter)"
 * Deprecated
 * Removed
 * Fixed

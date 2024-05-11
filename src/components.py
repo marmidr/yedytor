@@ -105,6 +105,28 @@ class ComponentsLRU:
         self.lru.append(ComponentLRU(filter))
         self.dirty = True
 
+    def get_all_lru_components(self) -> set[str]:
+        """returns a set of all components used in a LRU lists"""
+        all = set()
+        for component_lru in self.lru:
+            for item in component_lru.lru:
+                all.add(item)
+        return all
+
+    def remove_invalid_lru_components(self, invalid: set[str]):
+        if invalid:
+            # not empty? proceed
+            logging.debug("LRU cleanup")
+            for component_lru in self.lru:
+                toremove = []
+                for lru_item in component_lru.lru:
+                    if lru_item in invalid:
+                        toremove.append(lru_item)
+                for rem in toremove:
+                    logging.debug(f"  remove '{rem}'")
+                    component_lru.lru.remove(rem)
+                    self.dirty = True
+
     def on_select(self, filter: str, selection: str):
         for component in self.lru:
             if component.filter == filter:
@@ -202,7 +224,14 @@ class ComponentsDB:
             # read csv file
             self.__load_csv(last_db_path)
             self.db_file_path = last_db_path
+
+            # read the LRU
             self.lru_items.load(db_folder)
+            all_visible = set(self.names_visible())
+            # get components in lru, that are not in the all_visible
+            invalid_lru = self.lru_items.get_all_lru_components()
+            invalid_lru -= all_visible
+            self.lru_items.remove_invalid_lru_components(invalid_lru)
         else:
             logging.warning(f"No DB files found in {db_folder}")
 

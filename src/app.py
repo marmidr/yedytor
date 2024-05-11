@@ -694,10 +694,10 @@ class PnPEditor(customtkinter.CTkFrame):
             logging.warning(f"Applying selection to the matching items failed: {e}")
 
     def add_component_if_missing(self, new_component_name: str):
-        global glob_components
+        new_component_name = new_component_name.strip()
         if glob_components.add_if_not_exists(new_component_name):
-            logging.debug(f"Add new component '{new_component_name}' to database")
-            self.component_names.append(new_component_name.strip())
+            logging.info(f"New component '{new_component_name}' added to the database")
+            self.component_names.append(new_component_name)
 
     # def combobox_key(self, event):
     #     logging.debug(f"CB key: {event}")
@@ -705,8 +705,8 @@ class PnPEditor(customtkinter.CTkFrame):
     def cbx_components_add_context_menu(self, cbx_component):
         cbx_component.menu.add_separator()
         #
-        cbx_component.menu.add_command(label="Apply value as an items filter")
-        cbx_component.menu.entryconfigure("Apply value as an items filter",
+        cbx_component.menu.add_command(label="Update drop-down items (apply filter)")
+        cbx_component.menu.entryconfigure("Update drop-down items (apply filter)",
                                             command=lambda cbx=cbx_component: \
                                             self.cbx_components_apply_filter(cbx))
         cbx_component.menu.add_separator()
@@ -716,13 +716,13 @@ class PnPEditor(customtkinter.CTkFrame):
                                             command=lambda cbx=cbx_component: \
                                             self.cbx_components_set_default(cbx))
         #
-        cbx_component.menu.add_command(label="Apply value to all matching components")
-        cbx_component.menu.entryconfigure("Apply value to all matching components",
+        cbx_component.menu.add_command(label="Apply selection to all matching components")
+        cbx_component.menu.entryconfigure("Apply selection to all matching components",
                                             command=lambda cbx=cbx_component: \
                                             self.cbx_components_apply_selected_to_all(cbx, False))
         #
-        cbx_component.menu.add_command(label="Apply+override value to all matching components")
-        cbx_component.menu.entryconfigure("Apply+override value to all matching components",
+        cbx_component.menu.add_command(label="Apply+override selection to all matching components")
+        cbx_component.menu.entryconfigure("Apply+override selection to all matching components",
                                             command=lambda cbx=cbx_component: \
                                             self.cbx_components_apply_selected_to_all(cbx, True))
         cbx_component.menu.add_separator()
