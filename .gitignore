@@ -6,6 +6,7 @@ yedytor.ini
 bookmarks.json
 
 examples/
+logs/
 __pycache__/
 htmlcov/
 db*/

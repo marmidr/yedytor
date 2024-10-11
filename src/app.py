@@ -29,7 +29,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.0.1"
+APP_NAME = "Yedytor v1.0.2"
 
 # -----------------------------------------------------------------------------
 
@@ -39,6 +39,13 @@ def get_db_directory() -> str:
     db_path = os.path.abspath(db_path)
     db_path = os.path.join(db_path, "db")
     return db_path
+
+def get_logs_directory() -> str:
+    logs_path = os.path.dirname(__file__)
+    logs_path = os.path.join(logs_path, "..")
+    logs_path = os.path.abspath(logs_path)
+    logs_path = os.path.join(logs_path, "logs")
+    return logs_path
 
 # -----------------------------------------------------------------------------
 
@@ -1309,12 +1316,19 @@ class CtkApp(customtkinter.CTk):
 # -----------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    loger_fname = get_logs_directory()
+    if not os.path.isdir(loger_fname):
+        os.mkdir(loger_fname)
+    loger_fname = os.path.join(loger_fname, time.strftime("%Y-%m-%d.log"))
+
     if Config.instance().color_logs:
         # logger config with dimmed time
         # https://docs.python.org/3/howto/logging.html
-        logging.basicConfig(format='\033[30m%(asctime)s\033[39m %(levelname)s: %(message)s',
+        logging.basicConfig(filename=loger_fname,
+                            format='\033[30m%(asctime)s\033[39m %(levelname)s: %(message)s',
                             datefmt='%H:%M:%S',
                             level=logging.DEBUG)
+
 
         # https://stackoverflow.com/questions/384076/how-can-i-color-python-logging-output
         ANSI_FG_WHITE=  "\033[1;37m"
@@ -1328,7 +1342,8 @@ if __name__ == "__main__":
         logging.addLevelName(logging.WARNING, f"{ANSI_FG_YELLOW}WARN {ANSI_FG_DEFAULT}")
         logging.addLevelName(logging.ERROR,   f"{ANSI_FG_RED}ERROR{ANSI_FG_DEFAULT}")
     else:
-        logging.basicConfig(format='%(asctime)s %(levelname)s: %(message)s',
+        logging.basicConfig(filename=loger_fname,
+                            format='%(asctime)s %(levelname)s: %(message)s',
                             datefmt='%H:%M:%S',
                             level=logging.DEBUG)
         logging.addLevelName(logging.DEBUG,   "DEBUG")
