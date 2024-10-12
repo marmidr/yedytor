@@ -1,4 +1,4 @@
-import logging
+import logger
 import os
 import time
 import csv
@@ -116,14 +116,14 @@ class ComponentsLRU:
     def remove_invalid_lru_components(self, invalid: set[str]):
         if invalid:
             # not empty? proceed
-            logging.debug("LRU cleanup")
+            logger.debug("LRU cleanup")
             for component_lru in self.lru:
                 toremove = []
                 for lru_item in component_lru.lru:
                     if lru_item in invalid:
                         toremove.append(lru_item)
                 for rem in toremove:
-                    logging.debug(f"  remove '{rem}'")
+                    logger.debug(f"  remove '{rem}'")
                     component_lru.lru.remove(rem)
                     self.dirty = True
 
@@ -148,9 +148,9 @@ class ComponentsLRU:
                 f = open(path, "r", encoding="utf-8")
                 self.__iterate_reader(f)
             except Exception as e:
-                logging.error(f"  LRU: not an UTF-8 encoding")
+                logger.error(f"  LRU: not an UTF-8 encoding")
         else:
-                logging.warning(f"  LRU file not found")
+                logger.warning(f"  LRU file not found")
 
     def __save_csv(self, path: str):
         with open(path, "w", encoding="utf-8") as f:
@@ -195,12 +195,12 @@ class ComponentsDB:
 
     def load(self, db_folder: str):
         """Load latest database version"""
-        logging.info(f"Initialize components database: {db_folder}")
+        logger.info(f"Initialize components database: {db_folder}")
         db_path_list = []
         for de in os.scandir(db_folder):
             db_fname: str = os.path.basename(de.path)
             if db_fname.startswith("components__") and db_fname.endswith(".csv"):
-                logging.debug("  DB path: " + de.path)
+                logger.debug("  DB path: " + de.path)
                 db_path_list.append(de.path)
 
         # if not empty
@@ -210,7 +210,7 @@ class ComponentsDB:
             last_db_path = db_path_list[0]
             # extract filename from path
             db_fname: str = os.path.basename(last_db_path)
-            logging.info(f"Loading components from: {db_fname}")
+            logger.info(f"Loading components from: {db_fname}")
             # extract date part from filename
             try:
                 # throw away the extension
@@ -218,7 +218,7 @@ class ComponentsDB:
                 time_tuple = time.strptime(self.db_date, self.FILENAME_DATE_FMT)
                 self.db_date = time.strftime("%Y-%m-%d, %H:%M:%S", time_tuple)
             except Exception as e:
-                logging.warning(f"Unable to parse file datetime: {e}")
+                logger.warning(f"Unable to parse file datetime: {e}")
                 self.db_date = "?, ?"
 
             # read csv file
@@ -233,7 +233,7 @@ class ComponentsDB:
             invalid_lru -= all_visible
             self.lru_items.remove_invalid_lru_components(invalid_lru)
         else:
-            logging.warning(f"No DB files found in {db_folder}")
+            logger.warning(f"No DB files found in {db_folder}")
 
     def __iterate_reader(self, csv_file):
         reader = csv.reader(csv_file, delimiter="\t")
@@ -251,7 +251,7 @@ class ComponentsDB:
             f = open(path, "r", encoding="utf-8")
             self.__iterate_reader(f)
         except Exception as e:
-            logging.warning(f"  Not an UTF-8 encoding - opening in legacy ANSI mode")
+            logger.warning(f"  Not an UTF-8 encoding - opening in legacy ANSI mode")
             # for backward-compatibility, to open older DB file not saved as UTF-8
             f = open(path, "r", encoding="ansi")
             self.__iterate_reader(f)
@@ -264,7 +264,7 @@ class ComponentsDB:
         for new_item in new_items:
             if not new_item.name in items_set:
                 self.__items.append(new_item)
-                logging.debug(f"  + {new_item.name}")
+                logger.debug(f"  + {new_item.name}")
                 added += 1
 
         return added
@@ -284,7 +284,7 @@ class ComponentsDB:
             self.__save_csv(db_file_path)
             self.db_file_path = db_file_path
         except Exception as e:
-            logging.error(f"Error saving to file '{db_file_path}: {e}'")
+            logger.error(f"Error saving to file '{db_file_path}: {e}'")
 
     def save_changes(self):
         """Save local DB to the same file"""
@@ -293,7 +293,7 @@ class ComponentsDB:
             self.__save_csv(self.db_file_path)
             self.dirty = False
         except Exception as e:
-            logging.error(f"Error saving changes to file '{self.db_file_path}: {e}'")
+            logger.error(f"Error saving changes to file '{self.db_file_path}: {e}'")
 
     def count_visible(self) -> int:
         """Returns the number of valid components"""
@@ -337,7 +337,7 @@ class ComponentsDB:
     def add_if_not_exists(self, component_name: str) -> bool:
         component_name = component_name.strip()
         if len(component_name) < 3:
-            logging.warning(f"Cannot add component '{component_name}' - the name must be 3 characters long at least")
+            logger.warning(f"Cannot add component '{component_name}' - the name must be 3 characters long at least")
             return False
 
         component_name_lower = component_name.lower()

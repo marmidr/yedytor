@@ -5,7 +5,7 @@
 # (c) 2023-2024 Mariusz Midor
 # https://github.com/marmidr/yedytor
 
-import logging
+import logger
 import json
 import os
 import sys
@@ -29,7 +29,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.0.2"
+APP_NAME = "Yedytor v1.0.3"
 
 # -----------------------------------------------------------------------------
 
@@ -137,12 +137,12 @@ class HomeFrame(customtkinter.CTkFrame):
 
     def radiobutton_event(self):
         Config.instance().editor_font_idx = self.config_font.radio_var.get()
-        # logging.debug(f"RB event: {self.config_font.editor_font_idx}")
+        # logger.debug(f"RB event: {self.config_font.editor_font_idx}")
         Config.instance().save()
 
     def checkbox_event(self):
         Config.instance().color_logs = self.config_logs.colorlogs_var.get()
-        # logging.debug(f"CHBX event: {Config.instance().color_logs}")
+        # logger.debug(f"CHBX event: {Config.instance().color_logs}")
         Config.instance().save()
 
     def clear_pnp_previews(self):
@@ -153,7 +153,7 @@ class HomeFrame(customtkinter.CTkFrame):
         self.pnp_config.progres_set(0)
 
     def button_browse_event(self):
-        logging.debug("Browse for PnP")
+        logger.debug("Browse for PnP")
         try:
             glob_proj.loading = True
             self.load_pnp()
@@ -171,7 +171,7 @@ class HomeFrame(customtkinter.CTkFrame):
                 ("All text files", ".*")
             ],
         )
-        logging.info(f"Selected PnP(s): {pnp_paths}")
+        logger.info(f"Selected PnP(s): {pnp_paths}")
 
         if len(pnp_paths) > 2:
             MessageBox(app=self.app, dialog_type="o",
@@ -191,7 +191,7 @@ class HomeFrame(customtkinter.CTkFrame):
         self.process_input_files(pnp_paths)
 
     def button_browse_wip_event(self):
-        logging.debug("Browse for <pnp>_wip.json")
+        logger.debug("Browse for <pnp>_wip.json")
         # https://docs.python.org/3/library/dialog.html
         wip_path = tkinter.filedialog.askopenfile(
             mode="r",
@@ -205,19 +205,19 @@ class HomeFrame(customtkinter.CTkFrame):
 
         if wip_path:
             self.clear_pnp_previews()
-            logging.info(f"Selected WiP: {wip_path.name}")
+            logger.info(f"Selected WiP: {wip_path.name}")
 
             with open(wip_path.name, "r", encoding="UTF-8") as f:
                 try:
                     wip = json.load(f)
                 except Exception as e:
-                    logging.error(f"Cannot load JSON file: {e}")
+                    logger.error(f"Cannot load JSON file: {e}")
                     MessageBox(app=self.app, dialog_type="o",
                                message=f"Cannot load JSON file: \n{e}",
                                callback=lambda btn: btn)
                     return
 
-                logging.info("Restore project...")
+                logger.info("Restore project...")
 
                 # reset entire project
                 global glob_proj
@@ -230,10 +230,10 @@ class HomeFrame(customtkinter.CTkFrame):
 
                     self.app.title(f"{APP_NAME} - {glob_proj.pnp_path} (WiP)")
 
-                    logging.info("Restore PnP editor...")
+                    logger.info("Restore PnP editor...")
                     self.app.get_tab_select_preview_fn()()
                     self.app.pnp_editor.load(wip['components'])
-                    logging.info("Open the PnP editor page")
+                    logger.info("Open the PnP editor page")
                     self.app.get_tab_select_editor_fn()()
                 finally:
                     glob_proj.loading = False
@@ -258,13 +258,13 @@ class HomeFrame(customtkinter.CTkFrame):
                 self.app.title(f"{APP_NAME} - {glob_proj.pnp_path}")
 
             except Exception as e:
-                logging.error(f"Cannot open file: {e}")
+                logger.error(f"Cannot open file: {e}")
 
             Config.instance().recent_pnp_path = pnp_paths
             Config.instance().save()
         else:
             if len(pnp_paths):
-                logging.error(f"Cannot access the file '{pnp_paths[0]}'")
+                logger.error(f"Cannot access the file '{pnp_paths[0]}'")
 
     def activate_csv_separator(self):
         pnp_fname = glob_proj.pnp_path.lower()
@@ -316,7 +316,7 @@ class PnPView(customtkinter.CTkFrame):
 
     def button_find_event(self):
         txt = self.entry_search.get()
-        logging.info(f"Find '{txt}'")
+        logger.info(f"Find '{txt}'")
         cnt = ui_helpers.textbox_find_text(self.textbox, txt)
         self.lbl_occurences.configure(text=f"Found: {cnt}")
 
@@ -403,7 +403,7 @@ class PnPConfig(customtkinter.CTkFrame):
         if glob_proj.loading:
             return
 
-        logging.info(f"  PnP separator: {new_sep}")
+        logger.info(f"  PnP separator: {new_sep}")
         glob_proj.pnp_separator = new_sep
         self.button_load_event()
 
@@ -414,13 +414,13 @@ class PnPConfig(customtkinter.CTkFrame):
         if (new_first_row := sv.get().strip()) != "":
             try:
                 glob_proj.pnp_first_row = int(new_first_row) - 1
-                logging.info(f"  PnP 1st row: {glob_proj.pnp_first_row+1}")
+                logger.info(f"  PnP 1st row: {glob_proj.pnp_first_row+1}")
                 self.button_load_event()
             except Exception as e:
-                logging.error(f"  Invalid row number: {e}")
+                logger.error(f"  Invalid row number: {e}")
 
     def button_load_event(self):
-        logging.debug("Load PnP...")
+        logger.debug("Load PnP...")
         try:
             self.pnp_view.load_pnp(glob_proj.pnp_path, glob_proj.pnp2_path)
             # refresh editor (if columns were selected)
@@ -428,7 +428,7 @@ class PnPConfig(customtkinter.CTkFrame):
             #     self.pnp_editor.load()
             self.btn_columns.configure(state=tkinter.NORMAL)
         except Exception as e:
-            logging.error(f"Cannot load PnP: {e}")
+            logger.error(f"Cannot load PnP: {e}")
 
     def update_lbl_columns(self):
         # self.lbl_columns.configure(
@@ -436,7 +436,7 @@ class PnPConfig(customtkinter.CTkFrame):
         pass
 
     def button_columns_event(self):
-        logging.debug("Select PnP columns...")
+        logger.debug("Select PnP columns...")
         if glob_proj.pnp_grid:
             columns = list.copy(glob_proj.pnp_grid.rows_raw()[glob_proj.pnp_first_row])
         else:
@@ -457,7 +457,7 @@ class PnPConfig(customtkinter.CTkFrame):
                                                last_result=last_cr_result)
 
     def column_selector_callback(self, result: ColumnsSelectorResult):
-        logging.debug(f"Selected PnP columns: {result.tostr()}")
+        logger.debug(f"Selected PnP columns: {result.tostr()}")
         glob_proj.pnp_columns = result
         self.update_lbl_columns()
         self.btn_goto_editor.configure(state=tkinter.NORMAL)
@@ -467,10 +467,10 @@ class PnPConfig(customtkinter.CTkFrame):
             Config.instance().get_section("columns")[glob_proj.get_name().replace(" ", "_")] = serialized
             Config.instance().save()
         except Exception as e:
-            logging.error(f"Cannot save column in history: {e}")
+            logger.error(f"Cannot save column in history: {e}")
 
     def button_goto_editor_event(self):
-        logging.debug("Go to Edit page")
+        logger.debug("Go to Edit page")
         # refresh editor
         self.pnp_editor.load()
         self.select_editor()
@@ -536,10 +536,10 @@ class PnPEditor(customtkinter.CTkFrame):
         glob_proj.pnp_grid.firstrow += 1 if glob_proj.pnp_columns.has_column_headers else 0
 
         if (not glob_proj.pnp_grid) or (glob_proj.pnp_grid.nrows == 0):
-            logging.warning("PnP file not loaded")
+            logger.warning("PnP file not loaded")
         else:
             if not self.check_selected_columns():
-                logging.warning("Select proper Footprint and Comment columns before editing")
+                logger.warning("Select proper Footprint and Comment columns before editing")
             else:
                 self.component_names = glob_components.names_visible()
                 # find the max comment width
@@ -550,20 +550,20 @@ class PnPEditor(customtkinter.CTkFrame):
                     footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_columns.footprint_col]))
                     id_max_w = max(id_max_w, len(row[0]))
 
-                logging.info(f"Preparing editor data...")
+                logger.info(f"Preparing editor data...")
                 self.app.pnp_config.progres_set(0)
                 started_at = time.monotonic()
                 editor_items = pnp_editor_helpers.prepare_editor_items(glob_components, glob_proj, wip_items)
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
-                logging.info(f"  {len(editor_items)} items prepared in {delta}")
+                logger.info(f"  {len(editor_items)} items prepared in {delta}")
 
                 progress_step = len(editor_items) / 20
                 progress_prc = 0
                 idx_threshold = progress_step
 
                 # restart time measure
-                logging.info(f"Creating editor ...")
+                logger.info(f"Creating editor ...")
                 started_at = time.monotonic()
 
                 for idx, pnpitem in enumerate(editor_items):
@@ -620,17 +620,17 @@ class PnPEditor(customtkinter.CTkFrame):
                         progress_prc += 5
                         idx_threshold += progress_step
                         if progress_prc % 10 == 0:
-                            logging.info(f"  {progress_prc:3} %")
+                            logger.info(f"  {progress_prc:3} %")
                         self.app.pnp_config.progres_set(progress_prc/100)
 
                 if progress_prc < 100:
                     progress_prc = 100
                     self.app.pnp_config.progres_set(1)
-                    logging.info(f"  {progress_prc:3} %")
+                    logger.info(f"  {progress_prc:3} %")
 
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
-                logging.info(f"Editor for {len(editor_items)} elements created in {delta}")
+                logger.info(f"Editor for {len(editor_items)} elements created in {delta}")
                 self.scrollableframe.grid_columnconfigure(0, weight=3)
                 self.scrollableframe.grid_columnconfigure(2, weight=1)
 
@@ -653,9 +653,9 @@ class PnPEditor(customtkinter.CTkFrame):
     def cbx_components_selected(self, event):
         filter = event.widget.filter
         selected_component: str = event.widget.get().strip()
-        logging.debug(f"CB selected: '{selected_component}' for '{filter}'")
+        logger.debug(f"CB selected: '{selected_component}' for '{filter}'")
         if selected_component == ComponentsLRU.SPACER_ITEM:
-            logging.debug("  spacer - selection ignored")
+            logger.debug("  spacer - selection ignored")
             # restore filter value
             event.widget.set(filter)
             return
@@ -686,7 +686,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 if row[glob_proj.pnp_columns.comment_col] == comment and \
                    row[glob_proj.pnp_columns.footprint_col] == ftprint:
                     # found: select the same component
-                    logging.debug(f"  Apply '{selected_component}' to item {row[0]}")
+                    logger.debug(f"  Apply '{selected_component}' to item {row[0]}")
                     self.cbx_component_list[i].set(selected_component)
                     self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
 
@@ -698,16 +698,16 @@ class PnPEditor(customtkinter.CTkFrame):
                         self.lbl_marker_list[i].config(background=Markers.CL_NOMATCH)
             self.update_selected_status()
         except Exception as e:
-            logging.warning(f"Applying selection to the matching items failed: {e}")
+            logger.warning(f"Applying selection to the matching items failed: {e}")
 
     def add_component_if_missing(self, new_component_name: str):
         new_component_name = new_component_name.strip()
         if glob_components.add_if_not_exists(new_component_name):
-            logging.info(f"New component '{new_component_name}' added to the database")
+            logger.info(f"New component '{new_component_name}' added to the database")
             self.component_names.append(new_component_name)
 
     # def combobox_key(self, event):
-    #     logging.debug(f"CB key: {event}")
+    #     logger.debug(f"CB key: {event}")
 
     def cbx_components_add_context_menu(self, cbx_component):
         cbx_component.menu.add_separator()
@@ -746,7 +746,7 @@ class PnPEditor(customtkinter.CTkFrame):
         cbx.focus_force()
         selected_idx = self.cbx_component_list.index(cbx)
         selected_component: str = cbx.get().strip()
-        logging.debug(f"Applying '{selected_component}':")
+        logger.debug(f"Applying '{selected_component}':")
         self.apply_component_to_matching(selected_idx, selected_component, force)
         self.add_component_if_missing(selected_component)
 
@@ -756,7 +756,7 @@ class PnPEditor(customtkinter.CTkFrame):
         selected_component: str = self.entry_list[selected_idx].get()
         # remove double spaces
         selected_component = " ".join(selected_component.split())
-        logging.debug(f"Removing: '{selected_component}'")
+        logger.debug(f"Removing: '{selected_component}'")
         # add marker that this is a deleted entry
         self.lbl_marker_list[selected_idx].config(background=Markers.CL_REMOVED)
         # clear selection
@@ -770,7 +770,7 @@ class PnPEditor(customtkinter.CTkFrame):
         ftprint = row[glob_proj.pnp_columns.footprint_col]
         cmnt = row[glob_proj.pnp_columns.comment_col]
         component_name = ftprint + "_" + cmnt
-        logging.debug(f"Set default <ftprnt>_<cmnt>: '{component_name}'")
+        logger.debug(f"Set default <ftprnt>_<cmnt>: '{component_name}'")
         cbx.set(component_name)
         # mark
         lbl_marker = self.lbl_marker_list[selected_idx]
@@ -780,7 +780,7 @@ class PnPEditor(customtkinter.CTkFrame):
         fltr: str = cbx.get().strip()
         if len(fltr) >= 2:
             filtered_comp_names = list(item.name for item in glob_components.items_filtered(fltr))
-            logging.info(f"Apply filter '{fltr}' -> {len(filtered_comp_names)} matching")
+            logger.info(f"Apply filter '{fltr}' -> {len(filtered_comp_names)} matching")
             cbx.configure(values=filtered_comp_names)
 
             selected_idx = self.cbx_component_list.index(cbx)
@@ -797,23 +797,23 @@ class PnPEditor(customtkinter.CTkFrame):
                     self.lbl_marker_list[selected_idx].config(background=Markers.CL_NOMATCH)
                 self.update_componentname_length_lbl(self.lbl_namelength_list[selected_idx], fltr)
         else:
-            logging.info("Filter too short: use full list")
+            logger.info("Filter too short: use full list")
             cbx.configure(values=self.component_names)
             try:
                 selected_idx = self.cbx_component_list.index(cbx)
                 self.lbl_marker_list[selected_idx].config(background=Markers.CL_NOMATCH)
             except Exception as e:
-                logging.warning(f"{e}")
+                logger.warning(f"{e}")
 
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def cbx_wheel(self, _event):
-        # logging.debug(f"CB wheel: {event}")
+        # logger.debug(f"CB wheel: {event}")
         # block changing value when the list is hidden to avoid accidental modification
         return 'break'
 
     def cbx_focus_in(self, event):
-        # logging.debug(f"CB focus_in: {event}")
+        # logger.debug(f"CB focus_in: {event}")
         try:
             # restore normal font on previous item
             if not self.focused_idx is None and self.focused_idx < len(self.entry_list):
@@ -834,20 +834,20 @@ class PnPEditor(customtkinter.CTkFrame):
             self.cbx_component_list[self.focused_idx].config(font=new_font)
             self.cbx_rotation_list[self.focused_idx].config(font=new_font)
         except Exception as e:
-            logging.debug(f"focus_in: {e}")
+            logger.debug(f"focus_in: {e}")
 
     def cbx_rotation_selected(self, event):
         rot: str = event.widget.get().strip()
-        logging.debug(f"Rotation selected: {rot}")
+        logger.debug(f"Rotation selected: {rot}")
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def cbx_rotation_return(self, event):
         rot: str = event.widget.get().strip()
-        logging.debug(f"Rotation entered: {rot}")
+        logger.debug(f"Rotation entered: {rot}")
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def button_save_wip_event(self):
-        logging.debug("Saving Work-In-Progress")
+        logger.debug("Saving Work-In-Progress")
         wip_path = os.path.splitext(glob_proj.pnp_path)[0]
         wip_path += "_wip.json"
         self.save_wip(wip_path)
@@ -884,7 +884,7 @@ class PnPEditor(customtkinter.CTkFrame):
             json.dump(wip, f, indent=2)
 
     def button_save_event(self):
-        logging.debug("Save PnP")
+        logger.debug("Save PnP")
         n_selected = self.count_selected()
         if n_selected[0] == n_selected[1]:
             self.btn_save.configure(state=tkinter.DISABLED)
@@ -902,12 +902,12 @@ class PnPEditor(customtkinter.CTkFrame):
     def save_pnp_to_new_csv_file(self):
         csv_path = glob_proj.pnp_path
         if not os.path.exists(csv_path):
-            logging.warning(f"Oryginal file: '{csv_path}' not found")
+            logger.warning(f"Oryginal file: '{csv_path}' not found")
             if glob_proj.wip_path and os.path.exists(glob_proj.wip_path):
                 csv_path : str = glob_proj.wip_path
                 csv_path = csv_path.removesuffix("_wip.json")
             else:
-                logging.error(f"WiP file: '{csv_path}' also not found")
+                logger.error(f"WiP file: '{csv_path}' also not found")
                 return
 
         csv_path = os.path.splitext(csv_path)[0]
@@ -920,7 +920,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 selected_rotation = self.cbx_rotation_list[i].get()
                 marker_bg = self.lbl_marker_list[i].cget("background")
                 if marker_bg == Markers.CL_REMOVED:
-                    logging.debug(f"Skipped: '{row[glob_proj.pnp_columns.id_col]} | "
+                    logger.debug(f"Skipped: '{row[glob_proj.pnp_columns.id_col]} | "
                                   f"{row[glob_proj.pnp_columns.comment_col]}'")
                     continue
 
@@ -943,12 +943,12 @@ class PnPEditor(customtkinter.CTkFrame):
                 try:
                     f.write(row_str)
                 except UnicodeEncodeError as e:
-                    logging.error(f"Encoding error in: {i}. {row_str} -> {e}")
+                    logger.error(f"Encoding error in: {i}. {row_str} -> {e}")
                     write_errors += 1
         if write_errors == 0:
-            logging.info(f"PnP saved to: {csv_path}")
+            logger.info(f"PnP saved to: {csv_path}")
         else:
-            logging.warning(f"PnP saved to: {csv_path} with {write_errors} errors")
+            logger.warning(f"PnP saved to: {csv_path} with {write_errors} errors")
             MessageBox(app=self.app, dialog_type="o",
                         message=f"Encoding errors occured!\n\n{write_errors} items not saved",
                         callback=lambda btn: btn)
@@ -1004,7 +1004,7 @@ class ComponentsInfo(customtkinter.CTkFrame):
         db_scanner.DbScanner(app=self.app, callback=self.scanner_callback, input_type="devlib")
 
     def scanner_callback(self, action: str, input_type: str, new_components: ComponentsDB):
-        logging.debug(f"Scanner {input_type}: {action}")
+        logger.debug(f"Scanner {input_type}: {action}")
         if action == "o":
             # save to a CSV file
             db_directory = get_db_directory()
@@ -1015,7 +1015,7 @@ class ComponentsInfo(customtkinter.CTkFrame):
             # we only add a new components do the working db instead of replacing it with the new one
             global glob_components
             added = glob_components.add_new(new_components.items_all())
-            logging.info(f"Added {added} new components to the database")
+            logger.info(f"Added {added} new components to the database")
             glob_components.save_new(db_directory)
             self.update_components_info()
             # update components view
@@ -1089,7 +1089,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         #
         global glob_components
         if not glob_components or len(glob_components.items_all()) == 0:
-            logging.info("DB editor: components DB is empty")
+            logger.info("DB editor: components DB is empty")
         else:
             self.load_components()
 
@@ -1164,7 +1164,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
     def load_components(self):
         components = self.get_components()
-        # logging.debug(f"DB Editor: {len(components)} components")
+        # logger.debug(f"DB Editor: {len(components)} components")
         components_subrange = components[self.components_pageno * self.COMP_PER_PAGE:]
 
         for idx_on_page, component in enumerate(components_subrange):
@@ -1184,11 +1184,11 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
     def chkbttn_hidden_event(self):
         self.btn_save.configure(state=tkinter.NORMAL)
-        logging.debug("Hidden attribute changed")
+        logger.debug("Hidden attribute changed")
 
     def entry_alias_return(self, event):
         aliases = event.widget.get().strip()
-        logging.debug(f"New aliases: {aliases}")
+        logger.debug(f"New aliases: {aliases}")
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def store_component_modifications(self):
@@ -1200,7 +1200,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
             component.aliases = self.entrys_alias[idx_on_page].get().strip()
 
     def button_prev_event(self):
-        logging.debug("prev page")
+        logger.debug("prev page")
         if self.components_pageno > 0:
             self.store_component_modifications()
             self.components_pageno -= 1
@@ -1208,7 +1208,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
             self.lbl_pageno.configure(text=self.format_pageno())
 
     def button_next_event(self):
-        logging.debug("next page")
+        logger.debug("next page")
         if self.components_pageno < len(self.get_components()) // self.COMP_PER_PAGE:
             self.store_component_modifications()
             self.components_pageno += 1
@@ -1218,7 +1218,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
     def button_save_event(self):
         self.store_component_modifications()
         glob_components.save_changes()
-        logging.info(f"DB saved to '{glob_components.db_file_path}'")
+        logger.info(f"DB saved to '{glob_components.db_file_path}'")
         self.btn_save.configure(state=tkinter.DISABLED)
         self.components_info.update_components_info()
 
@@ -1231,7 +1231,7 @@ class CtkApp(customtkinter.CTk):
     TAB_COMPONENTS = "DB Components"
 
     def __init__(self):
-        logging.info('Ctk app is starting')
+        logger.info('Ctk app is starting')
         super().__init__()
 
         self.title(f"{APP_NAME}")
@@ -1261,12 +1261,12 @@ class CtkApp(customtkinter.CTk):
             db_directory = get_db_directory()
             if os.path.isdir(db_directory):
                 glob_components.load(db_directory)
-                logging.info(f"  Date: {glob_components.db_date}")
-                logging.info(f"  Items: {len(glob_components.items_all())}")
+                logger.info(f"  Date: {glob_components.db_date}")
+                logger.info(f"  Items: {len(glob_components.items_all())}")
             else:
-                logging.warning(f"DB folder not found at {db_directory}")
+                logger.warning(f"DB folder not found at {db_directory}")
         except Exception as e:
-            logging.error(f"Error loading database: {e}")
+            logger.error(f"Error loading database: {e}")
 
         # panel with the PnP
         self.pnp_view = PnPView(tab_preview)
@@ -1301,7 +1301,7 @@ class CtkApp(customtkinter.CTk):
         self.home_frame.process_input_files([Config.instance().recent_pnp_path, Config.instance().recent_pnp2_path])
 
         # UI ready
-        logging.info('Application ready.')
+        logger.info('Application ready.')
 
     def get_tab_select_editor_fn(self) -> Callable:
         # return a closure
@@ -1316,49 +1316,14 @@ class CtkApp(customtkinter.CTk):
 # -----------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    loger_fname = get_logs_directory()
-    if not os.path.isdir(loger_fname):
-        os.mkdir(loger_fname)
-    loger_fname = os.path.join(loger_fname, time.strftime("%Y-%m-%d.log"))
-
-    if Config.instance().color_logs:
-        # logger config with dimmed time
-        # https://docs.python.org/3/howto/logging.html
-        logging.basicConfig(filename=loger_fname,
-                            format='\033[30m%(asctime)s\033[39m %(levelname)s: %(message)s',
-                            datefmt='%H:%M:%S',
-                            level=logging.DEBUG)
-
-
-        # https://stackoverflow.com/questions/384076/how-can-i-color-python-logging-output
-        ANSI_FG_WHITE=  "\033[1;37m"
-        ANSI_FG_YELLOW= "\033[1;33m"
-        ANSI_FG_RED=    "\033[1;31m"
-        ANSI_FG_DEFAULT="\033[1;0m"
-
-        # logging.addLevelName(logging.INFO,    "\033[1;37m%s\033[1;0m" % logging.getLevelName(logging.INFO))
-        logging.addLevelName(logging.DEBUG,    "DEBUG")
-        logging.addLevelName(logging.INFO,    f"{ANSI_FG_WHITE}INFO {ANSI_FG_DEFAULT}")
-        logging.addLevelName(logging.WARNING, f"{ANSI_FG_YELLOW}WARN {ANSI_FG_DEFAULT}")
-        logging.addLevelName(logging.ERROR,   f"{ANSI_FG_RED}ERROR{ANSI_FG_DEFAULT}")
-    else:
-        logging.basicConfig(filename=loger_fname,
-                            format='%(asctime)s %(levelname)s: %(message)s',
-                            datefmt='%H:%M:%S',
-                            level=logging.DEBUG)
-        logging.addLevelName(logging.DEBUG,   "DEBUG")
-        logging.addLevelName(logging.INFO,    "INFO ")
-        logging.addLevelName(logging.WARNING, "WARN ")
-        logging.addLevelName(logging.ERROR,   "ERROR")
-
-
-    logging.info(f"{APP_NAME}   (c) 2023-2024")
+    logger.config(Config.instance().color_logs)
+    logger.info(f"{APP_NAME}   (c) 2023-2024")
 
     if (sys.version_info.major < 3) or (sys.version_info.minor < 9):
-        logging.error("Required Python version 3.9 or later!")
+        logger.error("Required Python version 3.9 or later!")
         sys.exit()
     else:
-        logging.info(
+        logger.info(
             f"Python version: {sys.version_info.major}.{sys.version_info.minor}"
         )
 
@@ -1371,10 +1336,10 @@ if __name__ == "__main__":
 
     # app exitting
     if glob_components.dirty:
-        logging.info('Saving the components database...')
+        logger.info('Saving the components database...')
         glob_components.save_changes()
 
     if glob_components.lru_items.dirty:
         glob_components.lru_items.save_changes()
 
-    logging.info('Program ended.')
+    logger.info('Program ended.')

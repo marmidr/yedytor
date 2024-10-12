@@ -2,6 +2,15 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.0.3 - 2024-10-12
+
+* Added
+* Changed
+  * use logger module from Yedytor - logs to both console and the file
+* Deprecated
+* Removed
+* Fixed
+
 ## 1.0.2 - 2024-10-11
 
 * Added

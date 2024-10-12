@@ -1,5 +1,5 @@
 import csv
-import logging
+import logger
 
 from text_grid import TextGrid
 
@@ -57,7 +57,7 @@ def __read_csv(file, tg: TextGrid, delim: str, quote_char: str = '"'):
     if apostr_as_quotechar:
         tg.rows_raw().clear()
         file.seek(0)
-        logging.debug("  Reload CSV with ' as a quotechar")
+        logger.debug("  Reload CSV with ' as a quotechar")
         return __read_csv(file, tg, delim, "'")
 
     return max_cols
@@ -71,7 +71,7 @@ def read_csv(path: str, delim: str) -> TextGrid:
 
     assert path is not None
     assert isinstance(delim, str)
-    logging.info(f"Reading file '{path}', delim='{delim}'")
+    logger.info(f"Reading file '{path}', delim='{delim}'")
     tg = TextGrid()
     max_cols = 0
 

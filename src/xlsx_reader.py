@@ -1,4 +1,4 @@
-import logging
+import logger
 
 # https://linuxhint.com/read-excel-file-python/
 # https://openpyxl.readthedocs.io/en/stable/tutorial.html
@@ -13,7 +13,7 @@ def read_xlsx_sheet(path: str) -> TextGrid:
     Reads entire sheet 0
     """
     assert path is not None
-    logging.info(f"Reading file '{path}'")
+    logger.info(f"Reading file '{path}'")
     # Define variable to load the wookbook
     wookbook = openpyxl.load_workbook(path)
     sheet = wookbook.active

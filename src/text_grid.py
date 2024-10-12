@@ -1,4 +1,4 @@
-import logging
+import logger
 
 class TextGrid:
     """
@@ -27,7 +27,7 @@ class TextGrid:
             self.firstrow = inp['firstrow']
             self.__rows = inp['rows']
         except Exception as e:
-            logging.error(f"Load from serialized data: {e}")
+            logger.error(f"Load from serialized data: {e}")
 
     @staticmethod
     def format_cell(cell) -> str:

@@ -1,4 +1,4 @@
-import logging
+import logger
 
 # https://linuxhint.com/read-excel-file-python/
 # https://xlrd.readthedocs.io/en/latest/
@@ -13,7 +13,7 @@ def read_xls_sheet(path: str) -> TextGrid:
     Reads entire sheet 0
     """
     assert path is not None
-    logging.info(f"Reading file '{path}'")
+    logger.info(f"Reading file '{path}'")
     book = xlrd.open_workbook(filename=path)
     sheet = book.sheet_by_index(0)
     tg = TextGrid()

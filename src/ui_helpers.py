@@ -1,6 +1,6 @@
 import tkinter
 import customtkinter
-# import logging
+# import logger
 
 # -----------------------------------------------------------------------------
 

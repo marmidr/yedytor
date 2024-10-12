@@ -1,4 +1,4 @@
-import logging
+import logger
 
 from odf import opendocument, table
 
@@ -17,7 +17,7 @@ def read_ods_sheet(path: str) -> TextGrid:
     Reads ODS/spreadsheet document, returning the first sheet
     """
     assert path is not None
-    logging.info(f"Reading file '{path}'")
+    logger.info(f"Reading file '{path}'")
     doc = opendocument.load(path)
     tg = TextGrid()
 
@@ -27,7 +27,7 @@ def read_ods_sheet(path: str) -> TextGrid:
     if "opendocument.spreadsheet" in doc.getMediaType():
         for tab in doc.getElementsByType(table.Table):
             name = tab.getAttrNS(table.TABLENS, "name")
-            logging.info(f"Reading sheet: {name}")
+            logger.info(f"Reading sheet: {name}")
             max_cols = 0
             REPEATS_ATTR = "number-columns-repeated".replace('-','')
 
@@ -53,7 +53,7 @@ def read_ods_sheet(path: str) -> TextGrid:
             # dont read any other sheets
             break
     else:
-        logging.error("File does not contain a spreadsheet document")
+        logger.error("File does not contain a spreadsheet document")
 
     tg.align_number_of_columns()
     return tg

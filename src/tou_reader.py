@@ -1,4 +1,4 @@
-import logging
+import logger
 import os
 
 # -----------------------------------------------------------------------------
@@ -38,9 +38,9 @@ class TouFile:
                                 lst.append(name_str)
                             else:
                                 self.items[key] = [name_str]
-                            # logging.debug(f"    {n:3}. {name_str}")
+                            # logger.debug(f"    {n:3}. {name_str}")
                     except Exception as e:
-                        logging.warning(f"    Entry '{n}' contains invalid characters: {e}")
-                        logging.warning(f"    {name_bytes}")
+                        logger.warning(f"    Entry '{n}' contains invalid characters: {e}")
+                        logger.warning(f"    {name_bytes}")
                 else:
                     break

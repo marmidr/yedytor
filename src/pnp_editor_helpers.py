@@ -1,5 +1,5 @@
 import functools
-import logging
+import logger
 import multiprocessing
 
 from components import ComponentsDB
@@ -228,7 +228,7 @@ def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem
         pnpitem.selection = expected_component
         # record['cbx_items'] -> not needed
         pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_AUTO_SEL]
-        logging.info(f"  Matching component found: {expected_component}")
+        logger.info(f"  Matching component found: {expected_component}")
     except Exception:
         __try_find_matching(components, names_visible, pnpitem)
 

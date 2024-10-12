@@ -1,5 +1,5 @@
 import tkinter
-import logging
+import logger
 import typing
 import customtkinter
 
@@ -53,7 +53,7 @@ class ColumnsSelectorResult:
             lambda v: setattr(self, "layer_col", v)
         ]
         if len(items) > len(setters):
-            logging.error(f"Input has {len(items)} fields, while the struct has {len(setters)}.")
+            logger.error(f"Input has {len(items)} fields, while the struct has {len(setters)}.")
             return
         for i, col_idx in enumerate(items):
             col_idx = int(col_idx)
@@ -71,7 +71,7 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         columns = kwargs.pop("columns")
 
         assert isinstance(columns, list)
-        # logging.debug("columns: {}".format(self.columns))
+        # logger.debug("columns: {}".format(self.columns))
 
         assert "callback" in kwargs
         self.callback: typing.Callable = kwargs.pop("callback")
@@ -208,7 +208,7 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         self.btn_ok.configure(state=tkinter.NORMAL)
 
     def button_cancel_event(self):
-        logging.info("Column selector: cancelled")
+        logger.info("Column selector: cancelled")
         self.destroy()
 
     def button_ok_event(self):

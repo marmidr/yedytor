@@ -1,4 +1,4 @@
-import logging
+import logger
 import os
 
 # -----------------------------------------------------------------------------
@@ -33,7 +33,7 @@ class DevLibFile:
             header_bytes = f.read(len(DEVLIB_HEADER))
             header_str = header_bytes.decode()
             if header_str != DEVLIB_HEADER:
-                logging.error(f"File '{path}' has no expected header")
+                logger.error(f"File '{path}' has no expected header")
                 return False
 
             n = 0
@@ -49,7 +49,7 @@ class DevLibFile:
                     # "2512_R_7,5R/5%/1W(3)\x00\x00\x00\x00\x00\x00\x00" -> "2512_R_7,5R/5%/1W(3)"
                     if name_bytes[0] == 0:
                         # component name can't start with nul (it may if the file is Ed2.Lib)
-                        logging.warning(f"Component name starts with NULL - Ed2.Lib?")
+                        logger.warning(f"Component name starts with NULL - Ed2.Lib?")
                         return False
 
                     if (nul_idx := name_bytes.find(0)) >= 0:
@@ -74,7 +74,7 @@ class DevLibFile:
                             else:
                                 # self.items[key] = [(name_str, base_str)]
                                 self.items[key] = [name_str]
-                            logging.debug(f"    {n:3}. {name_str}")
+                            logger.debug(f"    {n:3}. {name_str}")
                 else:
                     break
 
@@ -92,6 +92,6 @@ class DevLibFile:
                 name_str = name_bytes.decode(encoding="utf-8", errors="replace")
                 return name_str
             except Exception as e:
-                logging.warning(f"    Entry '{idx}' contains invalid characters: {e}")
-                logging.warning(f"    {input}")
+                logger.warning(f"    Entry '{idx}' contains invalid characters: {e}")
+                logger.warning(f"    {input}")
         return None

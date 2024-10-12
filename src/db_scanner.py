@@ -1,5 +1,5 @@
 import tkinter
-import logging
+import logger
 import typing
 import os
 import time
@@ -123,7 +123,7 @@ class DbScanner(customtkinter.CTkToplevel):
                 ui_helpers.entry_set_text(self.entry_lib_path, last_lib_path)
 
     def button_ok_event(self):
-        logging.debug("Ok")
+        logger.debug("Ok")
 
         if self.components_dict:
             # make DB from self.components_dict
@@ -134,13 +134,13 @@ class DbScanner(customtkinter.CTkToplevel):
         self.destroy()
 
     def button_cancel_event(self):
-        logging.debug("Cancel")
+        logger.debug("Cancel")
         self.callback("c", self.input_type, None)
         self.destroy()
 
     def btn_savecomponents_event(self):
         if self.components_dict:
-            logging.debug("Saving an CSV")
+            logger.debug("Saving an CSV")
             self.attributes('-topmost', False)
             file = tkinter.filedialog.asksaveasfile(
                     title="Save components in a CSV file",
@@ -170,7 +170,7 @@ class DbScanner(customtkinter.CTkToplevel):
                 initialdir=None,
             )
             self.attributes('-topmost', True)
-            logging.info(f"Selected folder: {tou_folder}")
+            logger.info(f"Selected folder: {tou_folder}")
             ui_helpers.entry_set_text(self.entry_lib_path, tou_folder)
             self.btn_scan.configure(state=tkinter.NORMAL)
             Config.instance().tou_directory_path = tou_folder
@@ -187,7 +187,7 @@ class DbScanner(customtkinter.CTkToplevel):
             )
             devlib_path = devlib_path.name
             self.attributes('-topmost', True)
-            logging.info(f"Selected file: {devlib_path}")
+            logger.info(f"Selected file: {devlib_path}")
             ui_helpers.entry_set_text(self.entry_lib_path, devlib_path)
             self.btn_scan.configure(state=tkinter.NORMAL)
             Config.instance().devlib_path = devlib_path
@@ -220,12 +220,12 @@ class DbScanner(customtkinter.CTkToplevel):
                     tou_longest_filename = max(tou_longest_filename, len(de.name))
 
             if len(tou_filenames) > 0:
-                logging.info(f"Scanning {len(tou_filenames)} files in {tou_folder}")
+                logger.info(f"Scanning {len(tou_filenames)} files in {tou_folder}")
                 tou_files: list[TouFile] = []
 
                 for i, tou_fname in enumerate(tou_filenames):
                     tou = TouFile(os.path.join(tou_folder, tou_fname))
-                    logging.debug(f"  {tou_fname} -> {len(tou.items)} items")
+                    logger.debug(f"  {tou_fname} -> {len(tou.items)} items")
                     tou_files.append(tou)
                     self.prgrbar_scan.set((i+1) / len(tou_filenames))
                     self.update()
@@ -237,10 +237,10 @@ class DbScanner(customtkinter.CTkToplevel):
                 self.tou_components_report(tou_files)
         except Exception as e:
             delta = 0
-            logging.error(f"Error occured: {e}")
+            logger.error(f"Error occured: {e}")
         finally:
             delta_str = f"{delta:.03f}s"
-            logging.info(f"{len(tou_filenames)} files scanned in {delta_str}")
+            logger.info(f"{len(tou_filenames)} files scanned in {delta_str}")
             self.lbl_scan_time.configure(text=delta_str)
             self.btn_scan.configure(state=tkinter.NORMAL)
 
@@ -252,7 +252,7 @@ class DbScanner(customtkinter.CTkToplevel):
         self.textbox_scanresult.insert("0.0", tou_files_report)
 
     def tou_components_report(self, tou_files: list[TouFile]):
-        logging.debug("Merge components from all Tou files")
+        logger.debug("Merge components from all Tou files")
         self.components_dict = {}
 
         for tf in tou_files:
@@ -263,7 +263,7 @@ class DbScanner(customtkinter.CTkToplevel):
                 else:
                     self.components_dict[key] = set(tf.items[key])
 
-        logging.debug("Prepare report")
+        logger.debug("Prepare report")
         components_report = ""
         components_keys_sorted = list(self.components_dict)
         components_keys_sorted.sort()
@@ -272,7 +272,7 @@ class DbScanner(customtkinter.CTkToplevel):
             components_str = f"{self.components_dict[component_key]}".strip("{}")
             components_report += f"{(i+1):4}. {components_str}\n"
 
-        logging.info(f"Total {len(self.components_dict)} components")
+        logger.info(f"Total {len(self.components_dict)} components")
         self.textbox_components.insert("0.0", components_report)
 
     def devlib_scan_file(self):
@@ -284,7 +284,7 @@ class DbScanner(customtkinter.CTkToplevel):
             self.devlib_scan_report(devlib)
             self.devlib_components_report(devlib)
         except Exception as e:
-            logging.error(f"Error occured: {e}")
+            logger.error(f"Error occured: {e}")
         finally:
             self.btn_scan.configure(state=tkinter.NORMAL)
 
@@ -293,7 +293,7 @@ class DbScanner(customtkinter.CTkToplevel):
         self.textbox_scanresult.insert("0.0", devlib_report)
 
     def devlib_components_report(self, devlib: DevLibFile):
-        logging.debug("Prepare report from DevLib file")
+        logger.debug("Prepare report from DevLib file")
         self.components_dict = {}
 
         for key in devlib.items:
@@ -303,7 +303,7 @@ class DbScanner(customtkinter.CTkToplevel):
             else:
                 self.components_dict[key] = set(devlib.items[key])
 
-        logging.debug("Prepare report")
+        logger.debug("Prepare report")
         components_report = ""
         components_keys_sorted = list(self.components_dict)
         components_keys_sorted.sort()
@@ -312,5 +312,5 @@ class DbScanner(customtkinter.CTkToplevel):
             components_str = f"{self.components_dict[component_key]}".strip("{}")
             components_report += f"{(i+1):4}. {components_str}\n"
 
-        logging.info(f"Total {len(self.components_dict)} components")
+        logger.info(f"Total {len(self.components_dict)} components")
         self.textbox_components.insert("0.0", components_report)

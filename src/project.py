@@ -1,4 +1,4 @@
-import logging
+import logger
 import os
 
 import csv_reader
@@ -47,7 +47,7 @@ class Project:
             self.pnp_grid = text_grid.TextGrid()
             self.pnp_grid.from_serializable(inp['pnp_grid'])
         except Exception as e:
-            logging.error(f"Load from serialized data: {e}")
+            logger.error(f"Load from serialized data: {e}")
 
     def get_name(self) -> str:
         return os.path.basename(self.pnp_path)
@@ -88,7 +88,7 @@ class Project:
         else: # assume CSV
             self.pnp_grid = csv_reader.read_csv(path, delim)
 
-        log_f = logging.info if self.pnp_grid.nrows > 0 else logging.warning
+        log_f = logger.info if self.pnp_grid.nrows > 0 else logger.warning
         log_f(f"PnP: {self.pnp_grid.nrows} rows x {self.pnp_grid.ncols} cols")
 
         # load the optional second PnP file
@@ -104,7 +104,7 @@ class Project:
             else: # assume CSV
                 pnp2_grid = csv_reader.read_csv(path2, delim)
 
-            log_f = logging.info if pnp2_grid.nrows > 0 else logging.warning
+            log_f = logger.info if pnp2_grid.nrows > 0 else logger.warning
             log_f(f"PnP2: {pnp2_grid.nrows} rows x {pnp2_grid.ncols} cols")
 
             # merge
