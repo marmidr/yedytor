@@ -258,7 +258,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
             pnpitem.selection = fltr.lower()
             pnpitem.cbx_items = filtered_comp_names
             pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_FILTER]
-            components.lru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
+            components.mru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
             return
 
     # create component list proposition based only on the comment
@@ -269,7 +269,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
         pnpitem.selection = fltr.lower()
         pnpitem.cbx_items = filtered_comp_names
         pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_FILTER]
-        components.lru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
+        components.mru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
         return
 
     # remove filter and assign all components

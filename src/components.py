@@ -40,21 +40,21 @@ class Component:
 
 # -----------------------------------------------------------------------------
 
-class ComponentLRU:
-    """Least Recently Used for a given component filter"""
+class ComponentMRU:
+    """Most Recently Used for a given component filter"""
 
-    def __init__(self, fltr="", lru_components:list[str]=None):
+    def __init__(self, fltr="", mru_components:list[str]=None):
         self.filter = fltr
-        self.lru = lru_components if lru_components else []
+        self.mru = mru_components if mru_components else []
 
     def on_select(self, selection: str):
-        """put the new selection on the top of the LRU list"""
+        """put the new selection on the top of the MRU list"""
         try:
-            self.lru.remove(selection)
+            self.mru.remove(selection)
         except Exception:
             pass
         finally:
-            self.lru.insert(0, selection)
+            self.mru.insert(0, selection)
 
     def __lt__(self, other) -> bool:
         # required by sort()
@@ -62,73 +62,83 @@ class ComponentLRU:
 
 # -----------------------------------------------------------------------------
 
-class ComponentsLRU:
-    LRU_MAX_LEN = 5
+class ComponentsMRU:
+    MRU_MAX_LEN = 5
     SPACER_ITEM = "————————=————————=————————=————————"
 
     def __init__(self):
-        self.lru: list[ComponentLRU] = []
+        self.mru: list[ComponentMRU] = []
         self.__db_folder = ""
         self.dirty = False
 
     def load(self, db_folder: str):
         self.__db_folder = db_folder
-        lru_file_path = os.path.join(self.__db_folder, "lru.csv")
-        self.__load_csv(lru_file_path)
+        mru_file_path = os.path.join(self.__db_folder, "mru.csv")
+        if os.path.isfile(mru_file_path):
+            self.__load_csv(mru_file_path)
+        else:
+            # check if the old-name file exists
+            lru_file_path = os.path.join(self.__db_folder, "lru.csv")
+            if os.path.isfile(lru_file_path):
+                self.__load_csv(lru_file_path)
 
     def save_changes(self):
-        self.lru.sort()
-        lru_file_path = os.path.join(self.__db_folder, "lru.csv")
-        self.__save_csv(lru_file_path)
+        self.mru.sort()
+        mru_file_path = os.path.join(self.__db_folder, "mru.csv")
+        self.__save_csv(mru_file_path)
+        # remove old file
+        lrupath = os.path.join(self.__db_folder, "lru.csv")
+        if os.path.isfile(lrupath):
+            os.remove(lrupath)
         self.dirty = False
 
     def arrange(self, filter: str, items_to_arrange: list[str]):
         filter = filter.strip()
-        for component in self.lru:
+        for component in self.mru:
             if component.filter == filter:
-                # if LRU list is not empty
-                if component.lru:
-                    # make a sets, remove from items_to_arrange items found in LRU
-                    lru_set = set(component.lru)
+                # if MRU list is not empty
+                if component.mru:
+                    # make a sets, remove from items_to_arrange items found in MRU
+                    mru_set = set(component.mru)
                     to_arrange_set = set(items_to_arrange)
-                    to_arrange_set -= lru_set
+                    to_arrange_set -= mru_set
                     # put remaining items back into the items_to_arrange list
                     items_to_arrange.clear()
                     items_to_arrange.extend(to_arrange_set)
                     items_to_arrange.sort()
                     items_to_arrange.insert(0, self.SPACER_ITEM)
-                    # insert LRU at the top of items_to_arrange
-                    for item in component.lru[::-1]:
+                    # insert MRU at the top of items_to_arrange
+                    for item in component.mru[::-1]:
                         items_to_arrange.insert(0, item)
                 return
-        # not found? create a new entry, with empty LRU
-        self.lru.append(ComponentLRU(filter))
+        # not found? create a new entry, with empty MRU
+        self.mru.append(ComponentMRU(filter))
         self.dirty = True
 
-    def get_all_lru_components(self) -> set[str]:
-        """returns a set of all components used in a LRU lists"""
+    def get_all_mru_components(self) -> set[str]:
+        """returns a set of all components used in a MRU lists"""
         all = set()
-        for component_lru in self.lru:
-            for item in component_lru.lru:
+        for component_mru in self.mru:
+            for item in component_mru.mru:
                 all.add(item)
         return all
 
-    def remove_invalid_lru_components(self, invalid: set[str]):
+    def remove_invalid_mru_components(self, invalid: set[str]):
         if invalid:
             # not empty? proceed
-            logger.debug("LRU cleanup")
-            for component_lru in self.lru:
+            logger.debug("MRU cleanup")
+            for component_mru in self.mru:
                 toremove = []
-                for lru_item in component_lru.lru:
-                    if lru_item in invalid:
-                        toremove.append(lru_item)
+                for mru_item in component_mru.mru:
+                    if mru_item in invalid:
+                        toremove.append(mru_item)
                 for rem in toremove:
                     logger.debug(f"  remove '{rem}'")
-                    component_lru.lru.remove(rem)
+                    component_mru.mru.remove(rem)
                     self.dirty = True
 
     def on_select(self, filter: str, selection: str):
-        for component in self.lru:
+        for component in self.mru:
             if component.filter == filter:
                 component.on_select(selection)
                 self.dirty = True
@@ -136,11 +146,11 @@ class ComponentsLRU:
 
     def __iterate_reader(self, csv_file):
         reader = csv.reader(csv_file, delimiter="\t")
-        self.lru.clear()
+        self.mru.clear()
         for row in reader:
             row_cells = [cell.strip() for cell in row]
             if len(row_cells) > 0:
-                self.lru.append(ComponentLRU(row_cells[0], row_cells[1:]))
+                self.mru.append(ComponentMRU(row_cells[0], row_cells[1:]))
 
     def __load_csv(self, path: str):
         if os.path.exists(path):
@@ -148,19 +158,19 @@ class ComponentsLRU:
                 f = open(path, "r", encoding="utf-8")
                 self.__iterate_reader(f)
             except Exception as e:
-                logger.error(f"  LRU: not an UTF-8 encoding")
+                logger.error(f"  MRU: not an UTF-8 encoding")
         else:
-                logger.warning(f"  LRU file not found")
+                logger.warning(f"  MRU file not found")
 
     def __save_csv(self, path: str):
         with open(path, "w", encoding="utf-8") as f:
-            for item in self.lru:
-                # only items with not-empty LRU list
-                if item.lru:
+            for item in self.mru:
+                # only items with not-empty MRU list
+                if item.mru:
                     f.write(f"\"{item.filter}\"")
                     # store a limited number of recently used
-                    for idx, comp in enumerate(item.lru):
-                        if idx == self.LRU_MAX_LEN:
+                    for idx, comp in enumerate(item.mru):
+                        if idx == self.MRU_MAX_LEN:
                             break
                         if comp: # only not-empty entries
                             f.write(f"\t\"{comp}\"")
@@ -181,7 +191,7 @@ class ComponentsDB:
         """list of components"""
         self.dirty = False
         """list updated during operation"""
-        self.lru_items = ComponentsLRU()
+        self.mru_items = ComponentsMRU()
         """least recently used"""
 
         if "components_dict" in kwargs:
@@ -225,13 +235,13 @@ class ComponentsDB:
             self.__load_csv(last_db_path)
             self.db_file_path = last_db_path
 
-            # read the LRU
-            self.lru_items.load(db_folder)
+            # read the MRU
+            self.mru_items.load(db_folder)
             all_visible = set(self.names_visible())
-            # get components in lru, that are not in the all_visible
-            invalid_lru = self.lru_items.get_all_lru_components()
-            invalid_lru -= all_visible
-            self.lru_items.remove_invalid_lru_components(invalid_lru)
+            # get components in mru, that are not in the all_visible
+            invalid_mru = self.mru_items.get_all_mru_components()
+            invalid_mru -= all_visible
+            self.mru_items.remove_invalid_mru_components(invalid_mru)
         else:
             logger.warning(f"No DB files found in {db_folder}")
 

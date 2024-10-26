@@ -51,5 +51,5 @@
 [x] edytor - least recently used
     [x] pamiętać ostatnie wybory komponentu dla danego filtra, przy robieniu listy sortować wg. ostatniego użycia
     [x] trzymać w osobnym pliku jako klucz(filtr) : lista[nazwa komponentów]
-    [x] przy ładowaniu sprawdzać, czy komponenty z LRU nadal istnieją w DB i usuwać nieaktualne
+    [x] przy ładowaniu sprawdzać, czy komponenty z MRU nadal istnieją w DB i usuwać nieaktualne
 [x] zapamiętywać drugi plik pnp: recent_pnp2_path

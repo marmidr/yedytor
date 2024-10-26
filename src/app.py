@@ -23,13 +23,13 @@ from pnp_editor_helpers import Markers
 from column_selector import ColumnsSelector, ColumnsSelectorResult
 from msg_box import MessageBox
 from tkhtmlview import HTMLLabel
-from components import Component, ComponentsDB, ComponentsLRU
+from components import Component, ComponentsDB, ComponentsMRU
 from config import Config
 from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.0.3"
+APP_NAME = "Yedytor v1.1.0"
 
 # -----------------------------------------------------------------------------
 
@@ -654,14 +654,14 @@ class PnPEditor(customtkinter.CTkFrame):
         filter = event.widget.filter
         selected_component: str = event.widget.get().strip()
         logger.debug(f"CB selected: '{selected_component}' for '{filter}'")
-        if selected_component == ComponentsLRU.SPACER_ITEM:
+        if selected_component == ComponentsMRU.SPACER_ITEM:
             logger.debug("  spacer - selection ignored")
             # restore filter value
             event.widget.set(filter)
             return
         selected_idx = self.cbx_component_list.index(event.widget)
         self.apply_component_to_matching(selected_idx, selected_component)
-        glob_components.lru_items.on_select(filter, selected_component)
+        glob_components.mru_items.on_select(filter, selected_component)
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def apply_component_to_matching(self, selected_idx: int, selected_component: str, force: bool = False):
@@ -1339,7 +1339,7 @@ if __name__ == "__main__":
         logger.info('Saving the components database...')
         glob_components.save_changes()
 
-    if glob_components.lru_items.dirty:
-        glob_components.lru_items.save_changes()
+    if glob_components.mru_items.dirty:
+        glob_components.mru_items.save_changes()
 
     logger.info('Program ended.')

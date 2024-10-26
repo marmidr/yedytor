@@ -2,6 +2,16 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.1.0 - 2024-10-26
+
+* Added
+* Changed
+  * components LRU -> MRU
+  * list is kept in the `db/mru.csv`
+* Deprecated
+* Removed
+* Fixed
+
 ## 1.0.3 - 2024-10-12
 
 * Added
