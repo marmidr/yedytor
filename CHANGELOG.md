@@ -7,9 +7,11 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Added
   * PnP editor - editor header row
   * PnP editor - new column "Description", added to the output CSV
+  * DB editor - messagebox reminding that changed component attributes (alias, hidden) must be saved
 * Changed
   * components LRU -> MRU
-  * list is kept in the `db/mru.csv`
+  * MRU list is kept in the `db/mru.csv`
+  * PnP editor - MRU in dropdown list updated after new component was selected
 * Deprecated
 * Removed
 * Fixed
@@ -19,7 +21,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
 * Added
 * Changed
-  * use logger module from Yedytor - logs to both console and the file
+  * use logger module from Boomer - logs to both console and the file
 * Deprecated
 * Removed
 * Fixed

@@ -261,6 +261,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
             pnpitem.selection = fltr.lower()
             pnpitem.cbx_items = filtered_comp_names
             pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_FILTER]
+            # insert MRU items at the top of the `cbx_items` list
             components.mru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
             return
 

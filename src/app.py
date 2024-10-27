@@ -693,7 +693,7 @@ class PnPEditor(customtkinter.CTkFrame):
     def cbx_components_selected(self, event):
         filter = event.widget.filter
         selected_component: str = event.widget.get().strip()
-        logger.debug(f"CB selected: '{selected_component}' for '{filter}'")
+        logger.debug(f"CB selected: '{selected_component}' for filter pattern '{filter}'")
         if selected_component == ComponentsMRU.SPACER_ITEM:
             logger.debug("  spacer - selection ignored")
             # restore filter value
@@ -701,7 +701,13 @@ class PnPEditor(customtkinter.CTkFrame):
             return
         selected_idx = self.cbx_component_list.index(event.widget)
         self.apply_component_to_matching(selected_idx, selected_component)
+        # update the MRU
         glob_components.mru_items.on_select(filter, selected_component)
+
+        # update drop-down list so it contains the new MRU items
+        filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
+        glob_components.mru_items.arrange(filter, filtered_comp_names)
+        event.widget.configure(values=filtered_comp_names)
         self.btn_save.configure(state=tkinter.NORMAL)
 
     def apply_component_to_matching(self, selected_idx: int, selected_component: str, force: bool = False):
@@ -817,15 +823,20 @@ class PnPEditor(customtkinter.CTkFrame):
         lbl_marker.config(background=Markers.CL_FILTER)
 
     def cbx_components_apply_filter(self, cbx):
-        fltr: str = cbx.get().strip()
-        if len(fltr) >= 2:
-            filtered_comp_names = list(item.name for item in glob_components.items_filtered(fltr))
-            logger.info(f"Apply filter '{fltr}' -> {len(filtered_comp_names)} matching")
+        filter: str = cbx.get().strip()
+
+        if len(filter) >= 2:
+            filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
+            logger.info(f"Apply filter '{filter}' -> {len(filtered_comp_names)} matching")
+            #
+            glob_components.mru_items.arrange(filter, filtered_comp_names)
+            # set a new combobox items
             cbx.configure(values=filtered_comp_names)
+            cbx.filter = filter
 
             selected_idx = self.cbx_component_list.index(cbx)
             try:
-                self.component_names.index(fltr)
+                self.component_names.index(filter)
                 # filter found on component list: add marker that this is a final value
                 self.lbl_marker_list[selected_idx].config(background=Markers.CL_MAN_SEL)
             except Exception:
@@ -835,7 +846,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 else:
                     # mark no matching component in database
                     self.lbl_marker_list[selected_idx].config(background=Markers.CL_NOMATCH)
-                self.update_componentname_length_lbl(self.lbl_namelength_list[selected_idx], fltr)
+                self.update_componentname_length_lbl(self.lbl_namelength_list[selected_idx], filter)
         else:
             logger.info("Filter too short: use full list")
             cbx.configure(values=self.component_names)
@@ -1118,6 +1129,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         super().__init__(master, **kwargs)
         self.components_pageno = 0
         self.component_filter = ""
+        self.changed = False
 
         self.components_info = ComponentsInfo(self, app=self.app, callback=self.reload_components)
         self.components_info.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
@@ -1234,6 +1246,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         return pageno_str
 
     def load_components(self):
+        self.changed = False
         components = self.get_components()
         # logger.debug(f"DB Editor: {len(components)} components")
         components_subrange = components[self.components_pageno * self.COMP_PER_PAGE:]
@@ -1256,11 +1269,13 @@ class ComponentsEditor(customtkinter.CTkFrame):
     def chkbttn_hidden_event(self):
         self.btn_save.configure(state=tkinter.NORMAL)
         logger.debug("Hidden attribute changed")
+        self.changed = True
 
     def entry_alias_return(self, event):
         aliases = event.widget.get().strip()
         logger.debug(f"New aliases: {aliases}")
         self.btn_save.configure(state=tkinter.NORMAL)
+        self.changed = True
 
     def store_component_modifications(self):
         components_subrange = self.get_components()[self.components_pageno * self.COMP_PER_PAGE:]
@@ -1270,21 +1285,49 @@ class ComponentsEditor(customtkinter.CTkFrame):
             component.hidden = self.vars_hidden[idx_on_page].get() == 1
             component.aliases = self.entrys_alias[idx_on_page].get().strip()
 
+    def on_component_attr_changed(self, btn: str, go_next: bool):
+        if btn == "y":
+            self.button_save_event()
+        else:
+            self.changed = False
+
+        if not go_next is None:
+            if go_next:
+                self.button_next_event()
+            else:
+                self.button_prev_event()
+
+    def check_component_attributes_changed(self, go_next: bool = None):
+        if self.changed:
+            MessageBox(app=self.app, dialog_type="yn",
+                    message="Components attribute(s) has hanged - save?",
+                    callback=lambda btn: self.on_component_attr_changed(btn, go_next))
+            return True
+        return False
+
     def button_prev_event(self):
         logger.debug("prev page")
+        if self.check_component_attributes_changed(False):
+            return
+
         if self.components_pageno > 0:
             self.store_component_modifications()
             self.components_pageno -= 1
             self.load_components()
             self.lbl_pageno.configure(text=self.format_pageno())
+            self.changed = False
 
     def button_next_event(self):
         logger.debug("next page")
+        if self.check_component_attributes_changed(True):
+            return
+
         if self.components_pageno < len(self.get_components()) // self.COMP_PER_PAGE:
             self.store_component_modifications()
             self.components_pageno += 1
             self.load_components()
             self.lbl_pageno.configure(text=self.format_pageno())
+            self.changed = False
 
     def button_save_event(self):
         self.store_component_modifications()
@@ -1292,6 +1335,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         logger.info(f"DB saved to '{glob_components.db_file_path}'")
         self.btn_save.configure(state=tkinter.DISABLED)
         self.components_info.update_components_info()
+        self.changed = False
 
 # -----------------------------------------------------------------------------
 
