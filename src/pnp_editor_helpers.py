@@ -41,6 +41,7 @@ class PnpItem:
         self.comment = ""
         self.cbx_items = list()
         self.rotation = ""
+        self.descr = ""
 
     def __repr__(self) -> str:
         if not (self.footprint is None or self.comment is None):
@@ -98,6 +99,7 @@ class ItemsIterator:
                 pnpitem.footprint = None
                 pnpitem.comment = None
                 pnpitem.rotation = wip_cmp['rotation']
+                pnpitem.descr = wip_cmp.get('descr', '')
 
                 # "C42  | SMC_B              | 100u/10V "
                 item_splitted: list[str] = pnpitem.item.split("|")
@@ -139,6 +141,7 @@ class ItemsIterator:
                 pnpitem.footprint = row[self.__proj.pnp_columns.footprint_col]
                 pnpitem.comment = row[self.__proj.pnp_columns.comment_col]
                 pnpitem.rotation = row[self.__proj.pnp_columns.rot_col]
+                pnpitem.descr = row[self.__proj.pnp_columns.descr_col] if self.__proj.pnp_columns.descr_col >= 0 else ""
                 return pnpitem
 
             # print(f"STOP2")

@@ -17,18 +17,21 @@ class ColumnsSelectorResult:
         self.xcoord_col = ""
         self.ycoord_col = ""
         self.rot_col = ""
-        self.layer_col = "" # may be None
+        self.layer_col = "" # optional
+        self.descr_col = "" # optional
 
     def tostr(self) -> str:
         return f"id={self.id_col+1}, cmnt={self.comment_col+1}, ftprnt={self.footprint_col+1}, "\
-               f"x={self.xcoord_col+1}, y={self.ycoord_col+1}, rot={self.rot_col+1}, lr={self.layer_col+1}"
+               f"x={self.xcoord_col+1}, y={self.ycoord_col+1}, rot={self.rot_col+1}, "\
+               f"lr={self.layer_col+1}, descr={self.descr_col+1}"
 
     def serialize(self) -> str:
         """Ensures all fields are an integer indexes, creates a string of space-separated numbers"""
         entities = (
             int(self.has_column_headers),
             self.id_col, self.comment_col, self.footprint_col,
-            self.xcoord_col, self.ycoord_col, self.rot_col, self.layer_col
+            self.xcoord_col, self.ycoord_col, self.rot_col,
+            self.layer_col, self.descr_col
         )
         for ent in entities:
             if not isinstance(ent, int):
@@ -50,7 +53,8 @@ class ColumnsSelectorResult:
             lambda v: setattr(self, "xcoord_col", v),
             lambda v: setattr(self, "ycoord_col", v),
             lambda v: setattr(self, "rot_col", v),
-            lambda v: setattr(self, "layer_col", v)
+            lambda v: setattr(self, "layer_col", v),
+            lambda v: setattr(self, "descr_col", v)
         ]
         if len(items) > len(setters):
             logger.error(f"Input has {len(items)} fields, while the struct has {len(setters)}.")
@@ -80,7 +84,7 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         last_result: ColumnsSelectorResult = kwargs.pop("last_result")
 
         super().__init__(*args, **kwargs)
-        ui_helpers.window_set_centered(app, self, 400, 360)
+        ui_helpers.window_set_centered(app, self, 400, 400)
 
         # prepend column titles with their corresponding index
         columns = [f"{idx+1}. {item}" for (idx,item) in enumerate(columns)]
@@ -171,21 +175,32 @@ class ColumnsSelector(customtkinter.CTkToplevel):
                                                 variable=self.opt_layer_var)
         opt_layer.grid(row=7, column=1, pady=5, padx=5, sticky="we")
 
+        # description
+        lbl_descr = customtkinter.CTkLabel(self, text="Description column:")
+        lbl_descr.grid(row=8, column=0, pady=5, padx=5, sticky="w")
+
+        self.opt_descr_var = customtkinter.StringVar(value=initial_value(last_result.descr_col))
+        opt_descr = customtkinter.CTkOptionMenu(self, values=columns,
+                                                command=self.opt_event,
+                                                variable=self.opt_descr_var)
+        opt_descr.grid(row=8, column=1, pady=5, padx=5, sticky="we")
+
+
         #
         self.grid_columnconfigure(1, weight=1)
 
 
         #
         sep_h = tkinter.ttk.Separator(self, orient='horizontal')
-        sep_h.grid(row=8, column=0, columnspan=2, pady=5, padx=5, sticky="we")
+        sep_h.grid(row=9, column=0, columnspan=2, pady=5, padx=5, sticky="we")
 
         self.btn_cancel = customtkinter.CTkButton(self, text="Cancel",
                                                    command=self.button_cancel_event)
-        self.btn_cancel.grid(row=9, column=0, pady=5, padx=5, sticky="")
+        self.btn_cancel.grid(row=10, column=0, pady=5, padx=5, sticky="")
 
         self.btn_ok = customtkinter.CTkButton(self, text="OK",
                                                 command=self.button_ok_event)
-        self.btn_ok.grid(row=9, column=1, pady=5, padx=5, sticky="we")
+        self.btn_ok.grid(row=10, column=1, pady=5, padx=5, sticky="we")
 
         if last_result.valid:
             self.btn_ok.configure(state=tkinter.NORMAL)
@@ -202,6 +217,7 @@ class ColumnsSelector(customtkinter.CTkToplevel):
             self.opt_xcoord_var.get() != "" and \
             self.opt_ycoord_var.get() != "" and \
             self.opt_rot_var.get() != "":
+            # layer and description columns are optional
             self.btn_ok.configure(state=tkinter.NORMAL)
 
     def chbx_event(self):
@@ -221,6 +237,8 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         result.ycoord_col = self.opt_ycoord_var.get()
         result.rot_col = self.opt_rot_var.get()
         result.layer_col = self.opt_layer_var.get()
+        result.descr_col = self.opt_descr_var.get()
+
         # extract column index
         def extract_idx(inp: str) -> int:
             parsed = int(inp.split(sep=". ")[0])
@@ -232,7 +250,9 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         result.xcoord_col = extract_idx(result.xcoord_col)
         result.ycoord_col = extract_idx(result.ycoord_col)
         result.rot_col = extract_idx(result.rot_col)
+        # optional columns:
         result.layer_col = extract_idx(result.layer_col) if result.layer_col != "" else -1
+        result.descr_col = extract_idx(result.descr_col) if result.descr_col != "" else -1
         result.valid = True
         #
         self.callback(result)

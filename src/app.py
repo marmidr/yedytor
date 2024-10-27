@@ -460,14 +460,15 @@ class PnPConfig(customtkinter.CTkFrame):
         logger.debug(f"Selected PnP columns: {result.tostr()}")
         glob_proj.pnp_columns = result
         self.update_lbl_columns()
-        self.btn_goto_editor.configure(state=tkinter.NORMAL)
-        try:
-            serialized = result.serialize()
-            # save columns configuration in history
-            Config.instance().get_section("columns")[glob_proj.get_name().replace(" ", "_")] = serialized
-            Config.instance().save()
-        except Exception as e:
-            logger.error(f"Cannot save column in history: {e}")
+        if result.valid:
+            self.btn_goto_editor.configure(state=tkinter.NORMAL)
+            try:
+                serialized = result.serialize()
+                # save columns configuration in history
+                Config.instance().get_section("columns")[glob_proj.get_name().replace(" ", "_")] = serialized
+                Config.instance().save()
+            except Exception as e:
+                logger.error(f"Cannot save column in history: {e}")
 
     def button_goto_editor_event(self):
         logger.debug("Go to Edit page")
@@ -524,7 +525,8 @@ class PnPEditor(customtkinter.CTkFrame):
         self.btn_save.configure(state=tkinter.DISABLED)
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
         self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, columnspan=5, sticky="wens")
-        self.entry_list: list[tkinter.Entry] = []
+        self.entry_item_list: list[tkinter.Entry] = []
+        self.entry_descr_list: list[tkinter.Entry] = []
         self.lbl_marker_list = []
         self.cbx_component_list = []
         self.lbl_namelength_list = []
@@ -566,17 +568,43 @@ class PnPEditor(customtkinter.CTkFrame):
                 logger.info(f"Creating editor ...")
                 started_at = time.monotonic()
 
-                for idx, pnpitem in enumerate(editor_items):
-                    entry_pnp = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
-                                                        font=self.fonts[Config.instance().editor_font_idx][0])
-                    entry_pnp.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
+                # Header row
+                if True:
+                    lbl = tkinter.Label(self.scrollableframe, text="Component ID + Footprint + Value")
+                    lbl.grid(row=0, column=0, padx=5, pady=1, sticky="we")
 
-                    ui_helpers.entry_set_text(entry_pnp, pnpitem.item)
-                    self.entry_list.append(entry_pnp)
+                    lbl = tkinter.Label(self.scrollableframe, text="Description")
+                    lbl.grid(row=0, column=1, padx=5, pady=1, sticky="we")
+
+                    lbl = tkinter.Label(self.scrollableframe, text="✔")
+                    lbl.grid(row=0, column=2, padx=5, pady=1, sticky="")
+
+                    lbl = tkinter.Label(self.scrollableframe, text="Yamaha DB component")
+                    lbl.grid(row=0, column=3, padx=5, pady=1, sticky="we")
+
+                    lbl = tkinter.Label(self.scrollableframe, text="Rotation")
+                    lbl.grid(row=0, column=5, padx=6, pady=1, sticky="we")
+
+                # Components table:
+                for idx, pnpitem in enumerate(editor_items):
+                    idx += 1 # because of the header row
+                    entry_item = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
+                                                        font=self.fonts[Config.instance().editor_font_idx][0])
+                    entry_item.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
+                    entry_item.bind("<FocusIn>", self.focus_in)
+                    ui_helpers.entry_set_text(entry_item, pnpitem.item)
+                    self.entry_item_list.append(entry_item)
                     # entry_pnp.configure(state=tkinter.DISABLED)
 
+                    entry_descr = ui_helpers.EntryWithPPM(self.scrollableframe,
+                                                          font=self.fonts[Config.instance().editor_font_idx][0])
+                    entry_descr.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
+                    entry_descr.bind("<FocusIn>", self.focus_in)
+                    ui_helpers.entry_set_text(entry_descr, pnpitem.descr)
+                    self.entry_descr_list.append(entry_descr)
+
                     lbl_marker = tkinter.Label(self.scrollableframe, text=" ")
-                    lbl_marker.grid(row=idx, column=1, padx=5, pady=1, sticky="")
+                    lbl_marker.grid(row=idx, column=2, padx=5, pady=1, sticky="")
                     lbl_marker.config(background=Markers.MARKERS_MAP_INV[pnpitem.marker])
                     self.lbl_marker_list.append(lbl_marker)
 
@@ -587,12 +615,12 @@ class PnPEditor(customtkinter.CTkFrame):
                                                                values=self.component_names,
                                                                font=self.fonts[Config.instance().editor_font_idx][0])
                     self.cbx_components_add_context_menu(cbx_component)
-                    cbx_component.grid(row=idx, column=2, padx=5, pady=1, sticky="we")
+                    cbx_component.grid(row=idx, column=3, padx=5, pady=1, sticky="we")
                     cbx_component.bind('<<ComboboxSelected>>', self.cbx_components_selected)
                     # cbx_component.bind('<Key>', self.combobox_key)
                     cbx_component.bind("<Return>", self.cbx_components_return)
                     cbx_component.bind("<MouseWheel>", self.cbx_wheel)
-                    cbx_component.bind("<FocusIn>", self.cbx_focus_in)
+                    cbx_component.bind("<FocusIn>", self.focus_in)
                     cbx_component.filter = pnpitem.selection # keep the original filter
                     cbx_component.set(pnpitem.selection)
                     cbx_component.configure(values=pnpitem.cbx_items)
@@ -600,7 +628,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
                     lbl_length = tkinter.Label(self.scrollableframe,
                                                font=self.fonts[Config.instance().editor_font_idx][0])
-                    lbl_length.grid(row=idx, column=3, padx=1, pady=1, sticky="e")
+                    lbl_length.grid(row=idx, column=4, padx=1, pady=1, sticky="e")
                     lbl_length.config(foreground="maroon")
                     self.lbl_namelength_list.append(lbl_length)
                     self.update_componentname_length_lbl(lbl_length, pnpitem.selection)
@@ -608,11 +636,11 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_rotation = tkinter.ttk.Combobox(self.scrollableframe, width=5,
                                                         values=("0", "90", "180", "270"),
                                                         font=self.fonts[Config.instance().editor_font_idx][0])
-                    cbx_rotation.grid(row=idx, column=4, padx=5, pady=1, sticky="we")
+                    cbx_rotation.grid(row=idx, column=5, padx=5, pady=1, sticky="we")
                     cbx_rotation.bind('<<ComboboxSelected>>', self.cbx_rotation_selected)
                     cbx_rotation.bind("<Return>", self.cbx_rotation_return)
                     cbx_rotation.bind("<MouseWheel>", self.cbx_wheel)
-                    cbx_rotation.bind("<FocusIn>", self.cbx_focus_in)
+                    cbx_rotation.bind("<FocusIn>", self.focus_in)
                     cbx_rotation.set(pnpitem.rotation)
                     self.cbx_rotation_list.append(cbx_rotation)
 
@@ -632,7 +660,14 @@ class PnPEditor(customtkinter.CTkFrame):
                 delta = f"{delta:.1f}s"
                 logger.info(f"Editor for {len(editor_items)} elements created in {delta}")
                 self.scrollableframe.grid_columnconfigure(0, weight=3)
-                self.scrollableframe.grid_columnconfigure(2, weight=1)
+                self.scrollableframe.grid_columnconfigure(3, weight=1)
+
+                # to display long descriptions:
+                self.entry_descr_long = ui_helpers.EntryWithPPM(self, menuitems="c", # state=tkinter.DISABLED,
+                                                                placeholder_text="< description (long preview) >",
+                                                                font=self.fonts[Config.instance().editor_font_idx][0])
+                self.entry_descr_long.grid(row=1, column=0, columnspan=6, padx=15, pady=1, sticky="we")
+                self.update_component_description_long("") # to activate placeholder text
 
             # update progressbar
             self.update_selected_status()
@@ -646,9 +681,14 @@ class PnPEditor(customtkinter.CTkFrame):
         else:
             lbl.configure(text=f"+{name_len-COMPONENT_MAX_LEN}")
 
-    def check_selected_columns(self, ) -> bool:
+    def update_component_description_long(self, descr: str):
+        ui_helpers.entry_set_text(self.entry_descr_long, descr)
+
+    def check_selected_columns(self) -> bool:
+        if not glob_proj.pnp_columns.valid:
+            return False
         return glob_proj.pnp_columns.footprint_col < glob_proj.pnp_grid.ncols \
-            and glob_proj.pnp_columns.comment_col < glob_proj.pnp_grid.ncols
+           and glob_proj.pnp_columns.comment_col < glob_proj.pnp_grid.ncols
 
     def cbx_components_selected(self, event):
         filter = event.widget.filter
@@ -753,7 +793,7 @@ class PnPEditor(customtkinter.CTkFrame):
     def cbx_components_remove_component(self, cbx):
         cbx.focus_force()
         selected_idx = self.cbx_component_list.index(cbx)
-        selected_component: str = self.entry_list[selected_idx].get()
+        selected_component: str = self.entry_item_list[selected_idx].get()
         # remove double spaces
         selected_component = " ".join(selected_component.split())
         logger.debug(f"Removing: '{selected_component}'")
@@ -812,27 +852,36 @@ class PnPEditor(customtkinter.CTkFrame):
         # block changing value when the list is hidden to avoid accidental modification
         return 'break'
 
-    def cbx_focus_in(self, event):
-        # logger.debug(f"CB focus_in: {event}")
+    def focus_in(self, event):
+        # logger.debug(f"focus_in: {event}")
         try:
             # restore normal font on previous item
-            if not self.focused_idx is None and self.focused_idx < len(self.entry_list):
+            if not self.focused_idx is None and self.focused_idx < len(self.entry_item_list):
                 new_font = self.fonts[Config.instance().editor_font_idx][0]
-                self.entry_list[self.focused_idx].config(font=new_font)
+                self.entry_item_list[self.focused_idx].config(font=new_font)
+                self.entry_descr_list[self.focused_idx].config(font=new_font)
                 self.cbx_component_list[self.focused_idx].config(font=new_font)
                 self.cbx_rotation_list[self.focused_idx].config(font=new_font)
 
             # set bold font in new item
-            #   depending which CBX was clicked:
+            #   depending which widget was clicked:
             if event.widget in self.cbx_component_list:
                 self.focused_idx = self.cbx_component_list.index(event.widget)
             elif event.widget in self.cbx_rotation_list:
                 self.focused_idx = self.cbx_rotation_list.index(event.widget)
+            elif event.widget in self.entry_item_list:
+                self.focused_idx = self.entry_item_list.index(event.widget)
+            elif event.widget in self.entry_descr_list:
+                self.focused_idx = self.entry_descr_list.index(event.widget)
 
             new_font = self.fonts[Config.instance().editor_font_idx][1]
-            self.entry_list[self.focused_idx].config(font=new_font)
+            self.entry_item_list[self.focused_idx].config(font=new_font)
+            self.entry_descr_list[self.focused_idx].config(font=new_font)
             self.cbx_component_list[self.focused_idx].config(font=new_font)
             self.cbx_rotation_list[self.focused_idx].config(font=new_font)
+
+            # set the item long description text
+            self.update_component_description_long(self.entry_descr_list[self.focused_idx].get())
         except Exception as e:
             logger.debug(f"focus_in: {e}")
 
@@ -845,6 +894,15 @@ class PnPEditor(customtkinter.CTkFrame):
         rot: str = event.widget.get().strip()
         logger.debug(f"Rotation entered: {rot}")
         self.btn_save.configure(state=tkinter.NORMAL)
+
+    def entry_focus_in(self, event):
+        logger.debug(f"entry_focus_in: {event}")
+        try:
+            # set the item long description text
+            # self.update_component_description_long(self.entry_descr_list[self.focused_idx].get())
+            pass
+        except Exception as e:
+            logger.debug(f"entry_focus_in: {e}")
 
     def button_save_wip_event(self):
         logger.debug("Saving Work-In-Progress")
@@ -866,8 +924,9 @@ class PnPEditor(customtkinter.CTkFrame):
             }
             components = []
 
-            for i, cmp in enumerate(self.entry_list):
+            for i, cmp in enumerate(self.entry_item_list):
                 cmp_name = cmp.get()
+                cmp_descr = self.entry_descr_list[i].get()
                 cmp_marker = self.lbl_marker_list[i].cget("background")
                 cmp_selection = self.cbx_component_list[i].get()
                 cmp_rotation = self.cbx_rotation_list[i].get()
@@ -876,7 +935,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     'item': cmp_name,
                     'marker': Markers.MARKERS_MAP[cmp_marker],
                     'selection': cmp_selection,
-                    'rotation': cmp_rotation
+                    'rotation': cmp_rotation,
+                    'descr': cmp_descr,
                 }
                 components.append(record)
 
@@ -914,44 +974,55 @@ class PnPEditor(customtkinter.CTkFrame):
         csv_path += "_edited.csv"
         write_errors = 0
 
-        with open(csv_path, "w", encoding="UTF-8") as f:
-            for i, row in enumerate(glob_proj.pnp_grid.rows()):
-                selected_component = self.cbx_component_list[i].get()
-                selected_rotation = self.cbx_rotation_list[i].get()
-                marker_bg = self.lbl_marker_list[i].cget("background")
-                if marker_bg == Markers.CL_REMOVED:
-                    logger.debug(f"Skipped: '{row[glob_proj.pnp_columns.id_col]} | "
-                                  f"{row[glob_proj.pnp_columns.comment_col]}'")
-                    continue
+        try:
+            with open(csv_path, "w", encoding="UTF-8") as f:
+                for i, row in enumerate(glob_proj.pnp_grid.rows()):
+                    selected_component = self.cbx_component_list[i].get()
+                    selected_rotation = self.cbx_rotation_list[i].get()
+                    marker_bg = self.lbl_marker_list[i].cget("background")
+                    descr = self.entry_descr_list[i].get()
 
-                yamaha_columns = (
-                    selected_component,
-                    row[glob_proj.pnp_columns.id_col],
-                    row[glob_proj.pnp_columns.comment_col],
-                    row[glob_proj.pnp_columns.xcoord_col],
-                    row[glob_proj.pnp_columns.ycoord_col],
-                    "",
-                    selected_rotation,
-                    row[glob_proj.pnp_columns.layer_col] if glob_proj.pnp_columns.layer_col else ""
-                )
+                    if marker_bg == Markers.CL_REMOVED:
+                        logger.debug(f"Skipped: '{row[glob_proj.pnp_columns.id_col]} | "
+                                    f"{row[glob_proj.pnp_columns.comment_col]}'")
+                        continue
 
-                # original document content + empty column
-                row_str = ";".join([f'"{item}"' for item in row]) + ";;"
-                # append new columns in Yamaha-expected order
-                row_str += ";".join([f'"{item}"' for item in yamaha_columns]) + ";\n"
+                    yamaha_columns = (
+                        selected_component,
+                        row[glob_proj.pnp_columns.id_col],
+                        row[glob_proj.pnp_columns.comment_col],
+                        row[glob_proj.pnp_columns.xcoord_col],
+                        row[glob_proj.pnp_columns.ycoord_col],
+                        "",
+                        selected_rotation,
+                        row[glob_proj.pnp_columns.layer_col] if glob_proj.pnp_columns.layer_col >= 0 else ""
+                    )
 
-                try:
-                    f.write(row_str)
-                except UnicodeEncodeError as e:
-                    logger.error(f"Encoding error in: {i}. {row_str} -> {e}")
-                    write_errors += 1
-        if write_errors == 0:
-            logger.info(f"PnP saved to: {csv_path}")
-        else:
-            logger.warning(f"PnP saved to: {csv_path} with {write_errors} errors")
-            MessageBox(app=self.app, dialog_type="o",
-                        message=f"Encoding errors occured!\n\n{write_errors} items not saved",
-                        callback=lambda btn: btn)
+                    # original document content + empty column
+                    row.append(descr)
+                    row_str = ";".join([f'"{item}"' for item in row]) + ";;"
+                    # append new columns in Yamaha-expected order
+                    row_str += ";".join([f'"{item}"' for item in yamaha_columns]) + ";\n"
+
+                    try:
+                        f.write(row_str)
+                    except UnicodeEncodeError as e:
+                        logger.error(f"Encoding error in: {i}. {row_str} -> {e}")
+                        write_errors += 1
+                    except Exception as e:
+                        logger.error(f"Unknown error in: {i}. {row_str} -> {e}")
+                        write_errors += 1
+
+            if write_errors == 0:
+                logger.info(f"PnP saved to: {csv_path}")
+            else:
+                logger.warning(f"PnP saved to: {csv_path} with {write_errors} errors")
+                MessageBox(app=self.app, dialog_type="o",
+                            message=f"Encoding errors occured!\n\n{write_errors} items not saved",
+                            callback=lambda btn: btn)
+
+        except Exception as e:
+                logger.error(f"Cannot open file -> {e}")
 
     def update_selected_status(self):
         n_selected = self.count_selected()

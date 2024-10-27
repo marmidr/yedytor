@@ -5,12 +5,15 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 ## 1.1.0 - 2024-10-26
 
 * Added
+  * PnP editor - editor header row
+  * PnP editor - new column "Description", added to the output CSV
 * Changed
   * components LRU -> MRU
   * list is kept in the `db/mru.csv`
 * Deprecated
 * Removed
 * Fixed
+  * while saving the new CSV file, error are catched (eg. "Permission denied")
 
 ## 1.0.3 - 2024-10-12
 
