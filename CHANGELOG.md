@@ -2,6 +2,15 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.1.1 - 2024-12-06
+
+* Added
+* Changed
+* Deprecated
+* Removed
+* Fixed
+  * Components editor - fixed filtering (always update Alias field)
+
 ## 1.1.0 - 2024-10-26
 
 * Added

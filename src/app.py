@@ -29,7 +29,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.1.0"
+APP_NAME = "Yedytor v1.1.1"
 
 # -----------------------------------------------------------------------------
 
@@ -1264,6 +1264,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         for i in range(len(components_subrange), self.COMP_PER_PAGE):
             self.lbls_rowno[i].configure(text="-")
             ui_helpers.entry_set_text(self.entrys_name[i], "")
+            ui_helpers.entry_set_text(self.entrys_alias[i], "")
             self.vars_hidden[i].set(False)
 
     def chkbttn_hidden_event(self):
