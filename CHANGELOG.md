@@ -2,6 +2,16 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.1.2 - 2025-01-13
+
+* Added
+* Changed
+  * PnP editor - Popup menu is left only for **Yamaha DB component** column,
+    due to the `tkinter` problems when big project (> 800 elements) is loaded
+* Deprecated
+* Removed
+* Fixed
+
 ## 1.1.1 - 2024-12-06
 
 * Added

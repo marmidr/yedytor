@@ -2,7 +2,7 @@
 #
 # PnP files editor, using a footprint components defined in the Yamaha .Tou files.
 #
-# (c) 2023-2024 Mariusz Midor
+# (c) 2023-2025 Mariusz Midor
 # https://github.com/marmidr/yedytor
 
 import logger
@@ -29,7 +29,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.1.1"
+APP_NAME = "Yedytor v1.1.2"
 
 # -----------------------------------------------------------------------------
 
@@ -588,7 +588,8 @@ class PnPEditor(customtkinter.CTkFrame):
                 # Components table:
                 for idx, pnpitem in enumerate(editor_items):
                     idx += 1 # because of the header row
-                    entry_item = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
+                    # menuitems="" -> means no menu at all (number of menus to be created is limited)
+                    entry_item = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="", #menuitems="c",
                                                         font=self.fonts[Config.instance().editor_font_idx][0])
                     entry_item.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
                     entry_item.bind("<FocusIn>", self.focus_in)
@@ -596,7 +597,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     self.entry_item_list.append(entry_item)
                     # entry_pnp.configure(state=tkinter.DISABLED)
 
-                    entry_descr = ui_helpers.EntryWithPPM(self.scrollableframe,
+                    entry_descr = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="",
                                                           font=self.fonts[Config.instance().editor_font_idx][0])
                     entry_descr.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
                     entry_descr.bind("<FocusIn>", self.focus_in)
@@ -756,6 +757,9 @@ class PnPEditor(customtkinter.CTkFrame):
     #     logger.debug(f"CB key: {event}")
 
     def cbx_components_add_context_menu(self, cbx_component):
+        if cbx_component.menu is None:
+            return
+
         cbx_component.menu.add_separator()
         #
         cbx_component.menu.add_command(label="Update drop-down items (apply filter)")
@@ -1433,9 +1437,9 @@ class CtkApp(customtkinter.CTk):
 
 if __name__ == "__main__":
     logger.config(Config.instance().color_logs)
-    logger.info(f"{APP_NAME}   (c) 2023-2024")
+    logger.info(f"{APP_NAME}   (c) 2023-2025")
 
-    if (sys.version_info.major < 3) or (sys.version_info.minor < 9):
+    if (sys.version_info.major < 3) or (sys.version_info.major == 3 and sys.version_info.minor < 9):
         logger.error("Required Python version 3.9 or later!")
         sys.exit()
     else:

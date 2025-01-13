@@ -1,6 +1,6 @@
 import tkinter
 import customtkinter
-# import logger
+import logger
 
 # -----------------------------------------------------------------------------
 
@@ -51,6 +51,9 @@ def entry_set_text(entry: customtkinter.CTkEntry, text: str):
 
 # https://stackoverflow.com/questions/4266566/stardand-context-menu-in-python-tkinter-text-widget-when-mouse-right-button-is-p
 def _wgt_install_standard_menu(wgt, items: str):
+    if items == "":
+        return
+
     wgt.menu = tkinter.Menu(wgt, tearoff=0)
 
     if "c" in items:
@@ -87,7 +90,12 @@ class EntryWithPPM(tkinter.Entry):
         self.__get_orig = self.get
         self.get = self.__get
 
-        _wgt_install_standard_menu(self, menuitems)
+        try:
+            self.menu = None
+            _wgt_install_standard_menu(self, menuitems)
+        except Exception as e:
+            logger.error(f"EntryWithPPM: {e}")
+
         # overwrite default class binding so we don't need to return "break"
         self.bind_class("Entry", "<Control-a>", self.event_select_all)
         self.bind("<Button-3><ButtonRelease-3>", self.show_menu)
@@ -100,7 +108,8 @@ class EntryWithPPM(tkinter.Entry):
         self.selection_range(0, tkinter.END)
 
     def show_menu(self, ev):
-        self.tk.call("tk_popup", self.menu, ev.x_root, ev.y_root)
+        if self.menu:
+            self.tk.call("tk_popup", self.menu, ev.x_root, ev.y_root)
 
     def set_text(self, text: str):
         self.delete('0', 'end')
@@ -152,7 +161,12 @@ class ComboboxWithPPM(tkinter.ttk.Combobox):
         menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxp"
         tkinter.ttk.Combobox.__init__(self, *args, **kwargs)
 
-        _wgt_install_standard_menu(self, menuitems)
+        try:
+            self.menu = None
+            _wgt_install_standard_menu(self, menuitems)
+        except Exception as e:
+            logger.error(f"ComboboxWithPPM: {e}")
+
         # overwrite default class binding so we don't need to return "break"
         self.bind_class("Entry", "<Control-a>", self.event_select_all)
         self.bind("<Button-3><ButtonRelease-3>", self.show_menu)
