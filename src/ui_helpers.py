@@ -50,52 +50,55 @@ def entry_set_text(entry: customtkinter.CTkEntry, text: str):
 
 
 # https://stackoverflow.com/questions/4266566/stardand-context-menu-in-python-tkinter-text-widget-when-mouse-right-button-is-p
-def _wgt_install_standard_menu(wgt, items: str):
+def wgt_install_standard_menu(wgt, items: str):
+    if items is None:
+        items = "cxpl"
+
     if items == "":
         return
 
-    wgt.menu = tkinter.Menu(wgt, tearoff=0)
+    menu = tkinter.Menu(wgt, tearoff=0)
+    wgt.menu = menu
+    menu.wgt = wgt
 
     if "c" in items:
-        wgt.menu.add_command(label="Copy")
-        wgt.menu.entryconfigure("Copy", command=lambda: wgt.focus_force() or wgt.event_generate("<<Copy>>"))
+        menu.add_command(label="Copy",
+                        command=lambda: menu.wgt.focus_force() or menu.wgt.event_generate("<<Copy>>"))
     if "x" in items:
-        wgt.menu.add_command(label="Cut")
-        wgt.menu.entryconfigure("Cut", command=lambda: wgt.focus_force() or wgt.event_generate("<<Cut>>"))
+        menu.add_command(label="Cut",
+                        command=lambda: menu.wgt.focus_force() or menu.wgt.event_generate("<<Cut>>"))
     if "p" in items:
-        wgt.menu.add_command(label="Paste")
-        wgt.menu.entryconfigure("Paste", command=lambda: wgt.focus_force() or wgt.event_generate("<<Paste>>"))
+        menu.add_command(label="Paste",
+                        command=lambda: menu.wgt.focus_force() or menu.wgt.event_generate("<<Paste>>"))
     if "l" in items:
-        wgt.menu.add_command(label="Clear")
-        wgt.menu.entryconfigure("Clear", command=lambda: wgt.focus_force() or wgt.delete(0, tkinter.END))
+        menu.add_command(label="Clear",
+                        command=lambda: menu.wgt.focus_force() or menu.wgt.delete(0, tkinter.END))
 
-    wgt.menu.add_separator()
-    wgt.menu.add_command(label="Select all")
-    wgt.menu.entryconfigure("Select all", command=wgt.event_select_all)
+    menu.add_separator()
+    menu.add_command(label="Select all",
+                    command=lambda: menu.wgt.event_select_all())
 
 
 class EntryWithPPM(tkinter.Entry):
+    # common menus for all Entry instances
+    menus: dict[str, tkinter.Menu] = {}
+
     def __init__(self, *args, **kwargs):
         """
         Creates an entry with Popup menu and a placeholder text
         :menuitems: additional menu items
         :placeholder_text: a prompt in case of empty entry
         """
-        menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxpl"
+        menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else None
         self.placeholder_text = kwargs.pop("placeholder_text") if "placeholder_text" in kwargs else ""
         self.placeholder_color = "gray"
         tkinter.Entry.__init__(self, *args, **kwargs)
+
         self.default_fg_color = self['fg']
         # override default 'get' method to handle placeholder correctly
         self.__get_orig = self.get
         self.get = self.__get
-
-        try:
-            self.menu = None
-            _wgt_install_standard_menu(self, menuitems)
-        except Exception as e:
-            logger.error(f"EntryWithPPM: {e}")
-
+        self.add_menu(menuitems)
         # overwrite default class binding so we don't need to return "break"
         self.bind_class("Entry", "<Control-a>", self.event_select_all)
         self.bind("<Button-3><ButtonRelease-3>", self.show_menu)
@@ -103,17 +106,33 @@ class EntryWithPPM(tkinter.Entry):
         self.bind("<FocusOut>", self.foc_out)
         self.put_placeholder()
 
+    def add_menu(self, menuitems: str):
+        menuitems_default = menuitems or "*"
+
+        if menuitems_default in EntryWithPPM.menus.keys():
+            self.menu = EntryWithPPM.menus[menuitems_default]
+        else:
+            try:
+                self.menu = None
+                wgt_install_standard_menu(self, menuitems)
+                if self.menu:
+                    # update menus database
+                    EntryWithPPM.menus[menuitems_default] = self.menu
+            except Exception as e:
+                logger.error(f"EntryWithPPM: {e}")
+
     def event_select_all(self, *_args):
         self.focus_force()
-        self.selection_range(0, tkinter.END)
+        self.selection_range('0', tkinter.END)
 
     def show_menu(self, ev):
         if self.menu:
-            self.tk.call("tk_popup", self.menu, ev.x_root, ev.y_root)
+            self.menu.wgt = self # replace reference to the calling widget
+            self.menu.post(ev.x_root, ev.y_root)
 
     def set_text(self, text: str):
-        self.delete('0', 'end')
-        self.insert('0', text)
+        self.delete('0', tkinter.END)
+        self.insert(0, text)
 
     def put_placeholder(self):
         if not self.__get_orig() and self.placeholder_text:
@@ -157,26 +176,41 @@ class EntryWithPPM(tkinter.Entry):
 
 
 class ComboboxWithPPM(tkinter.ttk.Combobox):
+    # common menus for all Combobox instances
+    menus: dict[str, tkinter.Menu] = {}
+
     def __init__(self, *args, **kwargs):
-        menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else "cxp"
+        menuitems = kwargs.pop("menuitems") if "menuitems" in kwargs else None
         tkinter.ttk.Combobox.__init__(self, *args, **kwargs)
 
-        try:
-            self.menu = None
-            _wgt_install_standard_menu(self, menuitems)
-        except Exception as e:
-            logger.error(f"ComboboxWithPPM: {e}")
-
+        self.add_menu(menuitems)
         # overwrite default class binding so we don't need to return "break"
         self.bind_class("Entry", "<Control-a>", self.event_select_all)
         self.bind("<Button-3><ButtonRelease-3>", self.show_menu)
 
+    def add_menu(self, menuitems: str):
+        menuitems_default = menuitems or "*"
+
+        if menuitems_default in ComboboxWithPPM.menus.keys():
+            self.menu = ComboboxWithPPM.menus[menuitems_default]
+        else:
+            try:
+                self.menu = None
+                wgt_install_standard_menu(self, menuitems)
+                if self.menu:
+                    # update menus database
+                    ComboboxWithPPM.menus[menuitems_default] = self.menu
+            except Exception as e:
+                logger.error(f"ComboboxWithPPM: {e}")
+
     def event_select_all(self, *_args):
         self.focus_force()
-        self.selection_range(0, tkinter.END)
+        self.selection_range('0', tkinter.END)
 
     def show_menu(self, ev):
-        self.tk.call("tk_popup", self.menu, ev.x_root, ev.y_root)
+        if self.menu:
+            self.menu.wgt = self # replace reference to the calling widget
+            self.menu.post(ev.x_root, ev.y_root)
 
 def window_set_centered(app: tkinter.Tk, wnd: tkinter.Toplevel, wnd_w: int, wnd_h: int):
     # set window size

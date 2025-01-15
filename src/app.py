@@ -29,7 +29,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.1.2"
+APP_NAME = "Yedytor v1.1.3"
 
 # -----------------------------------------------------------------------------
 
@@ -523,8 +523,15 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def load(self, wip_items: list[dict] = None):
         self.btn_save.configure(state=tkinter.DISABLED)
+
+        if hasattr(self, "scrollableframe"):
+            # explicit destruction of old editor
+            self.scrollableframe.destroy()
+            self.scrollableframe = None
+
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
         self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, columnspan=5, sticky="wens")
+
         self.entry_item_list: list[tkinter.Entry] = []
         self.entry_descr_list: list[tkinter.Entry] = []
         self.lbl_marker_list = []
@@ -589,7 +596,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 for idx, pnpitem in enumerate(editor_items):
                     idx += 1 # because of the header row
                     # menuitems="" -> means no menu at all (number of menus to be created is limited)
-                    entry_item = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="", #menuitems="c",
+                    entry_item = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
                                                         font=self.fonts[Config.instance().editor_font_idx][0])
                     entry_item.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
                     entry_item.bind("<FocusIn>", self.focus_in)
@@ -597,7 +604,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     self.entry_item_list.append(entry_item)
                     # entry_pnp.configure(state=tkinter.DISABLED)
 
-                    entry_descr = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="",
+                    entry_descr = ui_helpers.EntryWithPPM(self.scrollableframe,
                                                           font=self.fonts[Config.instance().editor_font_idx][0])
                     entry_descr.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
                     entry_descr.bind("<FocusIn>", self.focus_in)
@@ -612,7 +619,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
                     # https://www.pythontutorial.net/tkinter/tkinter-combobox/
 
-                    cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cp",
+                    cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cp@",
                                                                values=self.component_names,
                                                                font=self.fonts[Config.instance().editor_font_idx][0])
                     self.cbx_components_add_context_menu(cbx_component)
@@ -665,7 +672,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
                 # to display long descriptions:
                 self.entry_descr_long = ui_helpers.EntryWithPPM(self, menuitems="c", # state=tkinter.DISABLED,
-                                                                placeholder_text="< description (long preview) >",
+                                                                placeholder_text="< long description preview >",
                                                                 font=self.fonts[Config.instance().editor_font_idx][0])
                 self.entry_descr_long.grid(row=1, column=0, columnspan=6, padx=15, pady=1, sticky="we")
                 self.update_component_description_long("") # to activate placeholder text
@@ -760,34 +767,31 @@ class PnPEditor(customtkinter.CTkFrame):
         if cbx_component.menu is None:
             return
 
-        cbx_component.menu.add_separator()
+        # as we are using the same menu for all ComboBoxes, add extra menus only once
+        if hasattr(cbx_component.menu, "cbx_extra_menu"):
+            return
+
+        menu = cbx_component.menu
+        menu.cbx_extra_menu = True
+
+        menu.add_separator()
         #
-        cbx_component.menu.add_command(label="Update drop-down items (apply filter)")
-        cbx_component.menu.entryconfigure("Update drop-down items (apply filter)",
-                                            command=lambda cbx=cbx_component: \
-                                            self.cbx_components_apply_filter(cbx))
-        cbx_component.menu.add_separator()
+        menu.add_command(label="Update drop-down items (apply filter)",
+                        command=lambda: self.cbx_components_apply_filter(menu.wgt))
+        menu.add_separator()
         #
-        cbx_component.menu.add_command(label="Set default: <Footprint>_<Comment>")
-        cbx_component.menu.entryconfigure("Set default: <Footprint>_<Comment>",
-                                            command=lambda cbx=cbx_component: \
-                                            self.cbx_components_set_default(cbx))
+        menu.add_command(label="Set default: <Footprint>_<Comment>",
+                        command=lambda: self.cbx_components_set_default(menu.wgt))
         #
-        cbx_component.menu.add_command(label="Apply selection to all matching components")
-        cbx_component.menu.entryconfigure("Apply selection to all matching components",
-                                            command=lambda cbx=cbx_component: \
-                                            self.cbx_components_apply_selected_to_all(cbx, False))
+        menu.add_command(label="Apply selection to all matching components",
+                        command=lambda: self.cbx_components_apply_selected_to_all(menu.wgt, False))
         #
-        cbx_component.menu.add_command(label="Apply+override selection to all matching components")
-        cbx_component.menu.entryconfigure("Apply+override selection to all matching components",
-                                            command=lambda cbx=cbx_component: \
-                                            self.cbx_components_apply_selected_to_all(cbx, True))
-        cbx_component.menu.add_separator()
+        menu.add_command(label="Apply+override selection to all matching components",
+                        command=lambda: self.cbx_components_apply_selected_to_all(menu.wgt, True))
+        menu.add_separator()
         #
-        cbx_component.menu.add_command(label="Remove component")
-        cbx_component.menu.entryconfigure("Remove component",
-                                            command=lambda cbx=cbx_component: \
-                                            self.cbx_components_remove_component(cbx))
+        menu.add_command(label="Remove component",
+                        command=lambda: self.cbx_components_remove_component(menu.wgt))
 
     def cbx_components_return(self, event):
         self.cbx_components_apply_filter(event.widget)

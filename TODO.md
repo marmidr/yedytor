@@ -22,6 +22,7 @@
     [x] lista komponentów: natural sorting
     [x] zamiast licznika, podawać identyfikator z pierwszej kolumny
     [ ] w ttk.Combobox obsłużyć TAB/Ctrl+TAB żeby bez myszy dało sie przejść do następnego wiersza, teraz np Down rozwija listę
+    [ ] generować raport: posortwana lista komponentów Yamaha + ilość do obsadzenia
 [x] zapis nowego PnP jako CSV
 [x] katalog z Tou - trzymać ścieżkę w historii i uzupełniać pole
 [x] okno podglądu i edycji bazy komponentów
@@ -53,3 +54,6 @@
     [x] trzymać w osobnym pliku jako klucz(filtr) : lista[nazwa komponentów]
     [x] przy ładowaniu sprawdzać, czy komponenty z MRU nadal istnieją w DB i usuwać nieaktualne
 [x] zapamiętywać drugi plik pnp: recent_pnp2_path
+[ ] yedytor.ini: zastąpić [columns] przez [recent]:
+    <path> = "separator"; first-row; "columns";
+    przywracać na starcie programu i po wczytaniu pliku

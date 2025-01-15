@@ -2,6 +2,16 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.1.3 - 2025-01-15
+
+* Added
+* Changed
+* Deprecated
+* Removed
+* Fixed
+  * PnP editor - Popup menus restored for all columns; big projects loaded without problems
+  * PnP editor - fixed loading many projects in a single Yedytor session (before, old widgets were not destroyed)
+
 ## 1.1.2 - 2025-01-13
 
 * Added
