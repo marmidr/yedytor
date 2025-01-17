@@ -29,7 +29,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.1.3"
+APP_NAME = "Yedytor v1.2.0"
 
 # -----------------------------------------------------------------------------
 
@@ -146,19 +146,20 @@ class HomeFrame(customtkinter.CTkFrame):
         Config.instance().save()
 
     def clear_pnp_previews(self):
-        self.var_pnp.set("")
-        self.var_pnp2.set("")
-        self.pnp_view.clear_preview()
-        self.pnp_config.entry_first_row_var.set("1")
-        self.pnp_config.progres_set(0)
+        loading_bkp = glob_proj.loading
+        try:
+            glob_proj.loading = True
+            self.var_pnp.set("")
+            self.var_pnp2.set("")
+            self.pnp_view.clear_preview()
+            self.pnp_config.entry_first_row_var.set("1")
+            self.pnp_config.progres_set(0)
+        finally:
+            glob_proj.loading = loading_bkp
 
     def button_browse_event(self):
         logger.debug("Browse for PnP")
-        try:
-            glob_proj.loading = True
-            self.load_pnp()
-        finally:
-            glob_proj.loading = False
+        self.load_pnp()
 
     def load_pnp(self):
         self.clear_pnp_previews()
@@ -222,9 +223,9 @@ class HomeFrame(customtkinter.CTkFrame):
                 # reset entire project
                 global glob_proj
                 glob_proj = Project()
-                glob_proj.loading = True
 
                 try:
+                    glob_proj.loading = True
                     glob_proj.from_serializable(wip['project'])
                     glob_proj.wip_path = wip_path.name
 
@@ -239,22 +240,30 @@ class HomeFrame(customtkinter.CTkFrame):
                     glob_proj.loading = False
 
     def process_input_files(self, pnp_paths: list[str]):
+        try:
+            glob_proj.loading = True
+            self._process_input_files(pnp_paths)
+        finally:
+            glob_proj.loading = False
+
+    def _process_input_files(self, pnp_paths: list[str]):
         if len(pnp_paths) > 0 and os.path.isfile(pnp_paths[0]):
             try:
                 # reset entire project
                 global glob_proj
                 sep_backup = glob_proj.pnp_separator
                 first_row_backup = glob_proj.pnp_first_row
-                glob_proj = Project()
+                loading_backup = glob_proj.loading
 
+                glob_proj = Project()
                 glob_proj.pnp_separator = sep_backup
                 glob_proj.pnp_first_row = first_row_backup
+                glob_proj.loading = loading_backup
                 glob_proj.pnp_path = pnp_paths[0]
                 glob_proj.pnp2_path = pnp_paths[1] if len(pnp_paths) > 1 else ""
                 self.var_pnp.set(glob_proj.pnp_path)
                 self.var_pnp2.set(glob_proj.pnp2_path)
-
-                self.activate_csv_separator()
+                self.setup_pnp_config_pane()
                 self.app.title(f"{APP_NAME} - {glob_proj.pnp_path}")
 
             except Exception as e:
@@ -265,6 +274,30 @@ class HomeFrame(customtkinter.CTkFrame):
         else:
             if len(pnp_paths):
                 logger.error(f"Cannot access the file '{pnp_paths[0]}'")
+
+    def setup_pnp_config_pane(self):
+        self.activate_csv_separator()
+        last_colsel_result = ColumnsSelectorResult()
+
+        if recent_sett := Config.instance().read_settings(glob_proj.pnp_path):
+            self.pnp_config.entry_first_row_var.set(int(recent_sett["pnp_first_row"]) + 1)
+            self.pnp_config.opt_separator_var.set(recent_sett["pnp_separator"])
+            self.pnp_config.btn_goto_editor.configure(state=tkinter.NORMAL)
+            # load the columns selection from the history
+            last_colsel_result.deserialize(recent_sett["pnp_columns"])
+            glob_proj.pnp_first_row = int(recent_sett["pnp_first_row"])
+            glob_proj.pnp_separator = recent_sett["pnp_separator"]
+            glob_proj.pnp2_path = recent_sett["pnp2_path"]
+        else:
+            glob_proj.pnp_first_row = 0
+            self.pnp_config.entry_first_row_var.set("1")
+            # check the old settings ([columns] section is deprecated)
+            history_key = glob_proj.get_name().replace(" ", "_").replace(":", "_")
+            cols_serialized = Config.instance().get_section("columns").get(history_key, fallback="")
+            if cols_serialized != "":
+                last_colsel_result.deserialize(cols_serialized)
+
+        glob_proj.pnp_columns = last_colsel_result
 
     def activate_csv_separator(self):
         pnp_fname = glob_proj.pnp_path.lower()
@@ -358,9 +391,9 @@ class PnPConfig(customtkinter.CTkFrame):
         self.entry_first_row.grid(row=0, column=2, padx=5, pady=5, sticky="w")
 
         #
-        self.btn_load = customtkinter.CTkButton(self, text="Reload PnP",
-                                                command=self.button_load_event)
-        self.btn_load.grid(row=0, column=3, pady=5, padx=5, sticky="e")
+        self.btn_load_pnp_preview = customtkinter.CTkButton(self, text="Reload PnP",
+                                                command=self.button_load_pnp_preview_event)
+        self.btn_load_pnp_preview.grid(row=0, column=3, pady=5, padx=5, sticky="e")
 
         #
         sep_v = tkinter.ttk.Separator(self, orient='vertical')
@@ -405,7 +438,7 @@ class PnPConfig(customtkinter.CTkFrame):
 
         logger.info(f"  PnP separator: {new_sep}")
         glob_proj.pnp_separator = new_sep
-        self.button_load_event()
+        self.button_load_pnp_preview_event()
 
     def var_first_row_event(self, sv: customtkinter.StringVar):
         if glob_proj.loading:
@@ -415,11 +448,11 @@ class PnPConfig(customtkinter.CTkFrame):
             try:
                 glob_proj.pnp_first_row = int(new_first_row) - 1
                 logger.info(f"  PnP 1st row: {glob_proj.pnp_first_row+1}")
-                self.button_load_event()
+                self.button_load_pnp_preview_event()
             except Exception as e:
                 logger.error(f"  Invalid row number: {e}")
 
-    def button_load_event(self):
+    def button_load_pnp_preview_event(self):
         logger.debug("Load PnP...")
         try:
             self.pnp_view.load_pnp(glob_proj.pnp_path, glob_proj.pnp2_path)
@@ -445,16 +478,10 @@ class PnPConfig(customtkinter.CTkFrame):
         if self.column_selector:
             self.column_selector.destroy()
 
-        # load the columns selection from the history
-        last_cr_result = ColumnsSelectorResult()
-        history_key = glob_proj.get_name().replace(" ", "_")
-        serialized = Config.instance().get_section("columns").get(history_key, fallback="")
-        if serialized != "":
-            last_cr_result.deserialize(serialized)
         # show the column selector
         self.column_selector = ColumnsSelector(self, app=self.app, columns=columns,
                                                callback=self.column_selector_callback,
-                                               last_result=last_cr_result)
+                                               last_result=glob_proj.pnp_columns)
 
     def column_selector_callback(self, result: ColumnsSelectorResult):
         logger.debug(f"Selected PnP columns: {result.tostr()}")
@@ -462,19 +489,25 @@ class PnPConfig(customtkinter.CTkFrame):
         self.update_lbl_columns()
         if result.valid:
             self.btn_goto_editor.configure(state=tkinter.NORMAL)
-            try:
-                serialized = result.serialize()
-                # save columns configuration in history
-                Config.instance().get_section("columns")[glob_proj.get_name().replace(" ", "_")] = serialized
-                Config.instance().save()
-            except Exception as e:
-                logger.error(f"Cannot save column in history: {e}")
 
     def button_goto_editor_event(self):
-        logger.debug("Go to Edit page")
-        # refresh editor
-        self.pnp_editor.load()
-        self.select_editor()
+        try:
+            Config.instance().write_settings(
+                glob_proj.pnp_path, glob_proj.pnp_separator,
+                glob_proj.pnp_first_row,
+                glob_proj.pnp_columns.serialize(), glob_proj.pnp2_path
+            )
+            Config.instance().save()
+        except Exception as e:
+            logger.error(f"Cannot save a recent project settings: {e}")
+
+        if glob_proj.pnp_grid:
+            logger.debug("Go to Editor page")
+            # refresh editor
+            self.pnp_editor.load()
+            self.select_editor()
+        else:
+            logger.warning("PnP file not loaded")
 
 # -----------------------------------------------------------------------------
 
@@ -540,13 +573,13 @@ class PnPEditor(customtkinter.CTkFrame):
         self.cbx_rotation_list = []
         self.focused_idx = None
 
-        # if we are here, user already selected the PnP file first row
-        glob_proj.pnp_grid.firstrow = max(0, glob_proj.pnp_first_row)
-        glob_proj.pnp_grid.firstrow += 1 if glob_proj.pnp_columns.has_column_headers else 0
-
         if (not glob_proj.pnp_grid) or (glob_proj.pnp_grid.nrows == 0):
             logger.warning("PnP file not loaded")
         else:
+            # if we are here, user already selected the PnP file first row
+            glob_proj.pnp_grid.firstrow = max(0, glob_proj.pnp_first_row)
+            glob_proj.pnp_grid.firstrow += 1 if glob_proj.pnp_columns.has_column_headers else 0
+
             if not self.check_selected_columns():
                 logger.warning("Select proper Footprint and Comment columns before editing")
             else:

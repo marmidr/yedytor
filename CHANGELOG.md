@@ -2,6 +2,18 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.2.0 - 2025-01-17
+
+* Added
+  * program keeps entire project configuration in `yedytor.ini`, section `recent`;
+  * after program start, last project configuration is restored
+* Changed
+* Deprecated
+  * in `yedytor.ini`, the section `columns` is no longer updated; it may be used only
+    in situation where an old project is loaded and no entry in `recent` section was found
+* Removed
+* Fixed
+
 ## 1.1.3 - 2025-01-15
 
 * Added

@@ -1,5 +1,6 @@
 import configparser
 import os
+import logger
 
 # -----------------------------------------------------------------------------
 
@@ -20,7 +21,10 @@ class Config:
         self.__config = configparser.ConfigParser()
 
         if os.path.isfile(self.CONFIG_FILE_NAME):
-            self.__config.read(self.CONFIG_FILE_NAME, encoding="utf-8")
+            try:
+                self.__config.read(self.CONFIG_FILE_NAME, encoding="utf-8")
+            except Exception as e:
+                logger.error(f"Cannot read the program configuration file: {e}")
 
     def get_section(self, sect_name: str) -> configparser.SectionProxy:
         try:
@@ -30,8 +34,11 @@ class Config:
         return self.__config[sect_name]
 
     def save(self):
-        with open(self.CONFIG_FILE_NAME, 'w', encoding="utf-8") as f:
-            self.__config.write(f)
+        try:
+            with open(self.CONFIG_FILE_NAME, 'w', encoding="utf-8") as f:
+                self.__config.write(f)
+        except Exception as e:
+            logger.error(f"Cannot write the program configuration file: {e}")
 
     @property
     def editor_font_idx(self) -> int:
@@ -88,3 +95,31 @@ class Config:
     def color_logs(self, enable: bool):
         new_en = str(enable)
         self.get_section("common")["color_logs"] = new_en
+
+    def write_settings(self, pnp_path: str, pnp_separator: str, pnp_first_row: int, pnp_columns: str, pnp2_path: str = ""):
+        """Store a current project settings"""
+        if pnp_path:
+            pnp_path_key = pnp_path.replace(" ", "_").replace(":", "")
+            sett = pnp_separator + "; " + str(pnp_first_row) + "; " + pnp_columns + "; " + pnp2_path
+            self.get_section("recent")[pnp_path_key] = sett
+
+    def read_settings(self, pnp_path: str) -> dict:
+        """Load a recent project settings"""
+        if pnp_path:
+            pnp_path_key = pnp_path.replace(" ", "_").replace(":", "")
+            recent_sett = self.get_section("recent").get(pnp_path_key, fallback="")
+            if recent_sett:
+                recent_sett = recent_sett.split(";")
+                # safety padding
+                while len(recent_sett) < 4:
+                    recent_sett.append("")
+
+                ret = {
+                    "pnp_separator" : recent_sett[0].strip(),
+                    "pnp_first_row" : recent_sett[1].strip(),
+                    "pnp_columns"   : recent_sett[2].strip(),
+                    "pnp2_path"     : recent_sett[3].strip()
+                }
+                return ret
+            else:
+                return None
