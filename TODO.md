@@ -22,7 +22,7 @@
     [x] lista komponentów: natural sorting
     [x] zamiast licznika, podawać identyfikator z pierwszej kolumny
     [ ] w ttk.Combobox obsłużyć TAB/Ctrl+TAB żeby bez myszy dało sie przejść do następnego wiersza, teraz np Down rozwija listę
-    [ ] generować raport: posortwana lista komponentów Yamaha + ilość do obsadzenia
+    [x] generować raport: posortwana lista komponentów Yamaha + ilość do obsadzenia
 [x] zapis nowego PnP jako CSV
 [x] katalog z Tou - trzymać ścieżkę w historii i uzupełniać pole
 [x] okno podglądu i edycji bazy komponentów

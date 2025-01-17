@@ -18,8 +18,9 @@ import customtkinter
 import db_scanner
 import ui_helpers
 import pnp_editor_helpers
-from pnp_editor_helpers import Markers
+import output
 
+from pnp_editor_helpers import Markers
 from column_selector import ColumnsSelector, ColumnsSelectorResult
 from msg_box import MessageBox
 from tkhtmlview import HTMLLabel
@@ -1022,59 +1023,9 @@ class PnPEditor(customtkinter.CTkFrame):
                 logger.error(f"WiP file: '{csv_path}' also not found")
                 return
 
-        csv_path = os.path.splitext(csv_path)[0]
-        csv_path += "_edited.csv"
-        write_errors = 0
-
-        try:
-            with open(csv_path, "w", encoding="UTF-8") as f:
-                for i, row in enumerate(glob_proj.pnp_grid.rows()):
-                    selected_component = self.cbx_component_list[i].get()
-                    selected_rotation = self.cbx_rotation_list[i].get()
-                    marker_bg = self.lbl_marker_list[i].cget("background")
-                    descr = self.entry_descr_list[i].get()
-
-                    if marker_bg == Markers.CL_REMOVED:
-                        logger.debug(f"Skipped: '{row[glob_proj.pnp_columns.id_col]} | "
-                                    f"{row[glob_proj.pnp_columns.comment_col]}'")
-                        continue
-
-                    yamaha_columns = (
-                        selected_component,
-                        row[glob_proj.pnp_columns.id_col],
-                        row[glob_proj.pnp_columns.comment_col],
-                        row[glob_proj.pnp_columns.xcoord_col],
-                        row[glob_proj.pnp_columns.ycoord_col],
-                        "",
-                        selected_rotation,
-                        row[glob_proj.pnp_columns.layer_col] if glob_proj.pnp_columns.layer_col >= 0 else ""
-                    )
-
-                    # original document content + empty column
-                    row.append(descr)
-                    row_str = ";".join([f'"{item}"' for item in row]) + ";;"
-                    # append new columns in Yamaha-expected order
-                    row_str += ";".join([f'"{item}"' for item in yamaha_columns]) + ";\n"
-
-                    try:
-                        f.write(row_str)
-                    except UnicodeEncodeError as e:
-                        logger.error(f"Encoding error in: {i}. {row_str} -> {e}")
-                        write_errors += 1
-                    except Exception as e:
-                        logger.error(f"Unknown error in: {i}. {row_str} -> {e}")
-                        write_errors += 1
-
-            if write_errors == 0:
-                logger.info(f"PnP saved to: {csv_path}")
-            else:
-                logger.warning(f"PnP saved to: {csv_path} with {write_errors} errors")
-                MessageBox(app=self.app, dialog_type="o",
-                            message=f"Encoding errors occured!\n\n{write_errors} items not saved",
-                            callback=lambda btn: btn)
-
-        except Exception as e:
-                logger.error(f"Cannot open file -> {e}")
+        output.write_yamaha_csv(self.app, csv_path, glob_proj,
+                                self.cbx_component_list, self.cbx_rotation_list,
+                                self.lbl_marker_list, self.entry_descr_list)
 
     def update_selected_status(self):
         n_selected = self.count_selected()

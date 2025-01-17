@@ -7,6 +7,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Added
   * program keeps entire project configuration in `yedytor.ini`, section `recent`;
   * after program start, last project configuration is restored
+  * when saving a new Yamaha CSV file, additional summary file is created with the list of components' types to be placed
 * Changed
 * Deprecated
   * in `yedytor.ini`, the section `columns` is no longer updated; it may be used only
