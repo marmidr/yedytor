@@ -23,7 +23,8 @@ class ColumnsSelectorResult:
     def tostr(self) -> str:
         return f"id={self.id_col+1}, cmnt={self.comment_col+1}, ftprnt={self.footprint_col+1}, "\
                f"x={self.xcoord_col+1}, y={self.ycoord_col+1}, rot={self.rot_col+1}, "\
-               f"lr={self.layer_col+1}, descr={self.descr_col+1}"
+               f"lr={self.layer_col+1 if self.descr_col >= 0 else self.descr_col}, "\
+               f"descr={self.descr_col+1 if self.descr_col >= 0 else self.descr_col}"
 
     def serialize(self) -> str:
         """Ensures all fields are an integer indexes, creates a string of space-separated numbers"""
@@ -56,12 +57,19 @@ class ColumnsSelectorResult:
             lambda v: setattr(self, "layer_col", v),
             lambda v: setattr(self, "descr_col", v)
         ]
+
         if len(items) > len(setters):
             logger.error(f"Input has {len(items)} fields, while the struct has {len(setters)}.")
             return
+
+        # prevent error in case when an old setting was loaded
+        while len(items) < len(setters):
+            items.append("-1")
+
         for i, col_idx in enumerate(items):
             col_idx = int(col_idx)
             setters[i](col_idx)
+
         self.valid = True
 
 # -----------------------------------------------------------------------------

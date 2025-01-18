@@ -610,7 +610,11 @@ class PnPEditor(customtkinter.CTkFrame):
                 logger.info(f"Preparing editor data...")
                 self.app.pnp_config.progres_set(0)
                 started_at = time.monotonic()
-                editor_items = pnp_editor_helpers.prepare_editor_items(glob_components, glob_proj, wip_items)
+                try:
+                    editor_items = pnp_editor_helpers.prepare_editor_items(glob_components, glob_proj, wip_items)
+                except Exception as e:
+                    logger.error(f"Failed to prepare editor: {e}")
+                    return
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
                 logger.info(f"  {len(editor_items)} items prepared in {delta}")

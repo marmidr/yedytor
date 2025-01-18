@@ -11,6 +11,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Deprecated
 * Removed
 * Fixed
+  * bug fix, hen loaded an old project will less columns settings than expected
 
 ## 1.2.0 - 2025-01-17
 
