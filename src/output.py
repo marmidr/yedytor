@@ -5,6 +5,7 @@ import tkinter
 from project import Project
 from msg_box import MessageBox
 from pnp_editor_helpers import Markers
+from config import Config
 
 # -----------------------------------------------------------------------------
 
@@ -81,17 +82,22 @@ def _write_components_summary(csv_path: str, all_components = dict[str, int]):
     summary_path += "_summary.txt"
     sorted_components = list(all_components.keys())
     sorted_components.sort()
+    summary_comp_count = Config.instance().summary_comp_count
 
     try:
         with open(summary_path, "w", encoding="UTF-8") as f:
             total_elements = 0
             for c in sorted_components:
                 total_elements = total_elements + all_components[c]
-                report = f"{all_components[c]:3} × {c}\n"
+                if summary_comp_count:
+                    report = f"{all_components[c]:3} × {c}\n"
+                else:
+                    report = f"{c}\n"
                 f.write(report)
 
             f.write( "------------\n")
-            f.write(f"Total: {total_elements:4}\n")
+            f.write(f"Components: {len(sorted_components):4}\n")
+            f.write(f"Total PnP:  {total_elements:4}\n")
 
     except Exception as e:
         logger.error(f"Cannot open file -> {e}")

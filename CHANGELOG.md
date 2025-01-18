@@ -7,6 +7,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Added
   * PnP editor - component's number, same as on the preview page
 * Changed
+  * Output CSV summary file: number of elements column is optional
 * Deprecated
 * Removed
 * Fixed

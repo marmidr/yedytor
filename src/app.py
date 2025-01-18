@@ -30,7 +30,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.2.0"
+APP_NAME = "Yedytor v1.3.0"
 
 # -----------------------------------------------------------------------------
 
@@ -106,20 +106,32 @@ class HomeFrame(customtkinter.CTkFrame):
         sep_h.grid(row=5, column=0, pady=5, padx=5, columnspan=4, sticky="we")
 
         #
-        self.config_font = customtkinter.CTkFrame(self)
-        self.config_font.grid(row=6, column=0, pady=5, padx=5, columnspan=1, sticky="we")
-        self.config_font.lbl_font = customtkinter.CTkLabel(self.config_font, text="PnP Editor font size:")
-        self.config_font.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
+        self.config_pnpedit = customtkinter.CTkFrame(self)
+        self.config_pnpedit.grid(row=6, column=0, pady=5, padx=5, columnspan=1, sticky="we")
+        self.config_pnpedit.lbl_font = customtkinter.CTkLabel(self.config_pnpedit, text="PnP Editor Font:")
+        self.config_pnpedit.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
 
-        self.config_font.radio_var = tkinter.IntVar(value=Config.instance().editor_font_idx)
-        self.config_font.rb_font0 = customtkinter.CTkRadioButton(self.config_font, text="12px",
-                                                                variable=self.config_font.radio_var,
+        self.config_pnpedit.radio_var = tkinter.IntVar(value=Config.instance().editor_font_idx)
+        self.config_pnpedit.rb_font0 = customtkinter.CTkRadioButton(self.config_pnpedit, text="12px",
+                                                                variable=self.config_pnpedit.radio_var,
                                                                 value=0, command=self.radiobutton_event)
-        self.config_font.rb_font0.grid(row=1, column=0, pady=5, padx=5, sticky="w")
-        self.config_font.rb_font1 = customtkinter.CTkRadioButton(self.config_font, text="16px",
-                                                                variable=self.config_font.radio_var,
+        self.config_pnpedit.rb_font0.grid(row=1, column=0, pady=5, padx=5, sticky="w")
+        self.config_pnpedit.rb_font1 = customtkinter.CTkRadioButton(self.config_pnpedit, text="16px",
+                                                                variable=self.config_pnpedit.radio_var,
                                                                 value=1, command=self.radiobutton_event)
-        self.config_font.rb_font1.grid(row=2, column=0, pady=5, padx=5, sticky="w")
+        self.config_pnpedit.rb_font1.grid(row=2, column=0, pady=5, padx=5, sticky="w")
+
+        #
+        self.config_pnpedit.lbl_summary_cnt = customtkinter.CTkLabel(self.config_pnpedit, text="Summary report:")
+        self.config_pnpedit.lbl_summary_cnt.grid(row=3, column=0, pady=5, padx=5, sticky="w")
+
+        self.config_pnpedit.summary_com_count_var = customtkinter.BooleanVar(value=Config.instance().summary_comp_count)
+        self.config_pnpedit.chx_summary_com_count = customtkinter.CTkCheckBox(self.config_pnpedit,
+                                                        text="Number of components",
+                                                        command=self.checkbox_summary_com_count_event,
+                                                        variable=self.config_pnpedit.summary_com_count_var,
+                                                        checkbox_width=18, checkbox_height=18)
+        self.config_pnpedit.chx_summary_com_count.grid(row=4, column=0, pady=5, padx=5, sticky="w")
 
         #
         self.config_logs = customtkinter.CTkFrame(self)
@@ -130,20 +142,22 @@ class HomeFrame(customtkinter.CTkFrame):
         self.config_logs.colorlogs_var = customtkinter.BooleanVar(value=Config.instance().color_logs)
         self.config_logs.chx_color_logs = customtkinter.CTkCheckBox(self.config_logs,
                                                         text="Colorful logs",
-                                                        command=self.checkbox_event,
+                                                        command=self.checkbox_color_logs_event,
                                                         variable=self.config_logs.colorlogs_var,
                                                         checkbox_width=18, checkbox_height=18)
         self.config_logs.chx_color_logs.grid(row=1, column=0, pady=5, padx=5, sticky="w")
 
-
     def radiobutton_event(self):
-        Config.instance().editor_font_idx = self.config_font.radio_var.get()
+        Config.instance().editor_font_idx = self.config_pnpedit.radio_var.get()
         # logger.debug(f"RB event: {self.config_font.editor_font_idx}")
         Config.instance().save()
 
-    def checkbox_event(self):
+    def checkbox_color_logs_event(self):
         Config.instance().color_logs = self.config_logs.colorlogs_var.get()
-        # logger.debug(f"CHBX event: {Config.instance().color_logs}")
+        Config.instance().save()
+
+    def checkbox_summary_com_count_event(self):
+        Config.instance().summary_comp_count = self.config_pnpedit.summary_com_count_var.get()
         Config.instance().save()
 
     def clear_pnp_previews(self):

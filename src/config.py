@@ -96,6 +96,16 @@ class Config:
         new_en = str(enable)
         self.get_section("common")["color_logs"] = new_en
 
+    @property
+    def summary_comp_count(self) -> bool:
+        enabled = self.get_section("common").get("summary_comp_count", fallback=False)
+        return enabled == "True"
+
+    @summary_comp_count.setter
+    def summary_comp_count(self, enable: bool):
+        new_en = str(enable)
+        self.get_section("common")["summary_comp_count"] = new_en
+
     def write_settings(self, pnp_path: str, pnp_separator: str, pnp_first_row: int, pnp_columns: str, pnp2_path: str = ""):
         """Store a current project settings"""
         if pnp_path:
