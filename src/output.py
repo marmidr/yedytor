@@ -9,12 +9,15 @@ from config import Config
 
 # -----------------------------------------------------------------------------
 
-def write_yamaha_csv(app, csv_path: str, glob_proj: Project,
+def write_yamaha_csv(app, csv_path: str, csv_postfix: str, glob_proj: Project,
                      cbx_component: list[tkinter.Widget], cbx_rotation: list[tkinter.Widget],
                      lbl_marker: list[tkinter.Widget], entry_descr: list[tkinter.Widget]):
 
     yamaha_csv_path = os.path.splitext(csv_path)[0]
-    yamaha_csv_path += "_edited.csv"
+    if csv_postfix:
+        yamaha_csv_path += "_edited(" + csv_postfix + ").csv"
+    else:
+        yamaha_csv_path += "_edited.csv"
 
     write_errors = 0
 

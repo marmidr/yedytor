@@ -169,6 +169,7 @@ class HomeFrame(customtkinter.CTkFrame):
             self.pnp_view.clear_preview()
             self.pnp_config.entry_first_row_var.set("1")
             self.pnp_config.progres_set(0)
+            self.pnp_config.btn_columns.configure(state=tkinter.DISABLED)
         finally:
             glob_proj.loading = loading_bkp
 
@@ -194,6 +195,7 @@ class HomeFrame(customtkinter.CTkFrame):
                     message="You can only select one or two PnP files of the same type",
                     callback=lambda btn: btn)
             return
+
         if len(pnp_paths) == 2:
             # https://docs.python.org/3/library/os.path.html#os.path.splitext
             ext1 = os.path.splitext(pnp_paths[0])[1].lower()
@@ -267,18 +269,21 @@ class HomeFrame(customtkinter.CTkFrame):
                 # reset entire project
                 global glob_proj
                 sep_backup = glob_proj.pnp_separator
-                first_row_backup = glob_proj.pnp_first_row
+                # first_row_backup = glob_proj.pnp_first_row
                 loading_backup = glob_proj.loading
 
                 glob_proj = Project()
                 glob_proj.pnp_separator = sep_backup
-                glob_proj.pnp_first_row = first_row_backup
+                # glob_proj.pnp_first_row = first_row_backup
                 glob_proj.loading = loading_backup
                 glob_proj.pnp_path = pnp_paths[0]
                 glob_proj.pnp2_path = pnp_paths[1] if len(pnp_paths) > 1 else ""
                 self.var_pnp.set(glob_proj.pnp_path)
                 self.var_pnp2.set(glob_proj.pnp2_path)
                 self.setup_pnp_config_pane()
+                # reset the CSV filename postfix
+                self.pnp_editor.entry_csv_postfix.set_text("")
+                self.pnp_editor.entry_csv_postfix.put_placeholder()
                 self.app.title(f"{APP_NAME} - {glob_proj.pnp_path}")
 
             except Exception as e:
@@ -295,7 +300,7 @@ class HomeFrame(customtkinter.CTkFrame):
         last_colsel_result = ColumnsSelectorResult()
 
         if recent_sett := Config.instance().read_settings(glob_proj.pnp_path):
-            self.pnp_config.entry_first_row_var.set(int(recent_sett["pnp_first_row"]) + 1)
+            self.pnp_config.entry_first_row_var.set(str(int(recent_sett["pnp_first_row"]) + 1))
             self.pnp_config.opt_separator_var.set(recent_sett["pnp_separator"])
             self.pnp_config.btn_goto_editor.configure(state=tkinter.NORMAL)
             # load the columns selection from the history
@@ -545,8 +550,14 @@ class PnPEditor(customtkinter.CTkFrame):
         self.btn_save_wip = customtkinter.CTkButton(self, text="Save for later", command=self.button_save_wip_event)
         self.btn_save_wip.grid(row=2, column=3, pady=5, padx=5, sticky="e")
 
+        sep_v = tkinter.ttk.Separator(self, orient='vertical')
+        sep_v.grid(row=2, column=4, pady=2, padx=5, sticky="ns")
+
+        self.entry_csv_postfix = ui_helpers.EntryWithPPM(self, placeholder_text="< filename postfix >")
+        self.entry_csv_postfix.grid(row=2, column=5, padx=5, pady=2, sticky="we")
+
         self.btn_save = customtkinter.CTkButton(self, text="Save PnP as new CSV", command=self.button_save_event)
-        self.btn_save.grid(row=2, column=4, pady=5, padx=5, sticky="e")
+        self.btn_save.grid(row=2, column=6, pady=5, padx=5, sticky="e")
         self.btn_save.configure(state=tkinter.DISABLED)
 
         #
@@ -578,7 +589,7 @@ class PnPEditor(customtkinter.CTkFrame):
             self.scrollableframe = None
 
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
-        self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, columnspan=5, sticky="wens")
+        self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, columnspan=7, sticky="wens")
 
         self.entry_item_list: list[tkinter.Entry] = []
         self.entry_descr_list: list[tkinter.Entry] = []
@@ -726,7 +737,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 self.entry_descr_long = ui_helpers.EntryWithPPM(self, menuitems="c", # state=tkinter.DISABLED,
                                                                 placeholder_text="< long description preview >",
                                                                 font=self.fonts[Config.instance().editor_font_idx][0])
-                self.entry_descr_long.grid(row=1, column=0, columnspan=6, padx=15, pady=1, sticky="we")
+                self.entry_descr_long.grid(row=1, column=0, columnspan=7, padx=15, pady=1, sticky="we")
                 self.update_component_description_long("") # to activate placeholder text
 
             # update progressbar
@@ -1041,7 +1052,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 logger.error(f"WiP file: '{csv_path}' also not found")
                 return
 
-        output.write_yamaha_csv(self.app, csv_path, glob_proj,
+        output.write_yamaha_csv(self.app, csv_path, self.entry_csv_postfix.get(), glob_proj,
                                 self.cbx_component_list, self.cbx_rotation_list,
                                 self.lbl_marker_list, self.entry_descr_list)
 
@@ -1410,6 +1421,7 @@ class CtkApp(customtkinter.CTk):
         tab_pnp_editor.grid_rowconfigure(0, weight=1)
         self.pnp_view.pnp_editor = self.pnp_editor
         self.pnp_config.pnp_editor = self.pnp_editor
+        self.home_frame.pnp_editor = self.pnp_editor
 
         # panel with DB editor
         self.components_editor = ComponentsEditor(tab_db_editor, app=self)
@@ -1423,7 +1435,7 @@ class CtkApp(customtkinter.CTk):
         tab_preview.grid_columnconfigure(0, weight=1)
         tab_preview.grid_rowconfigure(0, weight=1)
 
-        #
+        # load the last project
         self.home_frame.process_input_files([Config.instance().recent_pnp_path, Config.instance().recent_pnp2_path])
 
         # UI ready

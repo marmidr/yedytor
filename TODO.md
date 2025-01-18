@@ -23,6 +23,9 @@
     [x] zamiast licznika, podawać identyfikator z pierwszej kolumny
     [ ] w ttk.Combobox obsłużyć TAB/Ctrl+TAB żeby bez myszy dało sie przejść do następnego wiersza, teraz np Down rozwija listę
     [x] generować raport: posortwana lista komponentów Yamaha + ilość do obsadzenia
+    [ ] Rotation: gdy dla C0805_10k zmieniono kąt z 90 na 180 (+90) to dla wszystkich C0805_10k wykonać +90
+        kolumna ze statusem, jak dla footprintu
+    [ ] filtr (wszystkie/nieustawione/usunięte)
 [x] zapis nowego PnP jako CSV
 [x] katalog z Tou - trzymać ścieżkę w historii i uzupełniać pole
 [x] okno podglądu i edycji bazy komponentów
@@ -40,7 +43,7 @@
 [x] 4 wątki wyszukiwania komponentu na podstawie Comment+Footprint
 [x] logi - opcjonalne kolorowanie (konsola CMD jest nieczytelna)
 [ ] weryfikacja wczytanego projektu:
-    [ ] parametry Rotation są liczbami: 0, 90, 180, 270, 360
+    [ ] parametry Rotation są liczbami (wartość niesprecyzowana)
     [ ] parametry Layer są tylko dwa
 [x] xls: rotation 180.00 -> 180
 [x] gdy element M0805 12k, to próbować szukać znanych footprintów (402, 603, 805, 1206 itd)
@@ -57,3 +60,5 @@
 [x] yedytor.ini: zastąpić [columns] przez [recent]:
     <path> = "separator"; first-row; "columns";
     przywracać na starcie programu i po wczytaniu pliku
+[ ] wczytywanie CSV/inne: przerywać nie jak kolumna A == "", tylko A==B==C==""
+[ ] w niektórych plikach, gdy Rotation==0, to wczytuje ""
