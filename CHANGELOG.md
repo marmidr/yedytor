@@ -2,6 +2,15 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.3.0 - 2025-01-18
+
+* Added
+  * PnP editor - component's number, same as on the preview page
+* Changed
+* Deprecated
+* Removed
+* Fixed
+
 ## 1.2.0 - 2025-01-17
 
 * Added

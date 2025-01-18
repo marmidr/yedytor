@@ -1157,7 +1157,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         sep_v.grid(row=0, column=4, pady=2, padx=5, sticky="ns")
 
         # save DB modifications to file
-        self.btn_save = customtkinter.CTkButton(self.frame_buttons, text="Save edited components to DB", command=self.button_save_event)
+        self.btn_save = customtkinter.CTkButton(self.frame_buttons, text="Save edited components to the DB", command=self.button_save_event)
         self.btn_save.grid(row=0, column=5, pady=5, padx=5, sticky="e")
         self.btn_save.configure(state=tkinter.DISABLED)
 
@@ -1448,6 +1448,7 @@ if __name__ == "__main__":
         glob_components.save_changes()
 
     if glob_components.mru_items.dirty:
+        logger.info('Saving the most recent used components (MRU list)...')
         glob_components.mru_items.save_changes()
 
     logger.info('Program ended.')

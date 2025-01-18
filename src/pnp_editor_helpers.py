@@ -126,7 +126,8 @@ class ItemsIterator:
                 row = self.__proj_rows[self.__idx]
                 self.__idx += 1
 
-                item = "{id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
+                item = "{idx:0>3} | {id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
+                    idx=self.__idx,
                     id=row[0],
                     id_w=self.__id_max_w,
                     ftprint=row[self.__proj.pnp_columns.footprint_col],

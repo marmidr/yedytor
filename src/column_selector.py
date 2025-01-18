@@ -116,7 +116,7 @@ class ColumnsSelector(customtkinter.CTkToplevel):
         opt_id.grid(row=1, column=1, pady=5, padx=5, sticky="we")
 
         #
-        lbl_comment = customtkinter.CTkLabel(self, text="Comment / Value column:")
+        lbl_comment = customtkinter.CTkLabel(self, text="Comment (value) column:")
         lbl_comment.grid(row=2, column=0, pady=5, padx=5, sticky="w")
 
         self.opt_comment_var = customtkinter.StringVar(value=initial_value(last_result.comment_col))
