@@ -1,3 +1,7 @@
+#
+# 2025-01-19
+#
+
 import logger
 
 # https://linuxhint.com/read-excel-file-python/
@@ -7,6 +11,12 @@ import xlrd
 from text_grid import TextGrid
 
 # -----------------------------------------------------------------------------
+
+def __check_row_valid(row_cells: list[str]) -> bool:
+    # ignore rows with empty cells 'A,B,C' or cell 'A' with a long horizontal line
+    row_valid = (len(row_cells) > 3) and (row_cells[0] or row_cells[1] or row_cells[2])
+    row_valid = row_valid and not row_cells[0].startswith("___")
+    return row_valid
 
 def read_xls_sheet(path: str) -> TextGrid:
     """
@@ -48,9 +58,10 @@ def read_xls_sheet(path: str) -> TextGrid:
             cell_val = cell_val.replace("\n", " ⏎ ")
             row_cells.append(cell_val.strip())
 
-        # ignore rows with empty cell 'A'
-        if row_cells and row_cells[0] != "":
-            tg.rows_raw().append(row_cells)
+        if not __check_row_valid(row_cells):
+            break
+
+        tg.rows_raw().append(row_cells)
 
     tg.nrows = len(tg.rows_raw())
     tg.ncols = sheet.ncols

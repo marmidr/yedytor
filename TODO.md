@@ -62,3 +62,4 @@
     przywracać na starcie programu i po wczytaniu pliku
 [ ] wczytywanie CSV/inne: przerywać nie jak kolumna A == "", tylko A==B==C==""
 [ ] w niektórych plikach, gdy Rotation==0, to wczytuje ""
+[ ] w niektórych plikach kolumna Description nie wczytuje sie dla każdego elementu

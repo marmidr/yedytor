@@ -9,6 +9,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
   * Output CSV file: optional filename postfix
 * Changed
   * Output CSV summary file: number of elements column is optional
+  * CSV/ODS/XLS/XLSX reader: document parsing stops when row cells A,B,C are empty
 * Deprecated
 * Removed
 * Fixed
