@@ -1,5 +1,5 @@
 #
-# 2025-01-19
+# 2025-01-20
 #
 
 import logger
@@ -40,6 +40,8 @@ def read_xls_sheet(path: str) -> TextGrid:
                 if isinstance(cell_val, float) and int(cell_val) == cell_val:
                     # prevent the conversion of '100' to '100.0'
                     cell_val = int(cell_val)
+                    cell_val = repr(cell_val)
+                elif isinstance(cell_val, float):
                     cell_val = repr(cell_val)
                 elif isinstance(cell_val, str):
                     # '5.00' is text

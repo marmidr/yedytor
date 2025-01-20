@@ -6,15 +6,15 @@
     "configurations": [
         {
             "name": "Python: debug app",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "src\\app.py",
             "console": "integratedTerminal",
-            "justMyCode": true,
+            "justMyCode": false,
         },
         {
             "name": "Python: debug current file",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",

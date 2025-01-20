@@ -31,6 +31,7 @@ from project import Project
 # -----------------------------------------------------------------------------
 
 APP_NAME = "Yedytor v1.3.0"
+APP_DATE = "(c) 2023-2025"
 
 # -----------------------------------------------------------------------------
 
@@ -136,6 +137,7 @@ class HomeFrame(customtkinter.CTkFrame):
         #
         self.config_logs = customtkinter.CTkFrame(self)
         self.config_logs.grid(row=6, column=1, pady=5, padx=5, columnspan=1, sticky="wns")
+
         self.config_logs.lbl_font = customtkinter.CTkLabel(self.config_logs, text="Console:")
         self.config_logs.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
 
@@ -1455,7 +1457,7 @@ class CtkApp(customtkinter.CTk):
 
 if __name__ == "__main__":
     logger.config(Config.instance().color_logs)
-    logger.info(f"{APP_NAME}   (c) 2023-2025")
+    logger.info(f"{APP_NAME}   {APP_DATE}")
 
     if (sys.version_info.major < 3) or (sys.version_info.major == 3 and sys.version_info.minor < 9):
         logger.error("Required Python version 3.9 or later!")

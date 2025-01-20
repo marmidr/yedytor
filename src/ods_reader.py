@@ -1,5 +1,5 @@
 #
-# 2025-01-19
+# 2025-01-20
 #
 
 import logger
@@ -47,10 +47,16 @@ def read_ods_sheet(path: str) -> TextGrid:
 
                 # when iterating through the row cells, take the "repeat" attribute into account
                 for cell in tablecells:
-                    repeated = cell.getAttribute(REPEATS_ATTR) or 1
-                    repeated = int(repeated)
+                    rep_attr = cell.getAttribute(REPEATS_ATTR) or 1
+                    repeated = int(rep_attr)
+                    if repeated > 25:
+                        logger.warning("Cell {ridx}:{cidx} repeated {rep} times".format(
+                                       ridx=len(tg.rows_raw())+1, cidx=len(row_cells)+1, rep=repeated))
+                        repeated = 25
+                    cell = str(cell).strip()
+
                     for _ in range(repeated):
-                        row_cells.append(str(cell).strip())
+                        row_cells.append(cell)
 
                 if not __check_row_valid(row_cells):
                     break
