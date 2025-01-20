@@ -16,6 +16,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
   * bug fix, hen loaded an old project will less columns settings than expected
   * ODS reader: detects if cell repeats more that 25 times
   * XLS reader: converts float cell to a string
+  * XLS reader: cell value 0.0 not treated as None
 
 ## 1.2.0 - 2025-01-17
 

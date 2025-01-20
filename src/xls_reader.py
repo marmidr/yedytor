@@ -1,5 +1,5 @@
 #
-# 2025-01-20
+# 2025-01-20.1
 #
 
 import logger
@@ -33,7 +33,7 @@ def read_xls_sheet(path: str) -> TextGrid:
         row_cells = []
         for c_idx in range(sheet.ncols):
             cellobj = sheet.cell(r_idx, c_idx)
-            cell_val = cellobj.value or ""
+            cell_val = "" if (cellobj.value is None) else cellobj.value
 
             # https://xlrd.readthedocs.io/en/latest/api.html#xlrd.sheet.Cell
             if cellobj.ctype in (xlrd.XL_CELL_NUMBER, xlrd.XL_CELL_TEXT):
