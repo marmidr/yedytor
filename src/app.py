@@ -19,6 +19,7 @@ import db_scanner
 import ui_helpers
 import pnp_editor_helpers
 import output
+import board_view
 
 from pnp_editor_helpers import Markers
 from column_selector import ColumnsSelector, ColumnsSelectorResult
@@ -30,7 +31,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.3.1"
+APP_NAME = "Yedytor v1.4.0"
 APP_DATE = "(c) 2023-2025"
 
 # -----------------------------------------------------------------------------
@@ -72,11 +73,11 @@ class HomeFrame(customtkinter.CTkFrame):
 
         self.var_pnp = customtkinter.StringVar(value="")
         self.entry_pnp_path = customtkinter.CTkEntry(self, textvariable=self.var_pnp)
-        self.entry_pnp_path.grid(row=0, column=1, pady=5, padx=5, columnspan=2, sticky="we")
+        self.entry_pnp_path.grid(row=0, column=1, pady=5, padx=5, columnspan=3, sticky="we")
         self.entry_pnp_path.configure(state=tkinter.DISABLED)
 
-        btn_browse = customtkinter.CTkButton(self, text="Browse...", command=self.button_browse_event)
-        btn_browse.grid(row=0, column=3, pady=5, padx=5, sticky="e")
+        btn_browse_pnp = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_pnp_event)
+        btn_browse_pnp.grid(row=0, column=4, pady=5, padx=5, sticky="e")
 
         #
         lbl_pnp2_path = customtkinter.CTkLabel(self, text="PnP2 (optional):")
@@ -84,16 +85,46 @@ class HomeFrame(customtkinter.CTkFrame):
 
         self.var_pnp2 = customtkinter.StringVar(value="")
         self.entry_pnp2_path = customtkinter.CTkEntry(self, textvariable=self.var_pnp2)
-        self.entry_pnp2_path.grid(row=2, column=1, pady=5, padx=5, sticky="we")
+        self.entry_pnp2_path.grid(row=2, column=1, pady=5, padx=5, columnspan=3, sticky="we")
         self.entry_pnp2_path.configure(state=tkinter.DISABLED)
 
         #
+        lbl_board_top_path = customtkinter.CTkLabel(self, text="Board view TOP (optional):")
+        lbl_board_top_path.grid(row=3, column=0, pady=5, padx=5, sticky="w")
+
+        self.var_board_top_path = customtkinter.StringVar(value="")
+        self.entry_board_top_path = customtkinter.CTkEntry(self, textvariable=self.var_board_top_path)
+        self.entry_board_top_path.grid(row=3, column=1, pady=5, padx=5, columnspan=2, sticky="we")
+        self.entry_board_top_path.configure(state=tkinter.DISABLED)
+
+        btn_browse_board_top = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_board_top_event)
+        btn_browse_board_top.grid(row=3, column=3, pady=5, padx=5, sticky="e")
+
+        btn_show_board_top = customtkinter.CTkButton(self, text="Show", width=20, command=self.button_show_board_top_event)
+        btn_show_board_top.grid(row=3, column=4, pady=5, padx=5,  sticky="")
+
+        #
+        lbl_board_bottom_path = customtkinter.CTkLabel(self, text="Board view BOT (optional):")
+        lbl_board_bottom_path.grid(row=4, column=0, pady=5, padx=5, sticky="w")
+
+        self.var_board_bot_path = customtkinter.StringVar(value="")
+        self.entry_board_bot_path = customtkinter.CTkEntry(self, textvariable=self.var_board_bot_path)
+        self.entry_board_bot_path.grid(row=4, column=1, pady=5, padx=5, columnspan=2, sticky="we")
+        self.entry_board_bot_path.configure(state=tkinter.DISABLED)
+
+        btn_browse_board_bot = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_board_bot_event)
+        btn_browse_board_bot.grid(row=4, column=3, pady=5, padx=5, sticky="e")
+
+        btn_show_board_bot = customtkinter.CTkButton(self, text="Show", width=20, command=self.button_show_board_bot_event)
+        btn_show_board_bot.grid(row=4, column=4, pady=5, padx=5, sticky="")
+
+        #
         sep_h = tkinter.ttk.Separator(self, orient='horizontal')
-        sep_h.grid(row=3, column=0, pady=5, padx=5, columnspan=4, sticky="we")
+        sep_h.grid(row=5, column=0, pady=5, padx=5, columnspan=5, sticky="we")
 
         #
         self.wip = customtkinter.CTkFrame(self)
-        self.wip.grid(row=4, column=0, pady=5, padx=5, columnspan=4, sticky="we")
+        self.wip.grid(row=6, column=0, pady=5, padx=5, columnspan=5, sticky="we")
 
         self.wip.lbl_msg = customtkinter.CTkLabel(self.wip, text="Restore previous Work In Progress")
         self.wip.lbl_msg.grid(row=0, column=0, pady=5, padx=5, columnspan=2, sticky="w")
@@ -104,11 +135,11 @@ class HomeFrame(customtkinter.CTkFrame):
 
         #
         sep_h = tkinter.ttk.Separator(self, orient='horizontal')
-        sep_h.grid(row=5, column=0, pady=5, padx=5, columnspan=4, sticky="we")
+        sep_h.grid(row=7, column=0, pady=5, padx=5, columnspan=5, sticky="we")
 
         #
         self.config_pnpedit = customtkinter.CTkFrame(self)
-        self.config_pnpedit.grid(row=6, column=0, pady=5, padx=5, columnspan=1, sticky="we")
+        self.config_pnpedit.grid(row=8, column=0, pady=5, padx=5, columnspan=1, sticky="we")
         self.config_pnpedit.lbl_font = customtkinter.CTkLabel(self.config_pnpedit, text="PnP Editor Font:")
         self.config_pnpedit.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
 
@@ -136,7 +167,7 @@ class HomeFrame(customtkinter.CTkFrame):
 
         #
         self.config_logs = customtkinter.CTkFrame(self)
-        self.config_logs.grid(row=6, column=1, pady=5, padx=5, columnspan=1, sticky="wns")
+        self.config_logs.grid(row=8, column=1, pady=5, padx=5, columnspan=1, sticky="wns")
 
         self.config_logs.lbl_font = customtkinter.CTkLabel(self.config_logs, text="Console:")
         self.config_logs.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
@@ -175,9 +206,48 @@ class HomeFrame(customtkinter.CTkFrame):
         finally:
             glob_proj.loading = loading_bkp
 
-    def button_browse_event(self):
+    def button_browse_pnp_event(self):
         logger.debug("Browse for PnP")
         self.load_pnp()
+
+    def button_browse_board_top_event(self):
+        logger.debug("Browse for TOP jpeg")
+        image_path = self._filedialog_image("TOP")
+        if os.path.isfile(image_path):
+            logger.info(f"Selected image: {image_path}")
+            self.var_board_top_path.set(image_path)
+            glob_proj.board_top_path = image_path
+            Config.instance().recent_board_top_path = image_path
+            Config.instance().save()
+
+    def button_browse_board_bot_event(self):
+        logger.debug("Browse for BOT jpeg")
+        image_path = self._filedialog_image("BOTTOM")
+        if os.path.isfile(image_path):
+            logger.info(f"Selected image: {image_path}")
+            self.var_board_bot_path.set(image_path)
+            glob_proj.board_bot_path = image_path
+            Config.instance().recent_board_bot_path = image_path
+            Config.instance().save()
+
+    def _filedialog_image(self, layer : str) -> str:
+        # https://docs.python.org/3/library/dialog.html
+        image_path = tkinter.filedialog.askopenfilename(
+            title=f"Select boart {layer} view",
+            initialdir=None,
+            filetypes = [
+                ("Image files", "*.jpg;*.jpeg;*.png;*.bmp")
+            ],
+        )
+        return image_path
+
+    def button_show_board_top_event(self):
+        logger.debug("Show TOP jpeg")
+        board_view.BoardView(app=self.app, image_path=glob_proj.board_top_path)
+
+    def button_show_board_bot_event(self):
+        logger.debug("Show BOTTOM jpeg")
+        board_view.BoardView(app=self.app, image_path=glob_proj.board_bot_path)
 
     def load_pnp(self):
         self.clear_pnp_previews()
@@ -296,6 +366,12 @@ class HomeFrame(customtkinter.CTkFrame):
         else:
             if len(pnp_paths):
                 logger.error(f"Cannot access the file '{pnp_paths[0]}'")
+
+    def restore_board_preview_paths(self, top_path: str, bot_path: str):
+        glob_proj.board_top_path = top_path
+        glob_proj.board_bot_path = bot_path
+        self.var_board_top_path.set(top_path)
+        self.var_board_bot_path.set(bot_path)
 
     def setup_pnp_config_pane(self):
         self.activate_csv_separator()
@@ -1439,6 +1515,7 @@ class CtkApp(customtkinter.CTk):
 
         # load the last project
         self.home_frame.process_input_files([Config.instance().recent_pnp_path, Config.instance().recent_pnp2_path])
+        self.home_frame.restore_board_preview_paths(Config.instance().recent_board_top_path, Config.instance().recent_board_bot_path)
 
         # UI ready
         logger.info('Application ready.')
@@ -1463,9 +1540,7 @@ if __name__ == "__main__":
         logger.error("Required Python version 3.9 or later!")
         sys.exit()
     else:
-        logger.info(
-            f"Python version: {sys.version_info.major}.{sys.version_info.minor}"
-        )
+        logger.info(f"Python version: {sys.version_info.major}.{sys.version_info.minor}")
 
     # https://customtkinter.tomschimansky.com/documentation/appearancemode
     customtkinter.set_appearance_mode("light")

@@ -69,6 +69,24 @@ class Config:
         self.get_section("common")["recent_pnp2_path"] = path2
 
     @property
+    def recent_board_top_path(self) -> str:
+        path1 = self.get_section("common").get("recent_board_top_path", fallback="")
+        return path1
+
+    @property
+    def recent_board_bot_path(self) -> str:
+        path2 = self.get_section("common").get("recent_board_bot_path", fallback="")
+        return path2
+
+    @recent_board_top_path.setter
+    def recent_board_top_path(self, path: str):
+        self.get_section("common")["recent_board_top_path"] = path
+
+    @recent_board_bot_path.setter
+    def recent_board_bot_path(self, path: str):
+        self.get_section("common")["recent_board_bot_path"] = path
+
+    @property
     def tou_directory_path(self) -> str:
         path = self.get_section("common").get("tou_directory_path", fallback="")
         return path

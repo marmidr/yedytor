@@ -2,12 +2,17 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
-## 1.3.1 - 2025-02-10
+## 1.4.0 - 2025-01-23
 
 * Added
+  * Board: JPEG/PNG preview of TOP/BOTTOM side
 * Changed
 * Deprecated
 * Removed
+* Fixed
+
+## 1.3.1 - 2025-02-10
+
 * Fixed
   * corrected loading of the WiP files, after component idx was edded to the PnP editor
 

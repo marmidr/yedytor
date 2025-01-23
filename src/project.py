@@ -21,6 +21,8 @@ class Project:
         self.pnp_first_row = 0
         self.pnp_columns = ColumnsSelectorResult()
         self.wip_path = None
+        self.board_top_path = None
+        self.board_bot_path = None
         self.loading = False
 
     def to_serializable(self) -> dict:
