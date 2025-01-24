@@ -32,6 +32,7 @@ class Markers:
 
 # -----------------------------------------------------------------------------
 
+# used for reading/parsing files
 class PnpItem:
     def __init__(self):
         self.item = ""
@@ -288,3 +289,88 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
     pnpitem.selection = ""
     pnpitem.cbx_items = names_visible
     pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_NOMATCH]
+
+# -----------------------------------------------------------------------------
+
+class Marker:
+    """State of selection of the given somponent"""
+
+    NOMATCH = "NOMATCH"
+    FILTER = "FILTER"
+    AUTO_SEL = "AUTO_SEL"
+    MAN_SEL = "MAN_SEL"
+    REMOVED = "REMOVED"
+    __enums = [NOMATCH, FILTER, AUTO_SEL, MAN_SEL, REMOVED]
+
+    CL_NOMATCH = "orange"
+    CL_FILTER = "yellow"
+    CL_AUTO_SEL = "lime"
+    CL_MAN_SEL = "green"
+    CL_REMOVED = "black"
+    __colors = [CL_NOMATCH, CL_FILTER, CL_AUTO_SEL, CL_MAN_SEL, CL_REMOVED]
+
+    ENUM_TO_COLOR = {
+        NOMATCH:    CL_NOMATCH,
+        FILTER:     CL_FILTER,
+        AUTO_SEL:   CL_AUTO_SEL,
+        MAN_SEL:    CL_MAN_SEL,
+        REMOVED:    CL_REMOVED
+    }
+
+    COLOR_TO_ENUM = {
+        CL_NOMATCH: NOMATCH,
+        CL_FILTER:  FILTER,
+        CL_AUTO_SEL:AUTO_SEL,
+        CL_MAN_SEL: MAN_SEL,
+        CL_REMOVED: REMOVED
+    }
+
+    def __init__(self):
+        self.__value = Marker.NOMATCH
+
+    def get_value(self):
+        return self.__value
+
+    def set_value(self, val: str):
+        if val in Marker.__enums:
+            self.__value = val
+
+    def get_color(self):
+        return Marker.ENUM_TO_COLOR[self.__value]
+
+class PnPEditorItem:
+    """Represents a single row of the PnP editor"""
+
+    def __init__(self):
+        # index | name | footprint
+        self.item: str = ""
+        # extra descr, like 5% resistor
+        self.descr: str = ""
+        # component selection state
+        self.marker = Marker()
+        # filter entered by user / selected from the combo-box
+        self.component_filter: str = ""
+        # currently entered/selected component
+        self.component_selection: str = ""
+        # list of component combobox items
+        self.component_cbitems: list[str] = []
+        # label with component length
+        self.component_namelength: str = ""
+        # selected component rotation
+        self.rotation: str = ""
+
+class PnPEditorData:
+    """Represents an entire data of the editor"""
+
+    ROWS_PER_PAGE = 200
+
+    def __init__(self):
+        # index | name | footprint
+        self.items: list[PnPEditorItem] = []
+        # row index
+        self.current_idx = 0
+        # page index,
+        self.page_index = 0
+
+    def load(self, items: list[PnpItem]):
+        pass
