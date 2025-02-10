@@ -4,7 +4,7 @@ import tkinter
 
 from project import Project
 from msg_box import MessageBox
-from pnp_editor_helpers import Markers
+from pnp_editor_helpers import Marker
 from config import Config
 
 # -----------------------------------------------------------------------------
@@ -34,7 +34,7 @@ def write_yamaha_csv(app, csv_path: str, csv_postfix: str, glob_proj: Project,
                 if not selected_component:
                     continue
 
-                if marker_bg == Markers.CL_REMOVED:
+                if marker_bg == Marker.CL_REMOVED:
                     logger.debug(f"Skipped: '{row[glob_proj.pnp_columns.id_col]} | "
                                 f"{row[glob_proj.pnp_columns.comment_col]}'")
                     continue

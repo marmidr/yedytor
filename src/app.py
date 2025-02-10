@@ -21,7 +21,7 @@ import pnp_editor_helpers
 import output
 import board_view
 
-from pnp_editor_helpers import Markers
+from pnp_editor_helpers import Marker
 from column_selector import ColumnsSelector, ColumnsSelectorResult
 from msg_box import MessageBox
 from tkhtmlview import HTMLLabel
@@ -701,6 +701,8 @@ class PnPEditor(customtkinter.CTkFrame):
                 started_at = time.monotonic()
                 try:
                     editor_items = pnp_editor_helpers.prepare_editor_items(glob_components, glob_proj, wip_items)
+                    pnp_editor_items = pnp_editor_helpers.PnPEditorData()
+                    pnp_editor_items.load(editor_items)
                 except Exception as e:
                     logger.error(f"Failed to prepare editor: {e}")
                     return
@@ -734,7 +736,8 @@ class PnPEditor(customtkinter.CTkFrame):
                     lbl.grid(row=0, column=5, padx=6, pady=1, sticky="we")
 
                 # Components table:
-                for idx, pnpitem in enumerate(editor_items):
+                # for idx, pnpitem in enumerate(editor_items):
+                for idx, pnpitem in enumerate(pnp_editor_items.items):
                     idx += 1 # because of the header row
                     # menuitems="" -> means no menu at all (number of menus to be created is limited)
                     entry_item = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
@@ -754,7 +757,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
                     lbl_marker = tkinter.Label(self.scrollableframe, text=" ")
                     lbl_marker.grid(row=idx, column=2, padx=5, pady=1, sticky="")
-                    lbl_marker.config(background=Markers.MARKERS_MAP_INV[pnpitem.marker])
+                    lbl_marker.config(background=pnpitem.marker.get_color())
                     self.lbl_marker_list.append(lbl_marker)
 
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
@@ -770,9 +773,9 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.bind("<Return>", self.cbx_components_return)
                     cbx_component.bind("<MouseWheel>", self.cbx_wheel)
                     cbx_component.bind("<FocusIn>", self.focus_in)
-                    cbx_component.filter = pnpitem.selection # keep the original filter
-                    cbx_component.set(pnpitem.selection)
-                    cbx_component.configure(values=pnpitem.cbx_items)
+                    cbx_component.filter = pnpitem.editor_filter # keep the original filter
+                    cbx_component.set(pnpitem.editor_selection)
+                    cbx_component.configure(values=pnpitem.editor_cb_items)
                     self.cbx_component_list.append(cbx_component)
 
                     lbl_length = tkinter.Label(self.scrollableframe,
@@ -780,7 +783,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     lbl_length.grid(row=idx, column=4, padx=1, pady=1, sticky="e")
                     lbl_length.config(foreground="maroon")
                     self.lbl_namelength_list.append(lbl_length)
-                    self.update_componentname_length_lbl(lbl_length, pnpitem.selection)
+                    self.update_componentname_length_lbl(lbl_length, pnpitem.editor_selection)
 
                     cbx_rotation = tkinter.ttk.Combobox(self.scrollableframe, width=5,
                                                         values=("0", "90", "180", "270"),
@@ -869,13 +872,13 @@ class PnPEditor(customtkinter.CTkFrame):
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
                 if i == selected_idx:
                     # add marker that this is a final value
-                    self.lbl_marker_list[i].config(background=Markers.CL_MAN_SEL)
+                    self.lbl_marker_list[i].config(background=Marker.CL_MAN_SEL)
                     self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
                     # event source widget, so we can skip this one
                     continue
                 marker_bg = self.lbl_marker_list[i].cget("background")
                 # if already selected, skip this item
-                if not force and (marker_bg in (Markers.CL_MAN_SEL, Markers.CL_REMOVED)):
+                if not force and (marker_bg in (Marker.CL_MAN_SEL, Marker.CL_REMOVED)):
                     continue
 
                 if row[glob_proj.pnp_columns.comment_col] == comment and \
@@ -887,10 +890,10 @@ class PnPEditor(customtkinter.CTkFrame):
 
                     if len(selected_component) >= 3:
                         # add marker that this is a final value
-                        self.lbl_marker_list[i].config(background=Markers.CL_MAN_SEL)
+                        self.lbl_marker_list[i].config(background=Marker.CL_MAN_SEL)
                     else:
                         # too short -> filter or empty
-                        self.lbl_marker_list[i].config(background=Markers.CL_NOMATCH)
+                        self.lbl_marker_list[i].config(background=Marker.CL_NOMATCH)
             self.update_selected_status()
         except Exception as e:
             logger.warning(f"Applying selection to the matching items failed: {e}")
@@ -953,7 +956,7 @@ class PnPEditor(customtkinter.CTkFrame):
         selected_component = " ".join(selected_component.split())
         logger.debug(f"Removing: '{selected_component}'")
         # add marker that this is a deleted entry
-        self.lbl_marker_list[selected_idx].config(background=Markers.CL_REMOVED)
+        self.lbl_marker_list[selected_idx].config(background=Marker.CL_REMOVED)
         # clear selection
         self.cbx_component_list[selected_idx].configure(values=[])
         self.cbx_component_list[selected_idx].set("")
@@ -969,7 +972,7 @@ class PnPEditor(customtkinter.CTkFrame):
         cbx.set(component_name)
         # mark
         lbl_marker = self.lbl_marker_list[selected_idx]
-        lbl_marker.config(background=Markers.CL_FILTER)
+        lbl_marker.config(background=Marker.CL_FILTER)
 
     def cbx_components_apply_filter(self, cbx):
         filter: str = cbx.get().strip()
@@ -987,21 +990,21 @@ class PnPEditor(customtkinter.CTkFrame):
             try:
                 self.component_names.index(filter)
                 # filter found on component list: add marker that this is a final value
-                self.lbl_marker_list[selected_idx].config(background=Markers.CL_MAN_SEL)
+                self.lbl_marker_list[selected_idx].config(background=Marker.CL_MAN_SEL)
             except Exception:
                 if len(filtered_comp_names) > 0:
                     # mark this is a filter, not value
-                    self.lbl_marker_list[selected_idx].config(background=Markers.CL_FILTER)
+                    self.lbl_marker_list[selected_idx].config(background=Marker.CL_FILTER)
                 else:
                     # mark no matching component in database
-                    self.lbl_marker_list[selected_idx].config(background=Markers.CL_NOMATCH)
+                    self.lbl_marker_list[selected_idx].config(background=Marker.CL_NOMATCH)
                 self.update_componentname_length_lbl(self.lbl_namelength_list[selected_idx], filter)
         else:
             logger.info("Filter too short: use full list")
             cbx.configure(values=self.component_names)
             try:
                 selected_idx = self.cbx_component_list.index(cbx)
-                self.lbl_marker_list[selected_idx].config(background=Markers.CL_NOMATCH)
+                self.lbl_marker_list[selected_idx].config(background=Marker.CL_NOMATCH)
             except Exception as e:
                 logger.warning(f"{e}")
 
@@ -1087,13 +1090,13 @@ class PnPEditor(customtkinter.CTkFrame):
             for i, cmp in enumerate(self.entry_item_list):
                 cmp_name = cmp.get()
                 cmp_descr = self.entry_descr_list[i].get()
-                cmp_marker = self.lbl_marker_list[i].cget("background")
+                cmp_marker_bg = self.lbl_marker_list[i].cget("background")
                 cmp_selection = self.cbx_component_list[i].get()
                 cmp_rotation = self.cbx_rotation_list[i].get()
 
                 record = {
                     'item': cmp_name,
-                    'marker': Markers.MARKERS_MAP[cmp_marker],
+                    'marker': Marker.COLOR_TO_ENUM[cmp_marker_bg],
                     'selection': cmp_selection,
                     'rotation': cmp_rotation,
                     'descr': cmp_descr,
@@ -1146,7 +1149,7 @@ class PnPEditor(customtkinter.CTkFrame):
         n = 0
         for lbl in self.lbl_marker_list:
             bg = lbl.cget("background")
-            if bg in (Markers.CL_MAN_SEL, Markers.CL_AUTO_SEL, Markers.CL_REMOVED):
+            if bg in (Marker.CL_MAN_SEL, Marker.CL_AUTO_SEL, Marker.CL_REMOVED):
                 n += 1
         return (n, len(self.lbl_marker_list))
 

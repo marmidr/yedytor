@@ -7,28 +7,52 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-class Markers:
+class Marker:
+    """State of selection of the given somponent"""
+
+    NOMATCH = "NOMATCH"
+    FILTER = "FILTER"
+    AUTO_SEL = "AUTO_SEL"
+    MAN_SEL = "MAN_SEL"
+    REMOVED = "REMOVED"
+    __enums = [NOMATCH, FILTER, AUTO_SEL, MAN_SEL, REMOVED]
+
     CL_NOMATCH = "orange"
     CL_FILTER = "yellow"
     CL_AUTO_SEL = "lime"
     CL_MAN_SEL = "green"
     CL_REMOVED = "black"
+    __colors = [CL_NOMATCH, CL_FILTER, CL_AUTO_SEL, CL_MAN_SEL, CL_REMOVED]
 
-    MARKERS_MAP_INV = {
-        "NOMATCH": CL_NOMATCH,
-        "FILTER": CL_FILTER,
-        "AUTO_SEL": CL_AUTO_SEL,
-        "MAN_SEL": CL_MAN_SEL,
-        "REMOVED": CL_REMOVED
+    ENUM_TO_COLOR = {
+        NOMATCH:    CL_NOMATCH,
+        FILTER:     CL_FILTER,
+        AUTO_SEL:   CL_AUTO_SEL,
+        MAN_SEL:    CL_MAN_SEL,
+        REMOVED:    CL_REMOVED
     }
 
-    MARKERS_MAP = {
-        CL_NOMATCH: "NOMATCH",
-        CL_FILTER: "FILTER",
-        CL_AUTO_SEL: "AUTO_SEL",
-        CL_MAN_SEL: "MAN_SEL",
-        CL_REMOVED: "REMOVED"
+    COLOR_TO_ENUM = {
+        CL_NOMATCH: NOMATCH,
+        CL_FILTER:  FILTER,
+        CL_AUTO_SEL:AUTO_SEL,
+        CL_MAN_SEL: MAN_SEL,
+        CL_REMOVED: REMOVED
     }
+
+    def __init__(self):
+        self.__value = Marker.NOMATCH
+
+    def get_value(self):
+        return self.__value
+
+    def set_value(self, val: str):
+        if val in Marker.__enums:
+            self.__value = val
+
+    def get_color(self):
+        return Marker.ENUM_TO_COLOR[self.__value]
+
 
 # -----------------------------------------------------------------------------
 
@@ -208,7 +232,7 @@ def __process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible:
 
     if pnpitem.marker:
         # iterating over WiP items
-        if pnpitem.marker == Markers.MARKERS_MAP[Markers.CL_FILTER]:
+        if pnpitem.marker == Marker.FILTER:
             __try_find_matching(components, names_visible, pnpitem)
     else:
         # iterating over Project items
@@ -239,7 +263,7 @@ def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem
         # if we are here - matching comonent was found
         pnpitem.selection = expected_component
         # record['cbx_items'] -> not needed
-        pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_AUTO_SEL]
+        pnpitem.marker = Marker.AUTO_SEL
         logger.info(f"  Matching component found: {expected_component}")
     except Exception:
         __try_find_matching(components, names_visible, pnpitem)
@@ -269,7 +293,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
         if len(filtered_comp_names) > 0:
             pnpitem.selection = fltr.lower()
             pnpitem.cbx_items = filtered_comp_names
-            pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_FILTER]
+            pnpitem.marker = Marker.FILTER
             # insert MRU items at the top of the `cbx_items` list
             components.mru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
             return
@@ -281,62 +305,17 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
     if len(filtered_comp_names) > 0:
         pnpitem.selection = fltr.lower()
         pnpitem.cbx_items = filtered_comp_names
-        pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_FILTER]
+        pnpitem.marker = Marker.FILTER
         components.mru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
         return
 
     # remove filter and assign all components
     pnpitem.selection = ""
     pnpitem.cbx_items = names_visible
-    pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_NOMATCH]
+    pnpitem.marker = Marker.NOMATCH
 
 # -----------------------------------------------------------------------------
 
-class Marker:
-    """State of selection of the given somponent"""
-
-    NOMATCH = "NOMATCH"
-    FILTER = "FILTER"
-    AUTO_SEL = "AUTO_SEL"
-    MAN_SEL = "MAN_SEL"
-    REMOVED = "REMOVED"
-    __enums = [NOMATCH, FILTER, AUTO_SEL, MAN_SEL, REMOVED]
-
-    CL_NOMATCH = "orange"
-    CL_FILTER = "yellow"
-    CL_AUTO_SEL = "lime"
-    CL_MAN_SEL = "green"
-    CL_REMOVED = "black"
-    __colors = [CL_NOMATCH, CL_FILTER, CL_AUTO_SEL, CL_MAN_SEL, CL_REMOVED]
-
-    ENUM_TO_COLOR = {
-        NOMATCH:    CL_NOMATCH,
-        FILTER:     CL_FILTER,
-        AUTO_SEL:   CL_AUTO_SEL,
-        MAN_SEL:    CL_MAN_SEL,
-        REMOVED:    CL_REMOVED
-    }
-
-    COLOR_TO_ENUM = {
-        CL_NOMATCH: NOMATCH,
-        CL_FILTER:  FILTER,
-        CL_AUTO_SEL:AUTO_SEL,
-        CL_MAN_SEL: MAN_SEL,
-        CL_REMOVED: REMOVED
-    }
-
-    def __init__(self):
-        self.__value = Marker.NOMATCH
-
-    def get_value(self):
-        return self.__value
-
-    def set_value(self, val: str):
-        if val in Marker.__enums:
-            self.__value = val
-
-    def get_color(self):
-        return Marker.ENUM_TO_COLOR[self.__value]
 
 class PnPEditorItem:
     """Represents a single row of the PnP editor"""
@@ -348,16 +327,19 @@ class PnPEditorItem:
         self.descr: str = ""
         # component selection state
         self.marker = Marker()
-        # filter entered by user / selected from the combo-box
-        self.component_filter: str = ""
-        # currently entered/selected component
-        self.component_selection: str = ""
-        # list of component combobox items
-        self.component_cbitems: list[str] = []
-        # label with component length
-        self.component_namelength: str = ""
         # selected component rotation
         self.rotation: str = ""
+        #
+        self.footprint = None
+        self.comment = None
+        # filter entered by user / selected from the combo-box
+        self.editor_filter: str = ""
+        # currently entered/selected component
+        self.editor_selection: str = ""
+        # list of component combobox items
+        self.editor_cb_items: list[str] = []
+        # label with component length
+        self.editor_namelength: str = ""
 
 class PnPEditorData:
     """Represents an entire data of the editor"""
@@ -372,5 +354,17 @@ class PnPEditorData:
         # page index,
         self.page_index = 0
 
-    def load(self, items: list[PnpItem]):
-        pass
+    def load(self, pnp_items: list[PnpItem]):
+        # self.footprint = ""
+        # self.comment = ""
+        for pi in pnp_items:
+            pedi = PnPEditorItem()
+            pedi.item = pi.item
+            pedi.descr = pi.descr
+            pedi.marker.set_value(pi.marker)
+            pedi.editor_filter = pi.selection
+            pedi.editor_selection = pi.selection
+            pedi.editor_cb_items = pi.cbx_items
+            pedi.rotation = pi.rotation
+
+            self.items.append(pedi)
