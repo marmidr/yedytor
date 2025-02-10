@@ -101,11 +101,18 @@ class ItemsIterator:
                 pnpitem.rotation = wip_cmp['rotation']
                 pnpitem.descr = wip_cmp.get('descr', '')
 
-                # "C42  | SMC_B              | 100u/10V "
                 item_splitted: list[str] = pnpitem.item.split("|")
+
                 if len(item_splitted) == 3:
+                    # old
+                    # "C42  | SMC_B              | 100u/10V "
                     pnpitem.footprint = item_splitted[1].strip()
                     pnpitem.comment = item_splitted[2].strip()
+                elif len(item_splitted) == 4:
+                    # new
+                    # "002 | C11  | WCAP-CSGP_1210_H0.95 | 1nF "
+                    pnpitem.footprint = item_splitted[2].strip()
+                    pnpitem.comment = item_splitted[3].strip()
                 else:
                     raise RuntimeError(f"Invalid item: '{pnpitem.item}'")
 
