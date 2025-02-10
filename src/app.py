@@ -755,7 +755,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
                     lbl_marker = tkinter.Label(self.scrollableframe, text=" ")
                     lbl_marker.grid(row=idx, column=2, padx=5, pady=1, sticky="")
-                    lbl_marker.config(background=pnpitem.marker.get_color())
+                    lbl_marker.config(background=pnpitem.marker.color)
                     self.lbl_marker_list.append(lbl_marker)
 
                     # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
@@ -862,7 +862,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
             item.editor_selection = selected_component
             item.editor_cbx_items = filtered_comp_names
-            item.marker.set_value(Marker.MAN_SEL)
+            item.marker.value = Marker.MAN_SEL
             event.widget.configure(values=item.editor_cbx_items)
             self.btn_save.configure(state=tkinter.NORMAL)
 
@@ -879,14 +879,14 @@ class PnPEditor(customtkinter.CTkFrame):
                 if item := self.editor_data.item(i):
                     if i == row_idx:
                         # add marker that this is a final value
-                        item.marker.set_value(Marker.MAN_SEL)
-                        self.lbl_marker_list[i].config(background=item.marker.get_color())
+                        item.marker.value = Marker.MAN_SEL
+                        self.lbl_marker_list[i].config(background=item.marker.color)
                         self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
                         # event source widget, so we can skip this one
                         continue
 
                     # if already selected, skip this item
-                    if not force and (item.marker.get_value() in (Marker.MAN_SEL, Marker.REMOVED)):
+                    if not force and (item.marker.value in (Marker.MAN_SEL, Marker.REMOVED)):
                         continue
 
                     if row[glob_proj.pnp_columns.comment_col] == comment and \
@@ -898,12 +898,12 @@ class PnPEditor(customtkinter.CTkFrame):
                         self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
                         if len(selected_component) >= 3:
                             # add marker that this is a final value
-                            item.marker.set_value(Marker.MAN_SEL)
-                            self.lbl_marker_list[i].config(background=item.marker.get_color())
+                            item.marker.value = Marker.MAN_SEL
+                            self.lbl_marker_list[i].config(background=item.marker.color)
                         else:
                             # too short -> filter or empty
-                            item.marker.set_value(Marker.NOMATCH)
-                            self.lbl_marker_list[i].config(background=item.marker.get_color())
+                            item.marker.value = Marker.NOMATCH
+                            self.lbl_marker_list[i].config(background=item.marker.color)
 
             self.update_selected_status()
         except Exception as e:
@@ -971,11 +971,11 @@ class PnPEditor(customtkinter.CTkFrame):
         if item := self.editor_data.item(row_idx):
             logger.debug(f"Removing: '{selected_component}'")
             # add marker that this is a deleted entry
-            item.marker.set_value(Marker.REMOVED)
+            item.marker.value = Marker.REMOVED
             item.editor_selection = ""
             item.editor_cbx_items = []
 
-            self.lbl_marker_list[row_idx].config(background=item.marker.get_color())
+            self.lbl_marker_list[row_idx].config(background=item.marker.color)
             # clear selection
             self.cbx_component_list[row_idx].set(item.editor_selection)
             self.cbx_component_list[row_idx].configure(values=item.editor_cbx_items)
@@ -992,10 +992,10 @@ class PnPEditor(customtkinter.CTkFrame):
         if item := self.editor_data.item(row_idx):
             logger.debug(f"Set default <ftprnt>_<cmnt>: '{component_name}'")
             item.editor_selection = component_name
-            item.marker.set_value(Marker.FILTER)
+            item.marker.value = Marker.FILTER
 
             cbx.set(component_name)
-            self.lbl_marker_list[row_idx].config(background=item.marker.get_color())
+            self.lbl_marker_list[row_idx].config(background=item.marker.color)
 
     # TODO: move to PnPEditorData
     def cbx_components_apply_filter(self, cbx):
@@ -1017,17 +1017,17 @@ class PnPEditor(customtkinter.CTkFrame):
                 try:
                     self.component_names.index(filter)
                     # filter found on component list: add marker that this is a final value
-                    item.marker.set_value(Marker.MAN_SEL)
-                    self.lbl_marker_list[row_idx].config(background=item.marker.get_color())
+                    item.marker.value = Marker.MAN_SEL
+                    self.lbl_marker_list[row_idx].config(background=item.marker.color)
                 except Exception:
                     if len(filtered_comp_names) > 0:
                         # mark this is a filter, not value
-                        item.marker.set_value(Marker.FILTER)
-                        self.lbl_marker_list[row_idx].config(background=item.marker.get_color())
+                        item.marker.value = Marker.FILTER
+                        self.lbl_marker_list[row_idx].config(background=item.marker.color)
                     else:
                         # mark no matching component in database
-                        item.marker.set_value(Marker.NOMATCH)
-                        self.lbl_marker_list[row_idx].config(background=item.marker.get_color())
+                        item.marker.value = Marker.NOMATCH
+                        self.lbl_marker_list[row_idx].config(background=item.marker.color)
 
                     self.update_componentname_length_lbl(self.lbl_namelength_list[row_idx], filter)
         else:
@@ -1038,8 +1038,8 @@ class PnPEditor(customtkinter.CTkFrame):
                 cbx.configure(values=item.editor_cbx_items)
 
                 try:
-                    item.marker.set_value(Marker.NOMATCH)
-                    self.lbl_marker_list[row_idx].config(background=item.marker.get_color())
+                    item.marker.value = Marker.NOMATCH
+                    self.lbl_marker_list[row_idx].config(background=item.marker.color)
                 except Exception as e:
                     logger.warning(f"{e}")
 
@@ -1133,7 +1133,7 @@ class PnPEditor(customtkinter.CTkFrame):
             for i, item in enumerate(self.editor_data.items):
                 record = {
                     'item': item.item,
-                    'marker': item.marker.get_value(),
+                    'marker': item.marker.value,
                     'selection': item.editor_selection,
                     'rotation': item.rotation,
                     'descr': item.descr,
@@ -1186,7 +1186,7 @@ class PnPEditor(customtkinter.CTkFrame):
     def count_selected(self) -> tuple[int, int]:
         n = 0
         for item in self.editor_data.items:
-            if item.marker.get_value() in (Marker.MAN_SEL, Marker.AUTO_SEL, Marker.REMOVED):
+            if item.marker.value in (Marker.MAN_SEL, Marker.AUTO_SEL, Marker.REMOVED):
                 n += 1
         return (n, len(self.editor_data.items))
 

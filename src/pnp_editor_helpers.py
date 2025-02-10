@@ -44,17 +44,20 @@ class Marker:
         self.__value = Marker.NOMATCH
         self.__is_set = False
 
-    def get_value(self) -> str:
+    @property
+    def value(self) -> str:
         return self.__value
 
-    def set_value(self, val: str):
+    @value.setter
+    def value(self, val: str):
         if val in Marker.__enums:
             self.__value = val
             self.__is_set = True
         else:
-            logger.debug(f"Unknown Marker value: {val}")
+            logger.warning(f"Unknown Marker value: {val}")
 
-    def get_color(self):
+    @property
+    def color(self) -> str:
         return Marker.ENUM_TO_COLOR[self.__value]
 
     def reset(self):
@@ -162,7 +165,7 @@ class ItemsIterator:
 
                 pnpitem = PnPEditorItem()
                 pnpitem.item = wip_cmp['item']
-                pnpitem.marker.set_value(wip_cmp['marker'])
+                pnpitem.marker.value = wip_cmp['marker']
                 pnpitem.editor_selection = wip_cmp['selection']
                 pnpitem.rotation = wip_cmp['rotation']
                 pnpitem.descr = wip_cmp.get('descr', '')
@@ -266,12 +269,12 @@ def __process_pnpitem(pnpitem: PnPEditorItem, components: ComponentsDB, names_vi
         if cached := cache.get(repr(pnpitem)):
             pnpitem.editor_selection = cached['selection']
             pnpitem.editor_cbx_items = cached['cbx_items']
-            pnpitem.marker.set_value(cached['marker'])
+            pnpitem.marker.value = cached['marker']
             return pnpitem
 
     if pnpitem.marker.is_set():
         # iterating over WiP items
-        if pnpitem.marker.get_value() == Marker.FILTER:
+        if pnpitem.marker.value == Marker.FILTER:
             __try_find_matching(components, names_visible, pnpitem)
     else:
         # iterating over Project items
@@ -281,7 +284,7 @@ def __process_pnpitem(pnpitem: PnPEditorItem, components: ComponentsDB, names_vi
         cached = {
             'selection' : pnpitem.editor_selection,
             'cbx_items' : pnpitem.editor_cbx_items,
-            'marker'    : pnpitem.marker.get_value(),
+            'marker'    : pnpitem.marker.value,
         }
         cache[repr(pnpitem)] = cached
 
@@ -302,7 +305,7 @@ def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem
         # if we are here - matching comonent was found
         pnpitem.editor_selection = expected_component
         # record['cbx_items'] -> not needed
-        pnpitem.marker.set_value(Marker.AUTO_SEL)
+        pnpitem.marker.value = Marker.AUTO_SEL
         logger.info(f"  Matching component found: {expected_component}")
     except Exception:
         __try_find_matching(components, names_visible, pnpitem)
@@ -332,7 +335,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
         if len(filtered_comp_names) > 0:
             pnpitem.editor_selection = fltr.lower()
             pnpitem.editor_cbx_items = filtered_comp_names
-            pnpitem.marker.set_value(Marker.FILTER)
+            pnpitem.marker.value = Marker.FILTER
             # insert MRU items at the top of the `cbx_items` list
             components.mru_items.arrange(pnpitem.editor_selection, pnpitem.editor_cbx_items)
             return
@@ -344,14 +347,14 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
     if len(filtered_comp_names) > 0:
         pnpitem.editor_selection = fltr.lower()
         pnpitem.editor_cbx_items = filtered_comp_names
-        pnpitem.marker.set_value(Marker.FILTER)
+        pnpitem.marker.value = Marker.FILTER
         components.mru_items.arrange(pnpitem.editor_selection, pnpitem.editor_cbx_items)
         return
 
     # remove filter and assign all components
     pnpitem.editor_selection = ""
     pnpitem.editor_cbx_items = names_visible
-    pnpitem.marker.set_value(Marker.NOMATCH)
+    pnpitem.marker.value = Marker.NOMATCH
 
 # -----------------------------------------------------------------------------
 
