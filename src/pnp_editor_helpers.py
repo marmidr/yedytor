@@ -42,36 +42,74 @@ class Marker:
 
     def __init__(self):
         self.__value = Marker.NOMATCH
+        self.__is_set = False
 
-    def get_value(self):
+    def get_value(self) -> str:
         return self.__value
 
     def set_value(self, val: str):
         if val in Marker.__enums:
             self.__value = val
+            self.__is_set = True
+        else:
+            logger.debug(f"Unknown Marker value: {val}")
 
     def get_color(self):
         return Marker.ENUM_TO_COLOR[self.__value]
+
+    def reset(self):
+        self.__value = Marker.NOMATCH
+        self.__is_set = False
+
+    def is_set(self) -> bool:
+        return self.__is_set
 
 
 # -----------------------------------------------------------------------------
 
 # used for reading/parsing files
-class PnpItem:
+class PnPEditorItem:
+    """Represents a single row of the PnP editor"""
+
     def __init__(self):
-        self.item = ""
-        self.marker = None
-        self.selection = None
-        self.footprint = ""
-        self.comment = ""
-        self.cbx_items = list()
-        self.rotation = ""
-        self.descr = ""
+        # index | name | footprint
+        self.item: str = ""
+        # extra descr, like 5% resistor
+        self.descr: str = ""
+        # component selection state
+        self.marker = Marker()
+        # selected component rotation
+        self.rotation: str = ""
+        #
+        self.footprint = None
+        self.comment = None
+        # filter entered by user / selected from the combo-box
+        self.editor_filter: str = ""
+        # currently entered/selected component
+        self.editor_selection: str = ""
+        # list of component combobox items
+        self.editor_cbx_items: list[str] = []
+        # label with component length
+        self.editor_namelength: str = ""
 
     def __repr__(self) -> str:
         if not (self.footprint is None or self.comment is None):
             return self.footprint + "|" + self.comment
         raise RuntimeError("PnpItem without footprint/comment attributes")
+
+
+class PnPEditorData:
+    """Represents an entire data of the editor"""
+
+    ROWS_PER_PAGE = 200
+
+    def __init__(self):
+        # index | name | footprint
+        self.items: list[PnPEditorItem] = []
+        # row index
+        self.current_idx = 0
+        # page index,
+        self.page_index = 0
 
 # -----------------------------------------------------------------------------
 
@@ -110,19 +148,17 @@ class ItemsIterator:
     def __iter__(self):
         return self
 
-    def __next__(self) -> PnpItem:
+    def __next__(self) -> PnPEditorItem:
         # if provided, prefer WiP records over the current project
         if self.__wip_items:
             if self.__idx < len(self.__wip_items):
                 wip_cmp = self.__wip_items[self.__idx]
                 self.__idx += 1
 
-                pnpitem = PnpItem()
+                pnpitem = PnPEditorItem()
                 pnpitem.item = wip_cmp['item']
-                pnpitem.marker = wip_cmp['marker']
-                pnpitem.selection = wip_cmp['selection']
-                pnpitem.footprint = None
-                pnpitem.comment = None
+                pnpitem.marker.set_value(wip_cmp['marker'])
+                pnpitem.editor_selection = wip_cmp['selection']
                 pnpitem.rotation = wip_cmp['rotation']
                 pnpitem.descr = wip_cmp.get('descr', '')
 
@@ -167,10 +203,8 @@ class ItemsIterator:
                     cmnt=row[self.__proj.pnp_columns.comment_col]
                 )
 
-                pnpitem = PnpItem()
+                pnpitem = PnPEditorItem()
                 pnpitem.item = item
-                pnpitem.marker = None
-                pnpitem.selection = None
                 pnpitem.footprint = row[self.__proj.pnp_columns.footprint_col]
                 pnpitem.comment = row[self.__proj.pnp_columns.comment_col]
                 pnpitem.rotation = row[self.__proj.pnp_columns.rot_col]
@@ -185,13 +219,13 @@ class ItemsIterator:
 
 # -----------------------------------------------------------------------------
 
-def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: list[dict] = None) -> list[PnpItem]:
+def prepare_editor_data(components: ComponentsDB, project: Project, wip_items: list[dict] = None) -> PnPEditorData:
     # works well with `wip_items`, hangs the app for `project`:
     USE_MULTIPROCESS = False
 
     items_iterator = ItemsIterator(project, wip_items)
     names_visible = components.names_visible()
-    out = []
+    out = PnPEditorData()
 
     if USE_MULTIPROCESS:
         # processes=1 -> 26s
@@ -207,17 +241,17 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
             #
             # best results for chunksize=8:
             it = pool.imap(process_fn, items_iterator, chunksize=8)
-            out = [item for item in it]
+            out.items = [item for item in it]
     else:
         # single thread: 24s
         cache = dict()
         for pnpitem in items_iterator:
             __process_pnpitem(pnpitem, components, names_visible, cache)
-            out.append(pnpitem)
+            out.items.append(pnpitem)
 
     return out
 
-def __process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible: list[str], cache: dict) -> PnpItem:
+def __process_pnpitem(pnpitem: PnPEditorItem, components: ComponentsDB, names_visible: list[str], cache: dict) -> PnPEditorItem:
     # cache the component matching results:
     USE_CACHE = True
 
@@ -225,14 +259,14 @@ def __process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible:
         # for 270 items: 21s -> 8s
         # for 506 items: 41s -> 7s
         if cached := cache.get(repr(pnpitem)):
-            pnpitem.selection = cached['selection']
-            pnpitem.cbx_items = cached['cbx_items']
-            pnpitem.marker    = cached['marker']
+            pnpitem.editor_selection = cached['selection']
+            pnpitem.editor_cbx_items = cached['cbx_items']
+            pnpitem.marker.set_value(cached['marker'])
             return pnpitem
 
-    if pnpitem.marker:
+    if pnpitem.marker.is_set():
         # iterating over WiP items
-        if pnpitem.marker == Marker.FILTER:
+        if pnpitem.marker.get_value() == Marker.FILTER:
             __try_find_matching(components, names_visible, pnpitem)
     else:
         # iterating over Project items
@@ -240,16 +274,16 @@ def __process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible:
 
     if USE_CACHE:
         cached = {
-            'selection' : pnpitem.selection,
-            'cbx_items' : pnpitem.cbx_items,
-            'marker'    : pnpitem.marker,
+            'selection' : pnpitem.editor_selection,
+            'cbx_items' : pnpitem.editor_cbx_items,
+            'marker'    : pnpitem.marker.get_value(),
         }
         cache[repr(pnpitem)] = cached
 
     return pnpitem
 
 
-def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem: PnpItem):
+def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem: PnPEditorItem):
     """
     Try to find exact component using footprint and comment
     """
@@ -261,15 +295,15 @@ def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem
         # raise exception if not found:
         names_visible.index(expected_component)
         # if we are here - matching comonent was found
-        pnpitem.selection = expected_component
+        pnpitem.editor_selection = expected_component
         # record['cbx_items'] -> not needed
-        pnpitem.marker = Marker.AUTO_SEL
+        pnpitem.marker.set_value(Marker.AUTO_SEL)
         logger.info(f"  Matching component found: {expected_component}")
     except Exception:
         __try_find_matching(components, names_visible, pnpitem)
 
 
-def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpitem: PnpItem):
+def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpitem: PnPEditorItem):
     """
     Try to match component from the DB using item footprint nad comment
     """
@@ -291,11 +325,11 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
         fltr = ftprint_prefix + " " + cmnt
         filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
         if len(filtered_comp_names) > 0:
-            pnpitem.selection = fltr.lower()
-            pnpitem.cbx_items = filtered_comp_names
-            pnpitem.marker = Marker.FILTER
+            pnpitem.editor_selection = fltr.lower()
+            pnpitem.editor_cbx_items = filtered_comp_names
+            pnpitem.marker.set_value(Marker.FILTER)
             # insert MRU items at the top of the `cbx_items` list
-            components.mru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
+            components.mru_items.arrange(pnpitem.editor_selection, pnpitem.editor_cbx_items)
             return
 
     # create component list proposition based only on the comment
@@ -303,68 +337,16 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
     filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
 
     if len(filtered_comp_names) > 0:
-        pnpitem.selection = fltr.lower()
-        pnpitem.cbx_items = filtered_comp_names
-        pnpitem.marker = Marker.FILTER
-        components.mru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
+        pnpitem.editor_selection = fltr.lower()
+        pnpitem.editor_cbx_items = filtered_comp_names
+        pnpitem.marker.set_value(Marker.FILTER)
+        components.mru_items.arrange(pnpitem.editor_selection, pnpitem.editor_cbx_items)
         return
 
     # remove filter and assign all components
-    pnpitem.selection = ""
-    pnpitem.cbx_items = names_visible
-    pnpitem.marker = Marker.NOMATCH
+    pnpitem.editor_selection = ""
+    pnpitem.editor_cbx_items = names_visible
+    pnpitem.marker.set_value(Marker.NOMATCH)
 
 # -----------------------------------------------------------------------------
 
-
-class PnPEditorItem:
-    """Represents a single row of the PnP editor"""
-
-    def __init__(self):
-        # index | name | footprint
-        self.item: str = ""
-        # extra descr, like 5% resistor
-        self.descr: str = ""
-        # component selection state
-        self.marker = Marker()
-        # selected component rotation
-        self.rotation: str = ""
-        #
-        self.footprint = None
-        self.comment = None
-        # filter entered by user / selected from the combo-box
-        self.editor_filter: str = ""
-        # currently entered/selected component
-        self.editor_selection: str = ""
-        # list of component combobox items
-        self.editor_cb_items: list[str] = []
-        # label with component length
-        self.editor_namelength: str = ""
-
-class PnPEditorData:
-    """Represents an entire data of the editor"""
-
-    ROWS_PER_PAGE = 200
-
-    def __init__(self):
-        # index | name | footprint
-        self.items: list[PnPEditorItem] = []
-        # row index
-        self.current_idx = 0
-        # page index,
-        self.page_index = 0
-
-    def load(self, pnp_items: list[PnpItem]):
-        # self.footprint = ""
-        # self.comment = ""
-        for pi in pnp_items:
-            pedi = PnPEditorItem()
-            pedi.item = pi.item
-            pedi.descr = pi.descr
-            pedi.marker.set_value(pi.marker)
-            pedi.editor_filter = pi.selection
-            pedi.editor_selection = pi.selection
-            pedi.editor_cb_items = pi.cbx_items
-            pedi.rotation = pi.rotation
-
-            self.items.append(pedi)

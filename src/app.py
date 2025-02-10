@@ -676,6 +676,7 @@ class PnPEditor(customtkinter.CTkFrame):
         self.lbl_namelength_list = []
         self.cbx_rotation_list = []
         self.focused_idx = None
+        self.pnp_editor_data = pnp_editor_helpers.PnPEditorData()
 
         if (not glob_proj.pnp_grid) or (glob_proj.pnp_grid.nrows == 0):
             logger.warning("PnP file not loaded")
@@ -700,17 +701,15 @@ class PnPEditor(customtkinter.CTkFrame):
                 self.app.pnp_config.progres_set(0)
                 started_at = time.monotonic()
                 try:
-                    editor_items = pnp_editor_helpers.prepare_editor_items(glob_components, glob_proj, wip_items)
-                    pnp_editor_items = pnp_editor_helpers.PnPEditorData()
-                    pnp_editor_items.load(editor_items)
+                    self.pnp_editor_data = pnp_editor_helpers.prepare_editor_data(glob_components, glob_proj, wip_items)
                 except Exception as e:
                     logger.error(f"Failed to prepare editor: {e}")
                     return
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
-                logger.info(f"  {len(editor_items)} items prepared in {delta}")
+                logger.info(f"  {len(self.pnp_editor_data.items)} items prepared in {delta}")
 
-                progress_step = len(editor_items) / 20
+                progress_step = len(self.pnp_editor_data.items) / 20
                 progress_prc = 0
                 idx_threshold = progress_step
 
@@ -736,8 +735,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     lbl.grid(row=0, column=5, padx=6, pady=1, sticky="we")
 
                 # Components table:
-                # for idx, pnpitem in enumerate(editor_items):
-                for idx, pnpitem in enumerate(pnp_editor_items.items):
+                for idx, pnpitem in enumerate(self.pnp_editor_data.items):
                     idx += 1 # because of the header row
                     # menuitems="" -> means no menu at all (number of menus to be created is limited)
                     entry_item = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
@@ -775,7 +773,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.bind("<FocusIn>", self.focus_in)
                     cbx_component.filter = pnpitem.editor_filter # keep the original filter
                     cbx_component.set(pnpitem.editor_selection)
-                    cbx_component.configure(values=pnpitem.editor_cb_items)
+                    cbx_component.configure(values=pnpitem.editor_cbx_items)
                     self.cbx_component_list.append(cbx_component)
 
                     lbl_length = tkinter.Label(self.scrollableframe,
@@ -810,7 +808,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
-                logger.info(f"Editor for {len(editor_items)} elements created in {delta}")
+                logger.info(f"Editor for {len(self.pnp_editor_data.items)} elements created in {delta}")
                 self.scrollableframe.grid_columnconfigure(0, weight=3)
                 self.scrollableframe.grid_columnconfigure(3, weight=1)
 
