@@ -89,8 +89,6 @@ class PnPEditorItem:
         self.editor_selection: str = ""
         # list of component combobox items
         self.editor_cbx_items: list[str] = []
-        # label with component length
-        self.editor_namelength: str = ""
 
     def __repr__(self) -> str:
         if not (self.footprint is None or self.comment is None):
@@ -105,11 +103,18 @@ class PnPEditorData:
 
     def __init__(self):
         # index | name | footprint
+        # TODO: make it private, access as a list[ROWS_PER_PAGE] components
         self.items: list[PnPEditorItem] = []
-        # row index
-        self.current_idx = 0
         # page index,
         self.page_index = 0
+
+    def item(self, row_idx: int) -> PnPEditorItem:
+        # row index -> component index
+        row_idx += self.page_index * PnPEditorData.ROWS_PER_PAGE
+
+        if row_idx >= 0 and row_idx < len(self.items):
+            return self.items[row_idx]
+        return None
 
 # -----------------------------------------------------------------------------
 

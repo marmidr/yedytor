@@ -676,7 +676,7 @@ class PnPEditor(customtkinter.CTkFrame):
         self.lbl_namelength_list = []
         self.cbx_rotation_list = []
         self.focused_idx = None
-        self.pnp_editor_data = pnp_editor_helpers.PnPEditorData()
+        self.editor_data = pnp_editor_helpers.PnPEditorData()
 
         if (not glob_proj.pnp_grid) or (glob_proj.pnp_grid.nrows == 0):
             logger.warning("PnP file not loaded")
@@ -701,15 +701,15 @@ class PnPEditor(customtkinter.CTkFrame):
                 self.app.pnp_config.progres_set(0)
                 started_at = time.monotonic()
                 try:
-                    self.pnp_editor_data = pnp_editor_helpers.prepare_editor_data(glob_components, glob_proj, wip_items)
+                    self.editor_data = pnp_editor_helpers.prepare_editor_data(glob_components, glob_proj, wip_items)
                 except Exception as e:
                     logger.error(f"Failed to prepare editor: {e}")
                     return
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
-                logger.info(f"  {len(self.pnp_editor_data.items)} items prepared in {delta}")
+                logger.info(f"  {len(self.editor_data.items)} items prepared in {delta}")
 
-                progress_step = len(self.pnp_editor_data.items) / 20
+                progress_step = len(self.editor_data.items) / 20
                 progress_prc = 0
                 idx_threshold = progress_step
 
@@ -735,7 +735,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     lbl.grid(row=0, column=5, padx=6, pady=1, sticky="we")
 
                 # Components table:
-                for idx, pnpitem in enumerate(self.pnp_editor_data.items):
+                for idx, pnpitem in enumerate(self.editor_data.items):
                     idx += 1 # because of the header row
                     # menuitems="" -> means no menu at all (number of menus to be created is limited)
                     entry_item = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
@@ -771,7 +771,6 @@ class PnPEditor(customtkinter.CTkFrame):
                     cbx_component.bind("<Return>", self.cbx_components_return)
                     cbx_component.bind("<MouseWheel>", self.cbx_wheel)
                     cbx_component.bind("<FocusIn>", self.focus_in)
-                    cbx_component.filter = pnpitem.editor_filter # keep the original filter
                     cbx_component.set(pnpitem.editor_selection)
                     cbx_component.configure(values=pnpitem.editor_cbx_items)
                     self.cbx_component_list.append(cbx_component)
@@ -808,7 +807,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
-                logger.info(f"Editor for {len(self.pnp_editor_data.items)} elements created in {delta}")
+                logger.info(f"Editor for {len(self.editor_data.items)} elements created in {delta}")
                 self.scrollableframe.grid_columnconfigure(0, weight=3)
                 self.scrollableframe.grid_columnconfigure(3, weight=1)
 
@@ -841,57 +840,71 @@ class PnPEditor(customtkinter.CTkFrame):
            and glob_proj.pnp_columns.comment_col < glob_proj.pnp_grid.ncols
 
     def cbx_components_selected(self, event):
-        filter = event.widget.filter
+        row_idx = self.cbx_component_list.index(event.widget)
         selected_component: str = event.widget.get().strip()
-        logger.debug(f"CB selected: '{selected_component}' for filter pattern '{filter}'")
-        if selected_component == ComponentsMRU.SPACER_ITEM:
-            logger.debug("  spacer - selection ignored")
-            # restore filter value
-            event.widget.set(filter)
-            return
-        selected_idx = self.cbx_component_list.index(event.widget)
-        self.apply_component_to_matching(selected_idx, selected_component)
-        # update the MRU
-        glob_components.mru_items.on_select(filter, selected_component)
 
-        # update drop-down list so it contains the new MRU items
-        filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
-        glob_components.mru_items.arrange(filter, filtered_comp_names)
-        event.widget.configure(values=filtered_comp_names)
-        self.btn_save.configure(state=tkinter.NORMAL)
+        if item := self.editor_data.item(row_idx):
+            logger.debug(f"CB selected: '{selected_component}' for filter pattern '{item.editor_filter}'")
 
-    def apply_component_to_matching(self, selected_idx: int, selected_component: str, force: bool = False):
+            if selected_component == ComponentsMRU.SPACER_ITEM:
+                logger.debug("  spacer - selection ignored")
+                # restore filter value
+                event.widget.set(item.editor_filter)
+                return
+
+            self.apply_component_to_matching(row_idx, selected_component)
+            # update the MRU
+            glob_components.mru_items.on_select(item.editor_filter, selected_component)
+
+            # update drop-down list so it contains the new MRU items
+            filtered_comp_names = list(item.name for item in glob_components.items_filtered(item.editor_filter))
+            glob_components.mru_items.arrange(item.editor_filter, filtered_comp_names)
+
+            item.editor_selection = selected_component
+            item.editor_cbx_items = filtered_comp_names
+            item.marker.set_value(Marker.MAN_SEL)
+            event.widget.configure(values=item.editor_cbx_items)
+            self.btn_save.configure(state=tkinter.NORMAL)
+
+    # TODO: move to PnPEditorData
+    def apply_component_to_matching(self, row_idx: int, selected_component: str, force: bool = False):
         try:
             # get the selection details:
-            comment = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_columns.comment_col]
-            ftprint = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_columns.footprint_col]
+            # TODO: row_idx -> editor_data component idx (ROWS_PER_PAGE)
+            comment = glob_proj.pnp_grid.rows()[row_idx][glob_proj.pnp_columns.comment_col]
+            ftprint = glob_proj.pnp_grid.rows()[row_idx][glob_proj.pnp_columns.footprint_col]
 
             # scan all items and if comment:footprint matches -> apply
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
-                if i == selected_idx:
-                    # add marker that this is a final value
-                    self.lbl_marker_list[i].config(background=Marker.CL_MAN_SEL)
-                    self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
-                    # event source widget, so we can skip this one
-                    continue
-                marker_bg = self.lbl_marker_list[i].cget("background")
-                # if already selected, skip this item
-                if not force and (marker_bg in (Marker.CL_MAN_SEL, Marker.CL_REMOVED)):
-                    continue
-
-                if row[glob_proj.pnp_columns.comment_col] == comment and \
-                   row[glob_proj.pnp_columns.footprint_col] == ftprint:
-                    # found: select the same component
-                    logger.debug(f"  Apply '{selected_component}' to item {row[0]}")
-                    self.cbx_component_list[i].set(selected_component)
-                    self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
-
-                    if len(selected_component) >= 3:
+                if item := self.editor_data.item(i):
+                    if i == row_idx:
                         # add marker that this is a final value
-                        self.lbl_marker_list[i].config(background=Marker.CL_MAN_SEL)
-                    else:
-                        # too short -> filter or empty
-                        self.lbl_marker_list[i].config(background=Marker.CL_NOMATCH)
+                        item.marker.set_value(Marker.MAN_SEL)
+                        self.lbl_marker_list[i].config(background=item.marker.get_color())
+                        self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
+                        # event source widget, so we can skip this one
+                        continue
+
+                    # if already selected, skip this item
+                    if not force and (item.marker.get_value() in (Marker.MAN_SEL, Marker.REMOVED)):
+                        continue
+
+                    if row[glob_proj.pnp_columns.comment_col] == comment and \
+                       row[glob_proj.pnp_columns.footprint_col] == ftprint:
+                        # found: select the same component
+                        logger.debug(f"  Apply '{selected_component}' to item {row[0]}")
+                        item.editor_selection = selected_component
+                        self.cbx_component_list[i].set(selected_component)
+                        self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
+                        if len(selected_component) >= 3:
+                            # add marker that this is a final value
+                            item.marker.set_value(Marker.MAN_SEL)
+                            self.lbl_marker_list[i].config(background=item.marker.get_color())
+                        else:
+                            # too short -> filter or empty
+                            item.marker.set_value(Marker.NOMATCH)
+                            self.lbl_marker_list[i].config(background=item.marker.get_color())
+
             self.update_selected_status()
         except Exception as e:
             logger.warning(f"Applying selection to the matching items failed: {e}")
@@ -899,7 +912,7 @@ class PnPEditor(customtkinter.CTkFrame):
     def add_component_if_missing(self, new_component_name: str):
         new_component_name = new_component_name.strip()
         if glob_components.add_if_not_exists(new_component_name):
-            logger.info(f"New component '{new_component_name}' added to the database")
+            logger.info(f"⭐New component '{new_component_name}' added to the database")
             self.component_names.append(new_component_name)
 
     # def combobox_key(self, event):
@@ -938,73 +951,97 @@ class PnPEditor(customtkinter.CTkFrame):
     def cbx_components_return(self, event):
         self.cbx_components_apply_filter(event.widget)
 
+    # TODO: move to PnPEditorData
     def cbx_components_apply_selected_to_all(self, cbx, force: bool):
         cbx.focus_force()
-        selected_idx = self.cbx_component_list.index(cbx)
+        row_idx = self.cbx_component_list.index(cbx)
         selected_component: str = cbx.get().strip()
         logger.debug(f"Applying '{selected_component}':")
-        self.apply_component_to_matching(selected_idx, selected_component, force)
+        self.apply_component_to_matching(row_idx, selected_component, force)
         self.add_component_if_missing(selected_component)
 
+    # TODO: move to PnPEditorData
     def cbx_components_remove_component(self, cbx):
         cbx.focus_force()
-        selected_idx = self.cbx_component_list.index(cbx)
-        selected_component: str = self.entry_item_list[selected_idx].get()
+        row_idx = self.cbx_component_list.index(cbx)
+        selected_component: str = self.entry_item_list[row_idx].get()
         # remove double spaces
         selected_component = " ".join(selected_component.split())
-        logger.debug(f"Removing: '{selected_component}'")
-        # add marker that this is a deleted entry
-        self.lbl_marker_list[selected_idx].config(background=Marker.CL_REMOVED)
-        # clear selection
-        self.cbx_component_list[selected_idx].configure(values=[])
-        self.cbx_component_list[selected_idx].set("")
-        self.update_selected_status()
 
+        if item := self.editor_data.item(row_idx):
+            logger.debug(f"Removing: '{selected_component}'")
+            # add marker that this is a deleted entry
+            item.marker.set_value(Marker.REMOVED)
+            item.editor_selection = ""
+            item.editor_cbx_items = []
+
+            self.lbl_marker_list[row_idx].config(background=item.marker.get_color())
+            # clear selection
+            self.cbx_component_list[row_idx].set(item.editor_selection)
+            self.cbx_component_list[row_idx].configure(values=item.editor_cbx_items)
+            self.update_selected_status()
+
+    # TODO: move to PnPEditorData
     def cbx_components_set_default(self, cbx):
-        selected_idx = self.cbx_component_list.index(cbx)
-        row = glob_proj.pnp_grid.rows()[selected_idx]
+        row_idx = self.cbx_component_list.index(cbx)
+        row = glob_proj.pnp_grid.rows()[row_idx]
         ftprint = row[glob_proj.pnp_columns.footprint_col]
         cmnt = row[glob_proj.pnp_columns.comment_col]
         component_name = ftprint + "_" + cmnt
-        logger.debug(f"Set default <ftprnt>_<cmnt>: '{component_name}'")
-        cbx.set(component_name)
-        # mark
-        lbl_marker = self.lbl_marker_list[selected_idx]
-        lbl_marker.config(background=Marker.CL_FILTER)
 
+        if item := self.editor_data.item(row_idx):
+            logger.debug(f"Set default <ftprnt>_<cmnt>: '{component_name}'")
+            item.editor_selection = component_name
+            item.marker.set_value(Marker.FILTER)
+
+            cbx.set(component_name)
+            self.lbl_marker_list[row_idx].config(background=item.marker.get_color())
+
+    # TODO: move to PnPEditorData
     def cbx_components_apply_filter(self, cbx):
         filter: str = cbx.get().strip()
+        row_idx = self.cbx_component_list.index(cbx)
 
         if len(filter) >= 2:
             filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
             logger.info(f"Apply filter '{filter}' -> {len(filtered_comp_names)} matching")
             #
             glob_components.mru_items.arrange(filter, filtered_comp_names)
-            # set a new combobox items
-            cbx.configure(values=filtered_comp_names)
-            cbx.filter = filter
 
-            selected_idx = self.cbx_component_list.index(cbx)
-            try:
-                self.component_names.index(filter)
-                # filter found on component list: add marker that this is a final value
-                self.lbl_marker_list[selected_idx].config(background=Marker.CL_MAN_SEL)
-            except Exception:
-                if len(filtered_comp_names) > 0:
-                    # mark this is a filter, not value
-                    self.lbl_marker_list[selected_idx].config(background=Marker.CL_FILTER)
-                else:
-                    # mark no matching component in database
-                    self.lbl_marker_list[selected_idx].config(background=Marker.CL_NOMATCH)
-                self.update_componentname_length_lbl(self.lbl_namelength_list[selected_idx], filter)
+            if item := self.editor_data.item(row_idx):
+                item.editor_filter = filter
+                item.editor_cbx_items = filtered_comp_names
+                # set a new combobox items
+                cbx.configure(values=item.editor_cbx_items)
+
+                try:
+                    self.component_names.index(filter)
+                    # filter found on component list: add marker that this is a final value
+                    item.marker.set_value(Marker.MAN_SEL)
+                    self.lbl_marker_list[row_idx].config(background=item.marker.get_color())
+                except Exception:
+                    if len(filtered_comp_names) > 0:
+                        # mark this is a filter, not value
+                        item.marker.set_value(Marker.FILTER)
+                        self.lbl_marker_list[row_idx].config(background=item.marker.get_color())
+                    else:
+                        # mark no matching component in database
+                        item.marker.set_value(Marker.NOMATCH)
+                        self.lbl_marker_list[row_idx].config(background=item.marker.get_color())
+
+                    self.update_componentname_length_lbl(self.lbl_namelength_list[row_idx], filter)
         else:
             logger.info("Filter too short: use full list")
-            cbx.configure(values=self.component_names)
-            try:
-                selected_idx = self.cbx_component_list.index(cbx)
-                self.lbl_marker_list[selected_idx].config(background=Marker.CL_NOMATCH)
-            except Exception as e:
-                logger.warning(f"{e}")
+
+            if item := self.editor_data.item(row_idx):
+                item.editor_cbx_items = self.component_names
+                cbx.configure(values=item.editor_cbx_items)
+
+                try:
+                    item.marker.set_value(Marker.NOMATCH)
+                    self.lbl_marker_list[row_idx].config(background=item.marker.get_color())
+                except Exception as e:
+                    logger.warning(f"{e}")
 
         self.btn_save.configure(state=tkinter.NORMAL)
 
@@ -1049,12 +1086,20 @@ class PnPEditor(customtkinter.CTkFrame):
     def cbx_rotation_selected(self, event):
         rot: str = event.widget.get().strip()
         logger.debug(f"Rotation selected: {rot}")
-        self.btn_save.configure(state=tkinter.NORMAL)
+        row_idx = self.cbx_rotation_list.index(event.widget)
+
+        if item := self.editor_data.item(row_idx):
+            item.rotation = rot
+            self.btn_save.configure(state=tkinter.NORMAL)
 
     def cbx_rotation_return(self, event):
         rot: str = event.widget.get().strip()
         logger.debug(f"Rotation entered: {rot}")
-        self.btn_save.configure(state=tkinter.NORMAL)
+
+        row_idx = self.cbx_rotation_list.index(event.widget)
+        if item := self.editor_data.item(row_idx):
+            item.rotation = rot
+            self.btn_save.configure(state=tkinter.NORMAL)
 
     def entry_focus_in(self, event):
         logger.debug(f"entry_focus_in: {event}")
@@ -1085,19 +1130,14 @@ class PnPEditor(customtkinter.CTkFrame):
             }
             components = []
 
-            for i, cmp in enumerate(self.entry_item_list):
-                cmp_name = cmp.get()
-                cmp_descr = self.entry_descr_list[i].get()
-                cmp_marker_bg = self.lbl_marker_list[i].cget("background")
-                cmp_selection = self.cbx_component_list[i].get()
-                cmp_rotation = self.cbx_rotation_list[i].get()
-
+            for i, item in enumerate(self.editor_data.items):
                 record = {
-                    'item': cmp_name,
-                    'marker': Marker.COLOR_TO_ENUM[cmp_marker_bg],
-                    'selection': cmp_selection,
-                    'rotation': cmp_rotation,
-                    'descr': cmp_descr,
+                    'item': item.item,
+                    'marker': item.marker.get_value(),
+                    'selection': item.editor_selection,
+                    'rotation': item.rotation,
+                    'descr': item.descr,
+                    # footprint, comment ?
                 }
                 components.append(record)
 
@@ -1145,11 +1185,10 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def count_selected(self) -> tuple[int, int]:
         n = 0
-        for lbl in self.lbl_marker_list:
-            bg = lbl.cget("background")
-            if bg in (Marker.CL_MAN_SEL, Marker.CL_AUTO_SEL, Marker.CL_REMOVED):
+        for item in self.editor_data.items:
+            if item.marker.get_value() in (Marker.MAN_SEL, Marker.AUTO_SEL, Marker.REMOVED):
                 n += 1
-        return (n, len(self.lbl_marker_list))
+        return (n, len(self.editor_data.items))
 
 # -----------------------------------------------------------------------------
 
