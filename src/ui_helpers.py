@@ -175,6 +175,9 @@ class EntryWithPPM(tkinter.Entry):
 #         self.tk.call("tk_popup", self.menu, e.x_root, e.y_root)
 
 
+# https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
+# https://www.pythontutorial.net/tkinter/tkinter-combobox/
+
 class ComboboxWithPPM(tkinter.ttk.Combobox):
     # common menus for all Combobox instances
     menus: dict[str, tkinter.Menu] = {}

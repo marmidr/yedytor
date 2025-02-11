@@ -657,17 +657,12 @@ class PnPEditor(customtkinter.CTkFrame):
         # apply font to ALL application combobox list
         self.app.option_add('*TCombobox*Listbox.font', self.fonts[Config.instance().editor_font_idx][0])
         self.app.option_add('*TCombobox*Listbox.background', 'LightBlue')
+        # static editor
+        self.create_editor()
 
-    def load(self, wip_items: list[dict] = None):
-        self.btn_save.configure(state=tkinter.DISABLED)
-
-        if hasattr(self, "scrollableframe"):
-            # explicit destruction of old editor
-            self.scrollableframe.destroy()
-            self.scrollableframe = None
-
-        self.scrollableframe = customtkinter.CTkScrollableFrame(self)
-        self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, columnspan=7, sticky="wens")
+    def create_editor(self):
+        self.focused_idx = None
+        self.editor_data = pnp_editor_helpers.PnPEditorData()
 
         self.entry_item_list: list[tkinter.Entry] = []
         self.entry_descr_list: list[tkinter.Entry] = []
@@ -675,151 +670,184 @@ class PnPEditor(customtkinter.CTkFrame):
         self.cbx_component_list = []
         self.lbl_namelength_list = []
         self.cbx_rotation_list = []
-        self.focused_idx = None
-        self.editor_data = pnp_editor_helpers.PnPEditorData()
+
+        self.scrollableframe = customtkinter.CTkScrollableFrame(self)
+        self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, columnspan=7, sticky="wens")
+
+        # Header row
+        if True:
+            lbl = tkinter.Label(self.scrollableframe, text="Component ID + Footprint + Value")
+            lbl.grid(row=0, column=0, padx=5, pady=1, sticky="we")
+
+            lbl = tkinter.Label(self.scrollableframe, text="Description")
+            lbl.grid(row=0, column=1, padx=5, pady=1, sticky="we")
+
+            lbl = tkinter.Label(self.scrollableframe, text="✔")
+            lbl.grid(row=0, column=2, padx=5, pady=1, sticky="")
+
+            lbl = tkinter.Label(self.scrollableframe, text="Yamaha DB component")
+            lbl.grid(row=0, column=3, padx=5, pady=1, sticky="we")
+
+            lbl = tkinter.Label(self.scrollableframe, text="Rotation")
+            lbl.grid(row=0, column=5, padx=6, pady=1, sticky="we")
+
+        # Components table:
+        for idx in range(1, pnp_editor_helpers.PnPEditorData.ROWS_PER_PAGE+1):
+            # --- item
+            # menuitems="" -> means no menu at all (number of menus to be created is limited)
+            entry_item = ui_helpers.EntryWithPPM(
+                self.scrollableframe, menuitems="c",
+                font=self.fonts[Config.instance().editor_font_idx][0])
+            entry_item.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
+            entry_item.bind("<FocusIn>", self.focus_in)
+            self.entry_item_list.append(entry_item)
+
+            # --- descr
+            entry_descr = ui_helpers.EntryWithPPM(
+                self.scrollableframe,
+                font=self.fonts[Config.instance().editor_font_idx][0])
+            entry_descr.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
+            entry_descr.bind("<FocusIn>", self.focus_in)
+            self.entry_descr_list.append(entry_descr)
+
+            # --- selection marker
+            lbl_marker = tkinter.Label(self.scrollableframe, text=" ")
+            lbl_marker.grid(row=idx, column=2, padx=5, pady=1, sticky="")
+            self.lbl_marker_list.append(lbl_marker)
+
+            cbx_component = ui_helpers.ComboboxWithPPM(
+                self.scrollableframe, menuitems="cp@",
+                font=self.fonts[Config.instance().editor_font_idx][0])
+            self.cbx_components_add_context_menu(cbx_component)
+            cbx_component.grid(row=idx, column=3, padx=5, pady=1, sticky="we")
+            cbx_component.bind('<<ComboboxSelected>>', self.cbx_components_selected)
+            # cbx_component.bind('<Key>', self.combobox_key)
+            cbx_component.bind("<Return>", self.cbx_components_return)
+            cbx_component.bind("<MouseWheel>", self.cbx_wheel)
+            cbx_component.bind("<FocusIn>", self.focus_in)
+            self.cbx_component_list.append(cbx_component)
+
+            # --- component name length
+            lbl_length = tkinter.Label(
+                self.scrollableframe,
+                font=self.fonts[Config.instance().editor_font_idx][0])
+            lbl_length.grid(row=idx, column=4, padx=1, pady=1, sticky="e")
+            lbl_length.config(foreground="maroon")
+            self.lbl_namelength_list.append(lbl_length)
+
+            # --- component rotation
+            cbx_rotation = tkinter.ttk.Combobox(
+                self.scrollableframe, width=5,
+                values=("0", "90", "180", "270"),
+                font=self.fonts[Config.instance().editor_font_idx][0])
+            cbx_rotation.grid(row=idx, column=5, padx=5, pady=1, sticky="we")
+            cbx_rotation.bind('<<ComboboxSelected>>', self.cbx_rotation_selected)
+            cbx_rotation.bind("<Return>", self.cbx_rotation_return)
+            cbx_rotation.bind("<MouseWheel>", self.cbx_wheel)
+            cbx_rotation.bind("<FocusIn>", self.focus_in)
+            self.cbx_rotation_list.append(cbx_rotation)
+
+            self.scrollableframe.grid_columnconfigure(0, weight=3)
+            self.scrollableframe.grid_columnconfigure(3, weight=1)
+
+            # to display long descriptions:
+            self.entry_descr_long = ui_helpers.EntryWithPPM(
+                self, menuitems="c", # state=tkinter.DISABLED,
+                placeholder_text="< long description preview >",
+                font=self.fonts[Config.instance().editor_font_idx][0])
+            self.entry_descr_long.grid(row=1, column=0, columnspan=7, padx=15, pady=1, sticky="we")
+            self.update_component_description_long("") # to activate placeholder text
+
+    def load(self, wip_items: list[dict] = None):
+        self.btn_save.configure(state=tkinter.DISABLED)
 
         if (not glob_proj.pnp_grid) or (glob_proj.pnp_grid.nrows == 0):
             logger.warning("PnP file not loaded")
+            return
+
+        # if we are here, user already selected the PnP file first row
+        glob_proj.pnp_grid.firstrow = max(0, glob_proj.pnp_first_row)
+        glob_proj.pnp_grid.firstrow += 1 if glob_proj.pnp_columns.has_column_headers else 0
+
+        if not self.check_selected_columns():
+            logger.warning("Select proper Footprint and Comment columns before editing")
         else:
-            # if we are here, user already selected the PnP file first row
-            glob_proj.pnp_grid.firstrow = max(0, glob_proj.pnp_first_row)
-            glob_proj.pnp_grid.firstrow += 1 if glob_proj.pnp_columns.has_column_headers else 0
+            self.component_names = glob_components.names_visible()
 
-            if not self.check_selected_columns():
-                logger.warning("Select proper Footprint and Comment columns before editing")
-            else:
-                self.component_names = glob_components.names_visible()
-                # find the max comment width
-                footprint_max_w = 0
-                id_max_w = 0
+            # find the max comment width
+            footprint_max_w = 0
+            id_max_w = 0
+            for row in glob_proj.pnp_grid.rows():
+                footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_columns.footprint_col]))
+                id_max_w = max(id_max_w, len(row[0]))
 
-                for row in glob_proj.pnp_grid.rows():
-                    footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_columns.footprint_col]))
-                    id_max_w = max(id_max_w, len(row[0]))
-
-                logger.info(f"Preparing editor data...")
+            logger.info(f"Preparing editor data...")
+            if True:
                 self.app.pnp_config.progres_set(0)
                 started_at = time.monotonic()
                 try:
                     self.editor_data = pnp_editor_helpers.prepare_editor_data(glob_components, glob_proj, wip_items)
                 except Exception as e:
-                    logger.error(f"Failed to prepare editor: {e}")
+                    logger.error(f"Failed to prepare data: {e}")
                     return
                 delta = time.monotonic() - started_at
                 delta = f"{delta:.1f}s"
                 logger.info(f"  {len(self.editor_data.items)} items prepared in {delta}")
 
-                progress_step = len(self.editor_data.items) / 20
-                progress_prc = 0
-                idx_threshold = progress_step
+            # TODO:
+            progress_step = len(self.editor_data.items) / 20
+            progress_prc = 0
+            idx_threshold = progress_step
 
-                # restart time measure
-                logger.info(f"Creating editor ...")
-                started_at = time.monotonic()
+            # Components table:
+            for idx, pnpitem in enumerate(self.editor_data.items):
+                if idx == pnp_editor_helpers.PnPEditorData.ROWS_PER_PAGE:
+                    logger.info(f"  ***")
+                    break
+                # item:
+                ui_helpers.entry_set_text(self.entry_item_list[idx], pnpitem.item)
+                # descr
+                ui_helpers.entry_set_text(self.entry_descr_list[idx], pnpitem.descr)
+                # marker:
+                self.lbl_marker_list[idx].config(background=pnpitem.marker.color)
+                # component list:
+                self.cbx_component_list[idx].set(pnpitem.editor_selection)
+                self.cbx_component_list[idx].configure(values=pnpitem.editor_cbx_items)
+                # comp. name length:
+                self.update_componentname_length_lbl(self.lbl_namelength_list[idx], pnpitem.editor_selection)
+                # rotation:
+                self.cbx_rotation_list[idx].set(pnpitem.rotation)
 
-                # Header row
-                if True:
-                    lbl = tkinter.Label(self.scrollableframe, text="Component ID + Footprint + Value")
-                    lbl.grid(row=0, column=0, padx=5, pady=1, sticky="we")
+                # update loading progressbar
+                if idx == int(idx_threshold):
+                    progress_prc += 5
+                    idx_threshold += progress_step
+                    if progress_prc % 10 == 0:
+                        logger.info(f"  {progress_prc:3} %")
+                    self.app.pnp_config.progres_set(progress_prc/100)
 
-                    lbl = tkinter.Label(self.scrollableframe, text="Description")
-                    lbl.grid(row=0, column=1, padx=5, pady=1, sticky="we")
+            # clear unused rows
+            for idx in range(len(self.editor_data.items), pnp_editor_helpers.PnPEditorData.ROWS_PER_PAGE):
+                ui_helpers.entry_set_text(self.entry_item_list[idx], 0)
+                # entry_pnp.configure(state=tkinter.DISABLED)
+                ui_helpers.entry_set_text(self.entry_descr_list[idx], "")
+                self.lbl_marker_list[idx].config(background="white")
+                self.cbx_component_list[idx].set("")
+                self.cbx_component_list[idx].configure(values=[])
+                self.lbl_namelength_list[idx].configure(text="")
+                self.cbx_rotation_list[idx].set("")
 
-                    lbl = tkinter.Label(self.scrollableframe, text="✔")
-                    lbl.grid(row=0, column=2, padx=5, pady=1, sticky="")
+            # finished
+            if progress_prc < 100:
+                progress_prc = 100
+                self.app.pnp_config.progres_set(1)
+                logger.info(f"  {progress_prc:3} %")
 
-                    lbl = tkinter.Label(self.scrollableframe, text="Yamaha DB component")
-                    lbl.grid(row=0, column=3, padx=5, pady=1, sticky="we")
+            # to activate placeholder text
+            self.update_component_description_long("")
 
-                    lbl = tkinter.Label(self.scrollableframe, text="Rotation")
-                    lbl.grid(row=0, column=5, padx=6, pady=1, sticky="we")
-
-                # Components table:
-                for idx, pnpitem in enumerate(self.editor_data.items):
-                    idx += 1 # because of the header row
-                    # menuitems="" -> means no menu at all (number of menus to be created is limited)
-                    entry_item = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
-                                                        font=self.fonts[Config.instance().editor_font_idx][0])
-                    entry_item.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
-                    entry_item.bind("<FocusIn>", self.focus_in)
-                    ui_helpers.entry_set_text(entry_item, pnpitem.item)
-                    self.entry_item_list.append(entry_item)
-                    # entry_pnp.configure(state=tkinter.DISABLED)
-
-                    entry_descr = ui_helpers.EntryWithPPM(self.scrollableframe,
-                                                          font=self.fonts[Config.instance().editor_font_idx][0])
-                    entry_descr.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
-                    entry_descr.bind("<FocusIn>", self.focus_in)
-                    ui_helpers.entry_set_text(entry_descr, pnpitem.descr)
-                    self.entry_descr_list.append(entry_descr)
-
-                    lbl_marker = tkinter.Label(self.scrollableframe, text=" ")
-                    lbl_marker.grid(row=idx, column=2, padx=5, pady=1, sticky="")
-                    lbl_marker.config(background=pnpitem.marker.color)
-                    self.lbl_marker_list.append(lbl_marker)
-
-                    # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
-                    # https://www.pythontutorial.net/tkinter/tkinter-combobox/
-
-                    cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cp@",
-                                                               values=self.component_names,
-                                                               font=self.fonts[Config.instance().editor_font_idx][0])
-                    self.cbx_components_add_context_menu(cbx_component)
-                    cbx_component.grid(row=idx, column=3, padx=5, pady=1, sticky="we")
-                    cbx_component.bind('<<ComboboxSelected>>', self.cbx_components_selected)
-                    # cbx_component.bind('<Key>', self.combobox_key)
-                    cbx_component.bind("<Return>", self.cbx_components_return)
-                    cbx_component.bind("<MouseWheel>", self.cbx_wheel)
-                    cbx_component.bind("<FocusIn>", self.focus_in)
-                    cbx_component.set(pnpitem.editor_selection)
-                    cbx_component.configure(values=pnpitem.editor_cbx_items)
-                    self.cbx_component_list.append(cbx_component)
-
-                    lbl_length = tkinter.Label(self.scrollableframe,
-                                               font=self.fonts[Config.instance().editor_font_idx][0])
-                    lbl_length.grid(row=idx, column=4, padx=1, pady=1, sticky="e")
-                    lbl_length.config(foreground="maroon")
-                    self.lbl_namelength_list.append(lbl_length)
-                    self.update_componentname_length_lbl(lbl_length, pnpitem.editor_selection)
-
-                    cbx_rotation = tkinter.ttk.Combobox(self.scrollableframe, width=5,
-                                                        values=("0", "90", "180", "270"),
-                                                        font=self.fonts[Config.instance().editor_font_idx][0])
-                    cbx_rotation.grid(row=idx, column=5, padx=5, pady=1, sticky="we")
-                    cbx_rotation.bind('<<ComboboxSelected>>', self.cbx_rotation_selected)
-                    cbx_rotation.bind("<Return>", self.cbx_rotation_return)
-                    cbx_rotation.bind("<MouseWheel>", self.cbx_wheel)
-                    cbx_rotation.bind("<FocusIn>", self.focus_in)
-                    cbx_rotation.set(pnpitem.rotation)
-                    self.cbx_rotation_list.append(cbx_rotation)
-
-                    if idx == int(idx_threshold):
-                        progress_prc += 5
-                        idx_threshold += progress_step
-                        if progress_prc % 10 == 0:
-                            logger.info(f"  {progress_prc:3} %")
-                        self.app.pnp_config.progres_set(progress_prc/100)
-
-                if progress_prc < 100:
-                    progress_prc = 100
-                    self.app.pnp_config.progres_set(1)
-                    logger.info(f"  {progress_prc:3} %")
-
-                delta = time.monotonic() - started_at
-                delta = f"{delta:.1f}s"
-                logger.info(f"Editor for {len(self.editor_data.items)} elements created in {delta}")
-                self.scrollableframe.grid_columnconfigure(0, weight=3)
-                self.scrollableframe.grid_columnconfigure(3, weight=1)
-
-                # to display long descriptions:
-                self.entry_descr_long = ui_helpers.EntryWithPPM(self, menuitems="c", # state=tkinter.DISABLED,
-                                                                placeholder_text="< long description preview >",
-                                                                font=self.fonts[Config.instance().editor_font_idx][0])
-                self.entry_descr_long.grid(row=1, column=0, columnspan=7, padx=15, pady=1, sticky="we")
-                self.update_component_description_long("") # to activate placeholder text
-
-            # update progressbar
-            self.update_selected_status()
+        # update progressbar
+        self.update_selected_status()
 
     def update_componentname_length_lbl(self, lbl: tkinter.Label, comp_name: str):
         COMPONENT_MAX_LEN = 38

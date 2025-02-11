@@ -102,7 +102,7 @@ class PnPEditorItem:
 class PnPEditorData:
     """Represents an entire data of the editor"""
 
-    ROWS_PER_PAGE = 200
+    ROWS_PER_PAGE = 1000
 
     def __init__(self):
         # index | name | footprint
