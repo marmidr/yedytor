@@ -6,6 +6,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
 * Added
   * Board: JPEG/PNG preview of TOP/BOTTOM side
+  * PnP editor - paginated (200 items/page)
 * Changed
 * Deprecated
 * Removed

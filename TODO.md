@@ -64,5 +64,7 @@
 [ ] w niektórych plikach, gdy Rotation==0, to wczytuje ""
 [ ] w niektórych plikach kolumna Description nie wczytuje sie dla każdego elementu
 [ ] PnP Editor:
-    [ ] paginacja
+    [x] paginacja
     [ ] filtry
+    [ ] zastosowanie wyboru komponentu: brać descr pod uwagę?
+        bo może być "402 100p" i "402 100p | 50V"

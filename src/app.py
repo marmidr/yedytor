@@ -615,32 +615,62 @@ class PnPEditor(customtkinter.CTkFrame):
         self.app = kwargs.pop('app')
         super().__init__(master, **kwargs)
 
-        self.pgbar_selected = customtkinter.CTkProgressBar(self)
-        self.pgbar_selected.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
-        self.pgbar_selected.set(0)
+        self.editor_data = pnp_editor_helpers.PnPEditorData()
 
-        self.lbl_selected = tkinter.Label(self, text="0 / 0")
-        self.lbl_selected.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+        # toolbar
+        if True:
+            self.frame_toolbar = customtkinter.CTkFrame(self)
+            self.frame_toolbar.grid(row=0, column=0, pady=5, padx=5, columnspan=7, sticky="we")
 
-        sep_v = tkinter.ttk.Separator(self, orient='vertical')
-        sep_v.grid(row=2, column=2, pady=2, padx=5, sticky="ns")
+            # change components page, view contains up to self.COMP_PER_PAGE items
+            self.btn_page_prev = customtkinter.CTkButton(self.frame_toolbar, text="<", command=self.button_prev_event)
+            self.btn_page_prev.grid(row=0, column=1, pady=5, padx=5, sticky="w")
 
-        self.btn_save_wip = customtkinter.CTkButton(self, text="Save for later", command=self.button_save_wip_event)
-        self.btn_save_wip.grid(row=2, column=3, pady=5, padx=5, sticky="e")
+            self.lbl_pageno = customtkinter.CTkLabel(self.frame_toolbar, text=self.format_pageno())
+            self.lbl_pageno.grid(row=0, column=2, pady=5, padx=5, sticky="w")
 
-        sep_v = tkinter.ttk.Separator(self, orient='vertical')
-        sep_v.grid(row=2, column=4, pady=2, padx=5, sticky="ns")
+            self.btn_page_next = customtkinter.CTkButton(self.frame_toolbar, text=">", command=self.button_next_event)
+            self.btn_page_next.grid(row=0, column=3, pady=5, padx=5, sticky="w")
 
-        self.entry_csv_postfix = ui_helpers.EntryWithPPM(self, placeholder_text="< filename postfix >")
-        self.entry_csv_postfix.grid(row=2, column=5, padx=5, pady=2, sticky="we")
+            sep_v = tkinter.ttk.Separator(self.frame_toolbar, orient='vertical')
+            sep_v.grid(row=0, column=4, pady=2, padx=5, sticky="ns")
 
-        self.btn_save = customtkinter.CTkButton(self, text="Save PnP as new CSV", command=self.button_save_event)
-        self.btn_save.grid(row=2, column=6, pady=5, padx=5, sticky="e")
-        self.btn_save.configure(state=tkinter.DISABLED)
+            # self.config_pnpedit.radio_var = tkinter.IntVar(value=Config.instance().editor_font_idx)
+            # self.config_pnpedit.rb_font0 = customtkinter.CTkRadioButton(self.config_pnpedit, text="12px",
+            #                                                         variable=self.config_pnpedit.radio_var,
+            #                                                         value=0, command=self.radiobutton_event)
+            # self.config_pnpedit.rb_font0.grid(row=1, column=0, pady=5, padx=5, sticky="w")
+            # self.config_pnpedit.rb_font1 = customtkinter.CTkRadioButton(self.config_pnpedit, text="16px",
+            #                                                         variable=self.config_pnpedit.radio_var,
+            #                                                         value=1, command=self.radiobutton_event)
+            # self.config_pnpedit.rb_font1.grid(row=2, column=0, pady=5, padx=5, sticky="w")
 
-        #
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+
+        # bottom toolbar
+        if True:
+            tbr_row = 3
+            self.pgbar_selected = customtkinter.CTkProgressBar(self)
+            self.pgbar_selected.grid(row=3, column=0, padx=5, pady=5, sticky="ew")
+            self.pgbar_selected.set(0)
+
+            self.lbl_selected = tkinter.Label(self, text="0 / 0")
+            self.lbl_selected.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+
+            sep_v = tkinter.ttk.Separator(self, orient='vertical')
+            sep_v.grid(row=3, column=2, pady=2, padx=5, sticky="ns")
+
+            self.btn_save_wip = customtkinter.CTkButton(self, text="Save for later", command=self.button_save_wip_event)
+            self.btn_save_wip.grid(row=3, column=3, pady=5, padx=5, sticky="e")
+
+            sep_v = tkinter.ttk.Separator(self, orient='vertical')
+            sep_v.grid(row=3, column=4, pady=2, padx=5, sticky="ns")
+
+            self.entry_csv_postfix = ui_helpers.EntryWithPPM(self, placeholder_text="< filename postfix >")
+            self.entry_csv_postfix.grid(row=3, column=5, padx=5, pady=2, sticky="we")
+
+            self.btn_save = customtkinter.CTkButton(self, text="Save PnP as new CSV", command=self.button_save_event)
+            self.btn_save.grid(row=3, column=6, pady=5, padx=5, sticky="e")
+            self.btn_save.configure(state=tkinter.DISABLED)
 
         # define fonts for editor
         self.fonts = (
@@ -659,10 +689,29 @@ class PnPEditor(customtkinter.CTkFrame):
         self.app.option_add('*TCombobox*Listbox.background', 'LightBlue')
         # static editor
         self.create_editor()
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
+    def format_pageno(self) -> str:
+        pages_cnt = 1 + len(self.editor_data.items()) // self.editor_data.ROWS_PER_PAGE
+        pageno_str = f"{1 + self.editor_data.page_no} / {pages_cnt}"
+        return pageno_str
+
+    def button_prev_event(self):
+        if (self.editor_data.page_no > 0):
+            self.editor_data.page_no -= 1
+            self.editor_load_data()
+            self.lbl_pageno.configure(text=self.format_pageno())
+
+    def button_next_event(self):
+        last_page = len(self.editor_data.items()) // self.editor_data.ROWS_PER_PAGE
+        if self.editor_data.page_no < last_page:
+            self.editor_data.page_no += 1
+            self.editor_load_data()
+            self.lbl_pageno.configure(text=self.format_pageno())
 
     def create_editor(self):
         self.focused_idx = None
-        self.editor_data = pnp_editor_helpers.PnPEditorData()
 
         self.entry_item_list: list[tkinter.Entry] = []
         self.entry_descr_list: list[tkinter.Entry] = []
@@ -672,7 +721,7 @@ class PnPEditor(customtkinter.CTkFrame):
         self.cbx_rotation_list = []
 
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
-        self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, columnspan=7, sticky="wens")
+        self.scrollableframe.grid(row=1, column=0, padx=5, pady=1, columnspan=7, sticky="wens")
 
         # Header row
         if True:
@@ -755,11 +804,12 @@ class PnPEditor(customtkinter.CTkFrame):
                 self, menuitems="c", # state=tkinter.DISABLED,
                 placeholder_text="< long description preview >",
                 font=self.fonts[Config.instance().editor_font_idx][0])
-            self.entry_descr_long.grid(row=1, column=0, columnspan=7, padx=15, pady=1, sticky="we")
+            self.entry_descr_long.grid(row=2, column=0, columnspan=7, padx=15, pady=1, sticky="we")
             self.update_component_description_long("") # to activate placeholder text
 
     def load(self, wip_items: list[dict] = None):
         self.btn_save.configure(state=tkinter.DISABLED)
+        self.wip_items = wip_items
 
         if (not glob_proj.pnp_grid) or (glob_proj.pnp_grid.nrows == 0):
             logger.warning("PnP file not loaded")
@@ -771,80 +821,70 @@ class PnPEditor(customtkinter.CTkFrame):
 
         if not self.check_selected_columns():
             logger.warning("Select proper Footprint and Comment columns before editing")
-        else:
-            self.component_names = glob_components.names_visible()
+            return
 
-            # find the max comment width
-            footprint_max_w = 0
-            id_max_w = 0
-            for row in glob_proj.pnp_grid.rows():
-                footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_columns.footprint_col]))
-                id_max_w = max(id_max_w, len(row[0]))
+        self.component_names = glob_components.names_visible()
 
+        # find the max comment width
+        footprint_max_w = 0
+        id_max_w = 0
+        for row in glob_proj.pnp_grid.rows():
+            footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_columns.footprint_col]))
+            id_max_w = max(id_max_w, len(row[0]))
+
+        if True:
             logger.info(f"Preparing editor data...")
-            if True:
-                self.app.pnp_config.progres_set(0)
-                started_at = time.monotonic()
-                try:
-                    self.editor_data = pnp_editor_helpers.prepare_editor_data(glob_components, glob_proj, wip_items)
-                except Exception as e:
-                    logger.error(f"Failed to prepare data: {e}")
-                    return
-                delta = time.monotonic() - started_at
-                delta = f"{delta:.1f}s"
-                logger.info(f"  {len(self.editor_data.items)} items prepared in {delta}")
+            self.app.pnp_config.progres_set(0)
+            started_at = time.monotonic()
+            try:
+                self.editor_data = pnp_editor_helpers.prepare_editor_data(glob_components, glob_proj, self.wip_items)
+            except Exception as e:
+                logger.error(f"Failed to prepare data: {e}")
+                return
+            delta = time.monotonic() - started_at
+            delta = f"{delta:.1f}s"
+            logger.info(f"  {len(self.editor_data.items())} items prepared in {delta}")
 
-            # TODO:
-            progress_step = len(self.editor_data.items) / 20
-            progress_prc = 0
-            idx_threshold = progress_step
+        self.lbl_pageno.configure(text=self.format_pageno())
+        self.editor_load_data()
 
-            # Components table:
-            for idx, pnpitem in enumerate(self.editor_data.items):
-                if idx == pnp_editor_helpers.PnPEditorData.ROWS_PER_PAGE:
-                    logger.info(f"  ***")
-                    break
-                # item:
-                ui_helpers.entry_set_text(self.entry_item_list[idx], pnpitem.item)
-                # descr
-                ui_helpers.entry_set_text(self.entry_descr_list[idx], pnpitem.descr)
-                # marker:
-                self.lbl_marker_list[idx].config(background=pnpitem.marker.color)
-                # component list:
-                self.cbx_component_list[idx].set(pnpitem.editor_selection)
-                self.cbx_component_list[idx].configure(values=pnpitem.editor_cbx_items)
-                # comp. name length:
-                self.update_componentname_length_lbl(self.lbl_namelength_list[idx], pnpitem.editor_selection)
-                # rotation:
-                self.cbx_rotation_list[idx].set(pnpitem.rotation)
+    def editor_load_data(self):
+        # Components table:
+        pnpitem_start_idx = self.editor_data.page_no * self.editor_data.ROWS_PER_PAGE
+        pnpitem_end_idx =  min(len(self.editor_data.items()), pnpitem_start_idx+self.editor_data.ROWS_PER_PAGE)
+        row_idx = 0
 
-                # update loading progressbar
-                if idx == int(idx_threshold):
-                    progress_prc += 5
-                    idx_threshold += progress_step
-                    if progress_prc % 10 == 0:
-                        logger.info(f"  {progress_prc:3} %")
-                    self.app.pnp_config.progres_set(progress_prc/100)
+        for pnpitem_idx in range(pnpitem_start_idx, pnpitem_end_idx):
+            pnpitem = self.editor_data.items()[pnpitem_idx]
+            # item:
+            ui_helpers.entry_set_text(self.entry_item_list[row_idx], pnpitem.item)
+            # descr
+            ui_helpers.entry_set_text(self.entry_descr_list[row_idx], pnpitem.descr)
+            # marker:
+            self.lbl_marker_list[row_idx].config(background=pnpitem.marker.color)
+            # component list:
+            self.cbx_component_list[row_idx].set(pnpitem.editor_selection)
+            self.cbx_component_list[row_idx].configure(values=pnpitem.editor_cbx_items)
+            # comp. name length:
+            self.update_componentname_length_lbl(self.lbl_namelength_list[row_idx], pnpitem.editor_selection)
+            # rotation:
+            self.cbx_rotation_list[row_idx].set(pnpitem.rotation)
+            #
+            row_idx += 1
 
-            # clear unused rows
-            for idx in range(len(self.editor_data.items), pnp_editor_helpers.PnPEditorData.ROWS_PER_PAGE):
-                ui_helpers.entry_set_text(self.entry_item_list[idx], 0)
-                # entry_pnp.configure(state=tkinter.DISABLED)
-                ui_helpers.entry_set_text(self.entry_descr_list[idx], "")
-                self.lbl_marker_list[idx].config(background="white")
-                self.cbx_component_list[idx].set("")
-                self.cbx_component_list[idx].configure(values=[])
-                self.lbl_namelength_list[idx].configure(text="")
-                self.cbx_rotation_list[idx].set("")
+        # clear unused rows
+        for idx in range(row_idx, pnp_editor_helpers.PnPEditorData.ROWS_PER_PAGE):
+            ui_helpers.entry_set_text(self.entry_item_list[idx], 0)
+            # entry_pnp.configure(state=tkinter.DISABLED)
+            ui_helpers.entry_set_text(self.entry_descr_list[idx], "")
+            self.lbl_marker_list[idx].config(background="white")
+            self.cbx_component_list[idx].set("")
+            self.cbx_component_list[idx].configure(values=[])
+            self.lbl_namelength_list[idx].configure(text="")
+            self.cbx_rotation_list[idx].set("")
 
-            # finished
-            if progress_prc < 100:
-                progress_prc = 100
-                self.app.pnp_config.progres_set(1)
-                logger.info(f"  {progress_prc:3} %")
-
-            # to activate placeholder text
-            self.update_component_description_long("")
+        # to activate placeholder text
+        self.update_component_description_long("")
 
         # update progressbar
         self.update_selected_status()
@@ -868,10 +908,10 @@ class PnPEditor(customtkinter.CTkFrame):
            and glob_proj.pnp_columns.comment_col < glob_proj.pnp_grid.ncols
 
     def cbx_components_selected(self, event):
-        row_idx = self.cbx_component_list.index(event.widget)
+        wgt_idx = self.cbx_component_list.index(event.widget)
         selected_component: str = event.widget.get().strip()
 
-        if item := self.editor_data.item(row_idx):
+        if item := self.editor_data.item(wgt_idx):
             logger.debug(f"CB selected: '{selected_component}' for filter pattern '{item.editor_filter}'")
 
             if selected_component == ComponentsMRU.SPACER_ITEM:
@@ -880,7 +920,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 event.widget.set(item.editor_filter)
                 return
 
-            self.apply_component_to_matching(row_idx, selected_component)
+            self.apply_component_to_matching(wgt_idx, selected_component)
             # update the MRU
             glob_components.mru_items.on_select(item.editor_filter, selected_component)
 
@@ -895,21 +935,22 @@ class PnPEditor(customtkinter.CTkFrame):
             self.btn_save.configure(state=tkinter.NORMAL)
 
     # TODO: move to PnPEditorData
-    def apply_component_to_matching(self, row_idx: int, selected_component: str, force: bool = False):
+    def apply_component_to_matching(self, wgt_idx: int, selected_component: str, force: bool = False):
         try:
             # get the selection details:
-            # TODO: row_idx -> editor_data component idx (ROWS_PER_PAGE)
-            comment = glob_proj.pnp_grid.rows()[row_idx][glob_proj.pnp_columns.comment_col]
-            ftprint = glob_proj.pnp_grid.rows()[row_idx][glob_proj.pnp_columns.footprint_col]
+            comp_idx = wgt_idx + self.editor_data.item_offset()
+            comment = glob_proj.pnp_grid.rows()[comp_idx][glob_proj.pnp_columns.comment_col]
+            ftprint = glob_proj.pnp_grid.rows()[comp_idx][glob_proj.pnp_columns.footprint_col]
 
             # scan all items and if comment:footprint matches -> apply
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
-                if item := self.editor_data.item(i):
-                    if i == row_idx:
+                if item := self.editor_data.item_raw(i):
+                    if i == comp_idx:
                         # add marker that this is a final value
                         item.marker.value = Marker.MAN_SEL
-                        self.lbl_marker_list[i].config(background=item.marker.color)
-                        self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
+                        wgt_visible_idx = i - self.editor_data.item_offset()
+                        self.lbl_marker_list[wgt_visible_idx].config(background=item.marker.color)
+                        self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_visible_idx], selected_component)
                         # event source widget, so we can skip this one
                         continue
 
@@ -922,16 +963,24 @@ class PnPEditor(customtkinter.CTkFrame):
                         # found: select the same component
                         logger.debug(f"  Apply '{selected_component}' to item {row[0]}")
                         item.editor_selection = selected_component
-                        self.cbx_component_list[i].set(selected_component)
-                        self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
+                        wgt_visible = i in self.editor_data.items_range()
+                        wgt_visible_idx = i - self.editor_data.item_offset()
+
+                        if wgt_visible:
+                            # update widget, if component in visible range
+                            self.cbx_component_list[wgt_visible_idx].set(selected_component)
+                            self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_visible_idx], selected_component)
+
                         if len(selected_component) >= 3:
                             # add marker that this is a final value
                             item.marker.value = Marker.MAN_SEL
-                            self.lbl_marker_list[i].config(background=item.marker.color)
+                            if wgt_visible:
+                                self.lbl_marker_list[wgt_visible_idx].config(background=item.marker.color)
                         else:
                             # too short -> filter or empty
                             item.marker.value = Marker.NOMATCH
-                            self.lbl_marker_list[i].config(background=item.marker.color)
+                            if wgt_visible:
+                                self.lbl_marker_list[wgt_visible_idx].config(background=item.marker.color)
 
             self.update_selected_status()
         except Exception as e:
@@ -982,53 +1031,53 @@ class PnPEditor(customtkinter.CTkFrame):
     # TODO: move to PnPEditorData
     def cbx_components_apply_selected_to_all(self, cbx, force: bool):
         cbx.focus_force()
-        row_idx = self.cbx_component_list.index(cbx)
+        wgt_idx = self.cbx_component_list.index(cbx)
         selected_component: str = cbx.get().strip()
         logger.debug(f"Applying '{selected_component}':")
-        self.apply_component_to_matching(row_idx, selected_component, force)
+        self.apply_component_to_matching(wgt_idx, selected_component, force)
         self.add_component_if_missing(selected_component)
 
     # TODO: move to PnPEditorData
     def cbx_components_remove_component(self, cbx):
         cbx.focus_force()
-        row_idx = self.cbx_component_list.index(cbx)
-        selected_component: str = self.entry_item_list[row_idx].get()
+        wgt_idx = self.cbx_component_list.index(cbx)
+        selected_component: str = self.entry_item_list[wgt_idx].get()
         # remove double spaces
         selected_component = " ".join(selected_component.split())
 
-        if item := self.editor_data.item(row_idx):
+        if item := self.editor_data.item(wgt_idx):
             logger.debug(f"Removing: '{selected_component}'")
             # add marker that this is a deleted entry
             item.marker.value = Marker.REMOVED
             item.editor_selection = ""
             item.editor_cbx_items = []
 
-            self.lbl_marker_list[row_idx].config(background=item.marker.color)
+            self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
             # clear selection
-            self.cbx_component_list[row_idx].set(item.editor_selection)
-            self.cbx_component_list[row_idx].configure(values=item.editor_cbx_items)
+            self.cbx_component_list[wgt_idx].set(item.editor_selection)
+            self.cbx_component_list[wgt_idx].configure(values=item.editor_cbx_items)
             self.update_selected_status()
 
     # TODO: move to PnPEditorData
     def cbx_components_set_default(self, cbx):
-        row_idx = self.cbx_component_list.index(cbx)
-        row = glob_proj.pnp_grid.rows()[row_idx]
+        wgt_idx = self.cbx_component_list.index(cbx)
+        row = glob_proj.pnp_grid.rows()[wgt_idx]
         ftprint = row[glob_proj.pnp_columns.footprint_col]
         cmnt = row[glob_proj.pnp_columns.comment_col]
         component_name = ftprint + "_" + cmnt
 
-        if item := self.editor_data.item(row_idx):
+        if item := self.editor_data.item(wgt_idx):
             logger.debug(f"Set default <ftprnt>_<cmnt>: '{component_name}'")
             item.editor_selection = component_name
             item.marker.value = Marker.FILTER
 
             cbx.set(component_name)
-            self.lbl_marker_list[row_idx].config(background=item.marker.color)
+            self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
 
     # TODO: move to PnPEditorData
     def cbx_components_apply_filter(self, cbx):
         filter: str = cbx.get().strip()
-        row_idx = self.cbx_component_list.index(cbx)
+        wgt_idx = self.cbx_component_list.index(cbx)
 
         if len(filter) >= 2:
             filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
@@ -1036,7 +1085,7 @@ class PnPEditor(customtkinter.CTkFrame):
             #
             glob_components.mru_items.arrange(filter, filtered_comp_names)
 
-            if item := self.editor_data.item(row_idx):
+            if item := self.editor_data.item(wgt_idx):
                 item.editor_filter = filter
                 item.editor_cbx_items = filtered_comp_names
                 # set a new combobox items
@@ -1046,28 +1095,28 @@ class PnPEditor(customtkinter.CTkFrame):
                     self.component_names.index(filter)
                     # filter found on component list: add marker that this is a final value
                     item.marker.value = Marker.MAN_SEL
-                    self.lbl_marker_list[row_idx].config(background=item.marker.color)
+                    self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
                 except Exception:
                     if len(filtered_comp_names) > 0:
                         # mark this is a filter, not value
                         item.marker.value = Marker.FILTER
-                        self.lbl_marker_list[row_idx].config(background=item.marker.color)
+                        self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
                     else:
                         # mark no matching component in database
                         item.marker.value = Marker.NOMATCH
-                        self.lbl_marker_list[row_idx].config(background=item.marker.color)
+                        self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
 
-                    self.update_componentname_length_lbl(self.lbl_namelength_list[row_idx], filter)
+                    self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_idx], filter)
         else:
             logger.info("Filter too short: use full list")
 
-            if item := self.editor_data.item(row_idx):
+            if item := self.editor_data.item(wgt_idx):
                 item.editor_cbx_items = self.component_names
                 cbx.configure(values=item.editor_cbx_items)
 
                 try:
                     item.marker.value = Marker.NOMATCH
-                    self.lbl_marker_list[row_idx].config(background=item.marker.color)
+                    self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
                 except Exception as e:
                     logger.warning(f"{e}")
 
@@ -1158,7 +1207,7 @@ class PnPEditor(customtkinter.CTkFrame):
             }
             components = []
 
-            for i, item in enumerate(self.editor_data.items):
+            for i, item in enumerate(self.editor_data.items()):
                 record = {
                     'item': item.item,
                     'marker': item.marker.value,
@@ -1213,10 +1262,10 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def count_selected(self) -> tuple[int, int]:
         n = 0
-        for item in self.editor_data.items:
+        for item in self.editor_data.items():
             if item.marker.value in (Marker.MAN_SEL, Marker.AUTO_SEL, Marker.REMOVED):
                 n += 1
-        return (n, len(self.editor_data.items))
+        return (n, len(self.editor_data.items()))
 
 # -----------------------------------------------------------------------------
 

@@ -102,21 +102,39 @@ class PnPEditorItem:
 class PnPEditorData:
     """Represents an entire data of the editor"""
 
-    ROWS_PER_PAGE = 1000
+    ROWS_PER_PAGE = 200
 
     def __init__(self):
-        # index | name | footprint
-        # TODO: make it private, access as a list[ROWS_PER_PAGE] components
-        self.items: list[PnPEditorItem] = []
-        # page index,
-        self.page_index = 0
+        self.__items: list[PnPEditorItem] = []
+        self.page_no = 0
 
-    def item(self, row_idx: int) -> PnPEditorItem:
-        # row index -> component index
-        row_idx += self.page_index * PnPEditorData.ROWS_PER_PAGE
+    # TODO: return filtered items
+    def items(self):
+        return self.__items
 
-        if row_idx >= 0 and row_idx < len(self.items):
-            return self.items[row_idx]
+    def set_items(self, items: list[PnPEditorItem]):
+        self.__items = items
+
+    def item_offset(self) -> int:
+        """Item offset, resulting from current page"""
+        return self.page_no * PnPEditorData.ROWS_PER_PAGE
+
+    def items_range(self) -> range:
+        return range(self.item_offset(), self.item_offset() + PnPEditorData.ROWS_PER_PAGE)
+
+    def item_raw(self, cmp_idx: int) -> PnPEditorItem:
+        """Returns an item, starting at 0"""
+        if cmp_idx >= 0 and cmp_idx < len(self.__items):
+            return self.__items[cmp_idx]
+        return None
+
+    def item(self, wgt_idx: int) -> PnPEditorItem:
+        """Returns an item, taking current page no into account"""
+        # widget row index -> component index
+        cmp_idx = wgt_idx + self.item_offset()
+
+        if cmp_idx >= 0 and cmp_idx < len(self.__items):
+            return self.__items[cmp_idx]
         return None
 
 # -----------------------------------------------------------------------------
@@ -249,13 +267,14 @@ def prepare_editor_data(components: ComponentsDB, project: Project, wip_items: l
             #
             # best results for chunksize=8:
             it = pool.imap(process_fn, items_iterator, chunksize=8)
-            out.items = [item for item in it]
+            items = [item for item in it]
+            out.set_items(items)
     else:
         # single thread: 24s
         cache = dict()
         for pnpitem in items_iterator:
             __process_pnpitem(pnpitem, components, names_visible, cache)
-            out.items.append(pnpitem)
+            out.items().append(pnpitem)
 
     return out
 
