@@ -201,7 +201,6 @@ class HomeFrame(customtkinter.CTkFrame):
             self.var_pnp2.set("")
             self.pnp_view.clear_preview()
             self.pnp_config.entry_first_row_var.set("1")
-            self.pnp_config.progres_set(0)
             self.pnp_config.btn_columns.configure(state=tkinter.DISABLED)
         finally:
             glob_proj.loading = loading_bkp
@@ -510,25 +509,6 @@ class PnPConfig(customtkinter.CTkFrame):
                                                 command=self.button_goto_editor_event)
         self.btn_goto_editor.grid(row=0, column=8, pady=5, padx=5, sticky="")
 
-        #
-        self.prgrbar_prepare = customtkinter.CTkProgressBar(self)
-        self.prgrbar_prepare.grid(row=0, column=9, pady=5, padx=5, sticky="we")
-        self.prgrbar_prepare.set(0)
-
-    def progres_set(self, progress: float):
-        self.prgrbar_prepare.set(progress)
-        self.update()
-
-    # def progres_determinate(self):
-    #     self.prgrbar_prepare.stop()
-    #     self.prgrbar_prepare.configure(mode="determinate")
-    #     self.prgrbar_prepare.set(0)
-    #     self.update()
-
-    # def progres_indeterminate(self):
-    #     self.prgrbar_prepare.configure(mode="indeterminate")
-    #     self.prgrbar_prepare.start()
-    #     self.update()
 
     def opt_separator_event(self, new_sep: str):
         if glob_proj.loading:
@@ -834,7 +814,6 @@ class PnPEditor(customtkinter.CTkFrame):
 
         if True:
             logger.info(f"Preparing editor data...")
-            self.app.pnp_config.progres_set(0)
             started_at = time.monotonic()
             try:
                 self.editor_data = pnp_editor_helpers.prepare_editor_data(glob_components, glob_proj, self.wip_items)
@@ -883,9 +862,11 @@ class PnPEditor(customtkinter.CTkFrame):
             self.lbl_namelength_list[idx].configure(text="")
             self.cbx_rotation_list[idx].set("")
 
+        # scroll the list to the top
+        ui_helpers.scrollable_moveto_top(self.scrollableframe)
+
         # to activate placeholder text
         self.update_component_description_long("")
-
         # update progressbar
         self.update_selected_status()
 
@@ -944,43 +925,47 @@ class PnPEditor(customtkinter.CTkFrame):
 
             # scan all items and if comment:footprint matches -> apply
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
-                if item := self.editor_data.item_raw(i):
-                    if i == comp_idx:
+                item = self.editor_data.item_raw(i)
+
+                if item is None:
+                    continue
+
+                if i == comp_idx:
+                    # add marker that this is a final value
+                    item.marker.value = Marker.MAN_SEL
+                    wgt_visible_idx = i - self.editor_data.item_offset()
+                    self.lbl_marker_list[wgt_visible_idx].config(background=item.marker.color)
+                    self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_visible_idx], selected_component)
+                    # event source widget, so we can skip this one
+                    continue
+
+                # if already selected, skip this item
+                if not force and (item.marker.value in (Marker.MAN_SEL, Marker.REMOVED)):
+                    continue
+
+                if row[glob_proj.pnp_columns.comment_col] == comment and \
+                    row[glob_proj.pnp_columns.footprint_col] == ftprint:
+                    # found: select the same component
+                    logger.debug(f"  Apply '{selected_component}' to item {row[0]}")
+                    item.editor_selection = selected_component
+                    wgt_visible = i in self.editor_data.items_range()
+                    wgt_visible_idx = i - self.editor_data.item_offset()
+
+                    if wgt_visible:
+                        # update widget, if component in visible range
+                        self.cbx_component_list[wgt_visible_idx].set(selected_component)
+                        self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_visible_idx], selected_component)
+
+                    if len(selected_component) >= 3:
                         # add marker that this is a final value
                         item.marker.value = Marker.MAN_SEL
-                        wgt_visible_idx = i - self.editor_data.item_offset()
-                        self.lbl_marker_list[wgt_visible_idx].config(background=item.marker.color)
-                        self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_visible_idx], selected_component)
-                        # event source widget, so we can skip this one
-                        continue
-
-                    # if already selected, skip this item
-                    if not force and (item.marker.value in (Marker.MAN_SEL, Marker.REMOVED)):
-                        continue
-
-                    if row[glob_proj.pnp_columns.comment_col] == comment and \
-                       row[glob_proj.pnp_columns.footprint_col] == ftprint:
-                        # found: select the same component
-                        logger.debug(f"  Apply '{selected_component}' to item {row[0]}")
-                        item.editor_selection = selected_component
-                        wgt_visible = i in self.editor_data.items_range()
-                        wgt_visible_idx = i - self.editor_data.item_offset()
-
                         if wgt_visible:
-                            # update widget, if component in visible range
-                            self.cbx_component_list[wgt_visible_idx].set(selected_component)
-                            self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_visible_idx], selected_component)
-
-                        if len(selected_component) >= 3:
-                            # add marker that this is a final value
-                            item.marker.value = Marker.MAN_SEL
-                            if wgt_visible:
-                                self.lbl_marker_list[wgt_visible_idx].config(background=item.marker.color)
-                        else:
-                            # too short -> filter or empty
-                            item.marker.value = Marker.NOMATCH
-                            if wgt_visible:
-                                self.lbl_marker_list[wgt_visible_idx].config(background=item.marker.color)
+                            self.lbl_marker_list[wgt_visible_idx].config(background=item.marker.color)
+                    else:
+                        # too short -> filter or empty
+                        item.marker.value = Marker.NOMATCH
+                        if wgt_visible:
+                            self.lbl_marker_list[wgt_visible_idx].config(background=item.marker.color)
 
             self.update_selected_status()
         except Exception as e:
@@ -1410,9 +1395,6 @@ class ComponentsEditor(customtkinter.CTkFrame):
         # reload view
         self.load_components()
         self.lbl_pageno.configure(text=self.format_pageno())
-        # scroll the list to the top
-        cmd = self.scrollableframe._scrollbar.cget("command")
-        cmd('moveto', 0)
 
     def mk_components_view(self):
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
@@ -1482,6 +1464,9 @@ class ComponentsEditor(customtkinter.CTkFrame):
             ui_helpers.entry_set_text(self.entrys_name[i], "")
             ui_helpers.entry_set_text(self.entrys_alias[i], "")
             self.vars_hidden[i].set(False)
+
+        # scroll the list to the top
+        ui_helpers.scrollable_moveto_top(self.scrollableframe)
 
     def chkbttn_hidden_event(self):
         self.btn_save.configure(state=tkinter.NORMAL)

@@ -228,3 +228,8 @@ def window_set_centered(app: tkinter.Tk, wnd: tkinter.Toplevel, wnd_w: int, wnd_
     wnd_y -= 20
     # set screen position
     wnd.geometry(f"+{wnd_x}+{wnd_y}")
+
+def scrollable_moveto_top(wgt: tkinter.Widget):
+    if hasattr(wgt, "_scrollbar"):
+        cmd = wgt._scrollbar.cget("command")
+        cmd('moveto', 0)
