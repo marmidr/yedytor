@@ -2,7 +2,7 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
-## 1.4.0 - 2025-01-23
+## 1.4.0 - 2025-02-14
 
 * Added
   * Board: JPEG/PNG preview of TOP/BOTTOM side
@@ -11,6 +11,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 * Deprecated
 * Removed
 * Fixed
+  * MRU list is working again
 
 ## 1.3.1 - 2025-02-10
 

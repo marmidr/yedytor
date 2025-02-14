@@ -287,6 +287,7 @@ def __process_pnpitem(pnpitem: PnPEditorItem, components: ComponentsDB, names_vi
         # for 506 items: 41s -> 7s
         if cached := cache.get(repr(pnpitem)):
             pnpitem.editor_selection = cached['selection']
+            pnpitem.editor_filter = pnpitem.editor_selection
             pnpitem.editor_cbx_items = cached['cbx_items']
             pnpitem.marker.value = cached['marker']
             return pnpitem
@@ -323,6 +324,7 @@ def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem
         names_visible.index(expected_component)
         # if we are here - matching comonent was found
         pnpitem.editor_selection = expected_component
+        pnpitem.editor_filter = pnpitem.editor_selection
         # record['cbx_items'] -> not needed
         pnpitem.marker.value = Marker.AUTO_SEL
         logger.info(f"  Matching component found: {expected_component}")
@@ -353,6 +355,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
         filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
         if len(filtered_comp_names) > 0:
             pnpitem.editor_selection = fltr.lower()
+            pnpitem.editor_filter = pnpitem.editor_selection
             pnpitem.editor_cbx_items = filtered_comp_names
             pnpitem.marker.value = Marker.FILTER
             # insert MRU items at the top of the `cbx_items` list
@@ -365,6 +368,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
 
     if len(filtered_comp_names) > 0:
         pnpitem.editor_selection = fltr.lower()
+        pnpitem.editor_filter = pnpitem.editor_selection
         pnpitem.editor_cbx_items = filtered_comp_names
         pnpitem.marker.value = Marker.FILTER
         components.mru_items.arrange(pnpitem.editor_selection, pnpitem.editor_cbx_items)
@@ -372,6 +376,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
 
     # remove filter and assign all components
     pnpitem.editor_selection = ""
+    pnpitem.editor_filter = pnpitem.editor_selection
     pnpitem.editor_cbx_items = names_visible
     pnpitem.marker.value = Marker.NOMATCH
 

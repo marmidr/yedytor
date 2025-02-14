@@ -94,6 +94,9 @@ class ComponentsMRU:
 
     def arrange(self, filter: str, items_to_arrange: list[str]):
         filter = filter.strip()
+        if not filter:
+            return
+
         for component in self.mru:
             if component.filter == filter:
                 # if MRU list is not empty
@@ -138,6 +141,9 @@ class ComponentsMRU:
                     self.dirty = True
 
     def on_select(self, filter: str, selection: str):
+        if not filter:
+            return
+
         for component in self.mru:
             if component.filter == filter:
                 component.on_select(selection)
