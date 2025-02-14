@@ -1,6 +1,7 @@
 import functools
 import logger
 import multiprocessing
+import re
 
 from components import ComponentsDB
 from project import Project
@@ -188,6 +189,7 @@ class ItemsIterator:
                 pnpitem.rotation = wip_cmp['rotation']
                 pnpitem.descr = wip_cmp.get('descr', '')
 
+                # TODO: save footprint/comment in WIP
                 item_splitted: list[str] = pnpitem.item.split("|")
 
                 if len(item_splitted) == 3:
@@ -338,17 +340,55 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
     """
     ftprint = pnpitem.footprint
     cmnt = pnpitem.comment
-    # "1206_R_1,2k" -> "1206"
-    ftprint_prefix = ftprint.split("_")
 
-    if len(ftprint_prefix) > 0:
-        ftprint_prefix = ftprint_prefix[0]
+    if True:
+        ftprint_prefix = ""
 
+        FOTPRINTS = (
+            "SOT23", "SOT223", "SOT363", "SOT",
+            "SOD123", "SOD923", "SOD882", "SOD",
+            "LED",
+            "QSOP"
+            "TSSOP",
+        )
+
+        FOOTPRINT_SIZES = (
+            "0402", "0603", "0805",
+            "1206", "1210", "1608", "1808",
+            "2220", "2512",
+            "3316"
+        )
+
+        # "SOD923R" -> "SOD923"
+        if True:
+            for fp in FOTPRINTS:
+                if fp in ftprint:
+                    ftprint_prefix = fp
+                    break
+            fp = None
+
+        # specialisation for LEDs
+        # https://www.w3schools.com/python/python_regex.asp
+        # https://docs.python.org/3/library/re.html
+        if ftprint_prefix == "LED":
+            for fp_sz in FOOTPRINT_SIZES:
+                if re.search(f"LED.*{fp_sz}", ftprint):
+                    ftprint_prefix = "LED " + fp_sz
+                    break
+
+        # "1206_R_1,2k" -> "1206"
         # "CAPC0805(2012)100_L" -> "0805"
-        for ftprint_sz in ("0402", "0603", "0805", "1206", "1210", "2512"):
-            if ftprint_sz in ftprint_prefix:
-                ftprint_prefix = ftprint_sz
-                break
+        if not ftprint_prefix:
+            for fp_sz in FOOTPRINT_SIZES:
+                if fp_sz in ftprint:
+                    if   (r_fp_sz := "R" + fp_sz) in ftprint:
+                        ftprint_prefix = r_fp_sz
+                    elif (c_fp_sz := "C" + fp_sz) in ftprint:
+                        ftprint_prefix = c_fp_sz
+                    else:
+                        ftprint_prefix = fp_sz
+                    break
+            fp_sz = None
 
         # create a proposition list based on a footprint and the comment
         fltr = ftprint_prefix + " " + cmnt
