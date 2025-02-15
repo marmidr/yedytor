@@ -145,13 +145,13 @@ class PnPEditorData:
         return range(self.items_visible_offset(), self.items_visible_offset() + PnPEditorData.ITEMS_PER_PAGE)
 
     def item_raw(self, cmp_idx: int) -> PnPEditorItem:
-        """Returns an item, starting at 0"""
+        """Returns a filtered item, starting from index 0"""
         if cmp_idx >= 0 and cmp_idx < len(self.__items_filtered):
             return self.__items_filtered[cmp_idx]
         return None
 
     def item_paginated(self, wgt_idx: int) -> PnPEditorItem:
-        """Returns an item, taking current page no into account"""
+        """Returns a filtered item, taking current page no into account"""
         # widget row index -> component index
         absolute_idx = wgt_idx + self.items_visible_offset()
 
@@ -412,7 +412,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
 
         # create a proposition list based on a footprint and a comment
         fltr = ftprint_prefix + " " + cmnt
-        filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
+        filtered_comp_names = list(item.name for item in components.components_filtered(fltr))
         if len(filtered_comp_names) > 0:
             pnpitem.editor_selection = fltr.lower()
             pnpitem.editor_filter = pnpitem.editor_selection
@@ -424,7 +424,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
 
     # create component list proposition based only on the comment
     fltr = cmnt
-    filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
+    filtered_comp_names = list(item.name for item in components.components_filtered(fltr))
 
     if len(filtered_comp_names) > 0:
         pnpitem.editor_selection = fltr.lower()

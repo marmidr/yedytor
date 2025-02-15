@@ -709,8 +709,8 @@ class PnPEditor(customtkinter.CTkFrame):
         filter_idx = self.radio_var.get()
         logger.info(f"Selected component filter: {filter_idx}")
         self.editor_data.set_items_filter(filter_idx)
-        logger.info(f"  Reload the editor...")
         self.editor_load_data()
+        logger.info(f"  Editor reloaded")
         self.lbl_pageno.configure(text=self.format_pageno())
 
     def create_editor(self):
@@ -857,20 +857,20 @@ class PnPEditor(customtkinter.CTkFrame):
         wgt_idx = 0
 
         for pnpitem_idx in range(pnpitem_start_idx, pnpitem_end_idx):
-            pnpitem = self.editor_data.items()[pnpitem_idx]
+            pnp_item = self.editor_data.items()[pnpitem_idx]
             # item:
-            ui_helpers.entry_set_text(self.entry_item_list[wgt_idx], pnpitem.item)
+            ui_helpers.entry_set_text(self.entry_item_list[wgt_idx], pnp_item.item)
             # descr
-            ui_helpers.entry_set_text(self.entry_descr_list[wgt_idx], pnpitem.descr)
+            ui_helpers.entry_set_text(self.entry_descr_list[wgt_idx], pnp_item.descr)
             # marker:
-            self.lbl_marker_list[wgt_idx].config(background=pnpitem.marker.color)
+            self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
             # component list:
-            self.cbx_component_list[wgt_idx].set(pnpitem.editor_selection)
-            self.cbx_component_list[wgt_idx].configure(values=pnpitem.editor_cbx_items)
+            self.cbx_component_list[wgt_idx].set(pnp_item.editor_selection)
+            self.cbx_component_list[wgt_idx].configure(values=pnp_item.editor_cbx_items)
             # comp. name length:
-            self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_idx], pnpitem.editor_selection)
+            self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_idx], pnp_item.editor_selection)
             # rotation:
-            self.cbx_rotation_list[wgt_idx].set(pnpitem.rotation)
+            self.cbx_rotation_list[wgt_idx].set(pnp_item.rotation)
             #
             wgt_idx += 1
 
@@ -915,63 +915,64 @@ class PnPEditor(customtkinter.CTkFrame):
         wgt_idx = self.cbx_component_list.index(event.widget)
         selected_component: str = event.widget.get().strip()
 
-        if item := self.editor_data.item_paginated(wgt_idx):
-            logger.debug(f"CB selected: '{selected_component}' for filter pattern '{item.editor_filter}'")
+        if pnp_item := self.editor_data.item_paginated(wgt_idx):
+            logger.debug(f"CB selected: '{selected_component}' for filter pattern '{pnp_item.editor_filter}'")
 
             if selected_component == ComponentsMRU.SPACER_ITEM:
                 logger.debug("  spacer - selection ignored")
                 # restore filter value
-                event.widget.set(item.editor_filter)
+                event.widget.set(pnp_item.editor_filter)
                 return
 
             self.apply_component_to_matching(wgt_idx, selected_component)
             # update the MRU
-            glob_components.mru_items.on_select(item.editor_filter, selected_component)
+            glob_components.mru_items.on_select(pnp_item.editor_filter, selected_component)
 
             # update drop-down list so it contains the new MRU items
-            filtered_comp_names = list(item.name for item in glob_components.items_filtered(item.editor_filter))
-            glob_components.mru_items.arrange(item.editor_filter, filtered_comp_names)
+            filtered_comp_names = list(component.name for component in glob_components.components_filtered(pnp_item.editor_filter))
+            glob_components.mru_items.arrange(pnp_item.editor_filter, filtered_comp_names)
 
-            item.editor_selection = selected_component
-            item.editor_cbx_items = filtered_comp_names
-            item.marker.value = Marker.MAN_SEL
-            event.widget.configure(values=item.editor_cbx_items)
+            pnp_item.editor_selection = selected_component
+            pnp_item.editor_cbx_items = filtered_comp_names
+            pnp_item.marker.value = Marker.MAN_SEL
+            event.widget.configure(values=pnp_item.editor_cbx_items)
             self.btn_save.configure(state=tkinter.NORMAL)
 
-    # TODO: move to PnPEditorData
     def apply_component_to_matching(self, wgt_idx: int, selected_component: str, force: bool = False):
         try:
             # get the selection details:
-            comp_idx = wgt_idx + self.editor_data.items_visible_offset()
-            comment = glob_proj.pnp_grid.rows()[comp_idx][glob_proj.pnp_columns.comment_col]
-            ftprint = glob_proj.pnp_grid.rows()[comp_idx][glob_proj.pnp_columns.footprint_col]
+            absolute_idx = wgt_idx + self.editor_data.items_visible_offset()
+            comment = glob_proj.pnp_grid.rows()[absolute_idx][glob_proj.pnp_columns.comment_col]
+            ftprint = glob_proj.pnp_grid.rows()[absolute_idx][glob_proj.pnp_columns.footprint_col]
 
             # scan all items and if comment:footprint matches -> apply
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
-                item = self.editor_data.item_raw(i)
+                pnp_item = self.editor_data.item_raw(i)
 
-                if item is None:
+                if pnp_item is None:
                     continue
 
-                if i == comp_idx:
+                if i == absolute_idx:
                     # add marker that this is a final value
-                    item.marker.value = Marker.MAN_SEL
+                    pnp_item.marker.value = Marker.MAN_SEL
                     wgt_visible_idx = i - self.editor_data.items_visible_offset()
-                    self.lbl_marker_list[wgt_visible_idx].config(background=item.marker.color)
+                    # TODO: in filtered view, wgt_visible_idx is not valid
+                    self.lbl_marker_list[wgt_visible_idx].config(background=pnp_item.marker.color)
                     self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_visible_idx], selected_component)
                     # event source widget, so we can skip this one
                     continue
 
                 # if already selected, skip this item
-                if not force and (item.marker.value in (Marker.MAN_SEL, Marker.REMOVED)):
+                if not force and (pnp_item.marker.value in (Marker.MAN_SEL, Marker.REMOVED)):
                     continue
 
                 if row[glob_proj.pnp_columns.comment_col] == comment and \
                     row[glob_proj.pnp_columns.footprint_col] == ftprint:
                     # found: select the same component
-                    logger.debug(f"  Apply '{selected_component}' to item {row[0]}")
-                    item.editor_selection = selected_component
+                    logger.debug(f"  Apply '{selected_component}' to item {row[0]} ({pnp_item.editor_filter})")
+                    pnp_item.editor_selection = selected_component
                     wgt_visible = i in self.editor_data.items_visible_range()
+                    # TODO: in filtered view, wgt_visible_idx is not valid
                     wgt_visible_idx = i - self.editor_data.items_visible_offset()
 
                     if wgt_visible:
@@ -981,14 +982,14 @@ class PnPEditor(customtkinter.CTkFrame):
 
                     if len(selected_component) >= 3:
                         # add marker that this is a final value
-                        item.marker.value = Marker.MAN_SEL
+                        pnp_item.marker.value = Marker.MAN_SEL
                         if wgt_visible:
-                            self.lbl_marker_list[wgt_visible_idx].config(background=item.marker.color)
+                            self.lbl_marker_list[wgt_visible_idx].config(background=pnp_item.marker.color)
                     else:
                         # too short -> filter or empty
-                        item.marker.value = Marker.NOMATCH
+                        pnp_item.marker.value = Marker.NOMATCH
                         if wgt_visible:
-                            self.lbl_marker_list[wgt_visible_idx].config(background=item.marker.color)
+                            self.lbl_marker_list[wgt_visible_idx].config(background=pnp_item.marker.color)
 
             self.update_selected_status()
         except Exception as e:
@@ -1036,7 +1037,6 @@ class PnPEditor(customtkinter.CTkFrame):
     def cbx_components_return(self, event):
         self.cbx_components_apply_filter(event.widget)
 
-    # TODO: move to PnPEditorData
     def cbx_components_apply_selected_to_all(self, cbx, force: bool):
         cbx.focus_force()
         wgt_idx = self.cbx_component_list.index(cbx)
@@ -1075,56 +1075,55 @@ class PnPEditor(customtkinter.CTkFrame):
         component_name = ftprint + "_" + cmnt
 
         if item := self.editor_data.item_paginated(wgt_idx):
-            logger.debug(f"Set default <ftprnt>_<cmnt>: '{component_name}'")
+            logger.debug(f"Set default <footprint>_<comment>: '{component_name}'")
             item.editor_selection = component_name
             item.marker.value = Marker.FILTER
 
             cbx.set(component_name)
             self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
 
-    # TODO: move to PnPEditorData
     def cbx_components_apply_filter(self, cbx):
         filter: str = cbx.get().strip()
         wgt_idx = self.cbx_component_list.index(cbx)
 
         if len(filter) >= 2:
-            filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
+            filtered_comp_names = list(item.name for item in glob_components.components_filtered(filter))
             logger.info(f"Apply filter '{filter}' -> {len(filtered_comp_names)} matching")
             #
             glob_components.mru_items.arrange(filter, filtered_comp_names)
 
-            if item := self.editor_data.item_paginated(wgt_idx):
-                item.editor_filter = filter
-                item.editor_cbx_items = filtered_comp_names
+            if pnp_item := self.editor_data.item_paginated(wgt_idx):
+                pnp_item.editor_filter = filter
+                pnp_item.editor_cbx_items = filtered_comp_names
                 # set a new combobox items
-                cbx.configure(values=item.editor_cbx_items)
+                cbx.configure(values=pnp_item.editor_cbx_items)
 
                 try:
                     self.component_names.index(filter)
                     # filter found on component list: add marker that this is a final value
-                    item.marker.value = Marker.MAN_SEL
-                    self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
+                    pnp_item.marker.value = Marker.MAN_SEL
+                    self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
                 except Exception:
                     if len(filtered_comp_names) > 0:
                         # mark this is a filter, not value
-                        item.marker.value = Marker.FILTER
-                        self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
+                        pnp_item.marker.value = Marker.FILTER
+                        self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
                     else:
                         # mark no matching component in database
-                        item.marker.value = Marker.NOMATCH
-                        self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
+                        pnp_item.marker.value = Marker.NOMATCH
+                        self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
 
                     self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_idx], filter)
         else:
             logger.info("Filter too short: use full list")
 
-            if item := self.editor_data.item_paginated(wgt_idx):
-                item.editor_cbx_items = self.component_names
-                cbx.configure(values=item.editor_cbx_items)
+            if pnp_item := self.editor_data.item_paginated(wgt_idx):
+                pnp_item.editor_cbx_items = self.component_names
+                cbx.configure(values=pnp_item.editor_cbx_items)
 
                 try:
-                    item.marker.value = Marker.NOMATCH
-                    self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
+                    pnp_item.marker.value = Marker.NOMATCH
+                    self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
                 except Exception as e:
                     logger.warning(f"{e}")
 
@@ -1171,19 +1170,19 @@ class PnPEditor(customtkinter.CTkFrame):
     def cbx_rotation_selected(self, event):
         rot: str = event.widget.get().strip()
         logger.debug(f"Rotation selected: {rot}")
-        row_idx = self.cbx_rotation_list.index(event.widget)
+        wgt_idx = self.cbx_rotation_list.index(event.widget)
 
-        if item := self.editor_data.item_paginated(row_idx):
-            item.rotation = rot
+        if pnp_item := self.editor_data.item_paginated(wgt_idx):
+            pnp_item.rotation = rot
             self.btn_save.configure(state=tkinter.NORMAL)
 
     def cbx_rotation_return(self, event):
         rot: str = event.widget.get().strip()
         logger.debug(f"Rotation entered: {rot}")
 
-        row_idx = self.cbx_rotation_list.index(event.widget)
-        if item := self.editor_data.item_paginated(row_idx):
-            item.rotation = rot
+        wgt_idx = self.cbx_rotation_list.index(event.widget)
+        if pnp_item := self.editor_data.item_paginated(wgt_idx):
+            pnp_item.rotation = rot
             self.btn_save.configure(state=tkinter.NORMAL)
 
     def entry_focus_in(self, event):
@@ -1251,8 +1250,8 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def count_selected(self) -> tuple[int, int]:
         n = 0
-        for item in self.editor_data.items():
-            if item.marker.value in (Marker.MAN_SEL, Marker.AUTO_SEL, Marker.REMOVED):
+        for pnp_item in self.editor_data.items():
+            if pnp_item.marker.value in (Marker.MAN_SEL, Marker.AUTO_SEL, Marker.REMOVED):
                 n += 1
         return (n, len(self.editor_data.items()))
 
@@ -1301,7 +1300,7 @@ class ComponentsInfo(customtkinter.CTkFrame):
             # since the user can add it's own components to the working database,
             # we only add a new components do the working db instead of replacing it with the new one
             global glob_components
-            added = glob_components.add_new(new_components.items_all())
+            added = glob_components.add_new(new_components.components_all())
             logger.info(f"Added {added} new components to the database")
             glob_components.save_new(db_directory)
             self.update_components_info()
@@ -1376,7 +1375,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
         #
         global glob_components
-        if not glob_components or len(glob_components.items_all()) == 0:
+        if not glob_components or len(glob_components.components_all()) == 0:
             logger.info("DB editor: components DB is empty")
         else:
             self.load_components()
@@ -1440,8 +1439,8 @@ class ComponentsEditor(customtkinter.CTkFrame):
         global glob_components
         # depending on entered filter, returns filtered or entire list of components
         if len(self.component_filter) > 0:
-            return glob_components.items_filtered(self.component_filter)
-        return glob_components.items_all()
+            return glob_components.components_filtered(self.component_filter)
+        return glob_components.components_all()
 
     def format_pageno(self) -> str:
         pageno_str = f"{1 + self.components_pageno} / {1 + len(self.get_components()) // self.COMP_PER_PAGE}"
@@ -1583,7 +1582,7 @@ class CtkApp(customtkinter.CTk):
             if os.path.isdir(db_directory):
                 glob_components.load(db_directory)
                 logger.info(f"  Date: {glob_components.db_date}")
-                logger.info(f"  Items: {len(glob_components.items_all())}")
+                logger.info(f"  Items: {len(glob_components.components_all())}")
             else:
                 logger.warning(f"DB folder not found at {db_directory}")
         except Exception as e:

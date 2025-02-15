@@ -122,8 +122,8 @@ class ComponentsMRU:
         """returns a set of all components used in a MRU lists"""
         all = set()
         for component_mru in self.mru:
-            for item in component_mru.mru:
-                all.add(item)
+            for mru_item in component_mru.mru:
+                all.add(mru_item)
         return all
 
     def remove_invalid_mru_components(self, invalid: set[str]):
@@ -144,9 +144,9 @@ class ComponentsMRU:
         if not filter:
             return
 
-        for component in self.mru:
-            if component.filter == filter:
-                component.on_select(selection)
+        for mru_item in self.mru:
+            if mru_item.filter == filter:
+                mru_item.on_select(selection)
                 self.dirty = True
                 break
 
@@ -170,12 +170,12 @@ class ComponentsMRU:
 
     def __save_csv(self, path: str):
         with open(path, "w", encoding="utf-8") as f:
-            for item in self.mru:
+            for mru_item in self.mru:
                 # only items with not-empty MRU list
-                if item.mru:
-                    f.write(f"\"{item.filter}\"")
+                if mru_item.mru:
+                    f.write(f"\"{mru_item.filter}\"")
                     # store a limited number of recently used
-                    for idx, comp in enumerate(item.mru):
+                    for idx, comp in enumerate(mru_item.mru):
                         if idx == self.MRU_MAX_LEN:
                             break
                         if comp: # only not-empty entries
@@ -193,7 +193,7 @@ class ComponentsDB:
         """date str"""
         self.db_file_path = ""
         """full filepath"""
-        self.__items: list[Component] = []
+        self.__components: list[Component] = []
         """list of components"""
         self.dirty = False
         """list updated during operation"""
@@ -206,8 +206,8 @@ class ComponentsDB:
             # https://docs.python.org/3/library/stdtypes.html?#dict.items
             for item in components_dict.items():
                 # add all component variants into the same flat list
-                self.__items.extend([Component(name=subitem) for subitem in item[1]])
-            self.__items.sort()
+                self.__components.extend([Component(name=subitem) for subitem in item[1]])
+            self.__components.sort()
 
     def load(self, db_folder: str):
         """Load latest database version"""
@@ -253,12 +253,12 @@ class ComponentsDB:
 
     def __iterate_reader(self, csv_file):
         reader = csv.reader(csv_file, delimiter="\t")
-        self.__items.clear()
+        self.__components.clear()
         for row in reader:
             row_cells = [cell.strip() for cell in row]
             hidd = row_cells[1] == "x"
             al = row_cells[2] if len(row_cells) >= 3 else ""
-            self.__items.append(Component(name=row_cells[0],
+            self.__components.append(Component(name=row_cells[0],
                                           hidden=hidd,
                                           aliases=al))
 
@@ -272,28 +272,28 @@ class ComponentsDB:
             f = open(path, "r", encoding="ansi")
             self.__iterate_reader(f)
 
-    def add_new(self, new_items: list[Component]) -> int:
+    def add_new(self, new_components: list[Component]) -> int:
         """Iterate over new_items to add components not existing in current db"""
-        items_set = set(item.name for item in self.__items)
+        components_set = set(component.name for component in self.__components)
         added = 0
 
-        for new_item in new_items:
-            if not new_item.name in items_set:
-                self.__items.append(new_item)
-                logger.debug(f"  + {new_item.name}")
+        for new_component in new_components:
+            if not new_component.name in components_set:
+                self.__components.append(new_component)
+                logger.debug(f"  + {new_component.name}")
                 added += 1
 
         return added
 
     def __save_csv(self, db_file_path: str):
         with open(db_file_path, "w", encoding="utf-8") as f:
-            for item in self.__items:
-                hidden="x" if item.hidden else "_"
-                f.write(f"\"{item.name}\"\t{hidden}\t\"{item.aliases}\"\n")
+            for component in self.__components:
+                hidden="x" if component.hidden else "_"
+                f.write(f"\"{component.name}\"\t{hidden}\t\"{component.aliases}\"\n")
 
     def save_new(self, db_folder: str):
         """Save local DB to a CSV file with date-time"""
-        self.__items.sort()
+        self.__components.sort()
         now = time.strftime(self.FILENAME_DATE_FMT)
         db_file_path = os.path.join(db_folder, f"components__{now}.csv")
         try:
@@ -304,7 +304,7 @@ class ComponentsDB:
 
     def save_changes(self):
         """Save local DB to the same file"""
-        self.__items.sort()
+        self.__components.sort()
         try:
             self.__save_csv(self.db_file_path)
             self.dirty = False
@@ -314,24 +314,24 @@ class ComponentsDB:
     def count_visible(self) -> int:
         """Returns the number of valid components"""
         n = 0
-        for item in self.__items:
-            if not item.hidden:
+        for component in self.__components:
+            if not component.hidden:
                 n += 1
         return n
 
     def count_hidden(self) -> int:
         """Returns the number of hidden components"""
         n = 0
-        for item in self.__items:
-            if item.hidden:
+        for components in self.__components:
+            if components.hidden:
                 n += 1
         return n
 
-    def items_all(self) -> list[Component]:
+    def components_all(self) -> list[Component]:
         """Returns all components"""
-        return self.__items
+        return self.__components
 
-    def items_filtered(self, needle: str, show_hidden: bool=False) -> list[Component]:
+    def components_filtered(self, needle: str, show_hidden: bool=False) -> list[Component]:
         """
         Returns components containing the needle
         :needle: space-separated keywords: "603", "603 2k2", ...
@@ -340,14 +340,14 @@ class ComponentsDB:
         """
         needle = '*' + '*'.join(needle.split(' ')) + '*'
         result = []
-        for item in self.__items:
-            if show_hidden or not item.hidden:
-                if fnmatch.fnmatch(f"{item.name};{item.aliases}", needle):
-                    result.append(item)
+        for component in self.__components:
+            if show_hidden or not component.hidden:
+                if fnmatch.fnmatch(f"{component.name};{component.aliases}", needle):
+                    result.append(component)
         return result
 
     def names_visible(self) -> list[str]:
-        names_list = list(item.name for item in self.items_all() if not item.hidden)
+        names_list = list(component.name for component in self.components_all() if not component.hidden)
         return names_list
 
     def add_if_not_exists(self, component_name: str) -> bool:
@@ -357,9 +357,9 @@ class ComponentsDB:
             return False
 
         component_name_lower = component_name.lower()
-        for item in self.__items:
-            if item.name.lower() == component_name_lower:
+        for component in self.__components:
+            if component.name.lower() == component_name_lower:
                 return False
-        self.__items.append(Component(name=component_name))
+        self.__components.append(Component(name=component_name))
         self.dirty = True
         return True
