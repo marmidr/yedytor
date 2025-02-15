@@ -91,7 +91,7 @@ class Project:
             self.pnp_grid = csv_reader.read_csv(path, delim)
 
         log_f = logger.info if self.pnp_grid.nrows > 0 else logger.warning
-        log_f(f"PnP: {self.pnp_grid.nrows} rows x {self.pnp_grid.ncols} cols")
+        log_f(f"  PnP: {self.pnp_grid.nrows} rows x {self.pnp_grid.ncols} cols")
 
         # load the optional second PnP file
         if path2 != "":

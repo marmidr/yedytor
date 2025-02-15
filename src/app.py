@@ -87,7 +87,7 @@ class HomeFrame(customtkinter.CTkFrame):
         self.entry_pnp2_path.grid(row=2, column=1, pady=5, padx=5, columnspan=3, sticky="we")
         self.entry_pnp2_path.configure(state=tkinter.DISABLED)
 
-        #
+        # Board view TOP
         if True:
             lbl_board_top_path = customtkinter.CTkLabel(self, text="Board view TOP (optional):")
             lbl_board_top_path.grid(row=3, column=0, pady=5, padx=5, sticky="w")
@@ -105,7 +105,7 @@ class HomeFrame(customtkinter.CTkFrame):
             btn_show_board_top.grid(row=3, column=4, pady=5, padx=5,  sticky="")
             btn_show_board_top.configure(state=tkinter.DISABLED)
 
-        #
+        # Board view BOT
         if True:
             lbl_board_bottom_path = customtkinter.CTkLabel(self, text="Board view BOT (optional):")
             lbl_board_bottom_path.grid(row=4, column=0, pady=5, padx=5, sticky="w")
@@ -320,8 +320,7 @@ class HomeFrame(customtkinter.CTkFrame):
 
                 self.app.title(f"{APP_NAME} - {glob_proj.pnp_path} (WiP)")
 
-                logger.info("Restore PnP editor...")
-                self.app.get_tab_select_preview_fn()()
+                logger.info("  Restore PnP editor content...")
                 self.app.pnp_editor.load(wip[2]['components'])
                 logger.info("Open the PnP editor page")
                 self.app.get_tab_select_editor_fn()()
@@ -510,7 +509,6 @@ class PnPConfig(customtkinter.CTkFrame):
                                                 command=self.button_goto_editor_event)
         self.btn_goto_editor.grid(row=0, column=8, pady=5, padx=5, sticky="")
 
-
     def opt_separator_event(self, new_sep: str):
         if glob_proj.loading:
             return
@@ -581,9 +579,9 @@ class PnPConfig(customtkinter.CTkFrame):
             logger.error(f"Cannot save a recent project settings: {e}")
 
         if glob_proj.pnp_grid:
-            logger.debug("Go to Editor page")
-            # refresh editor
+            logger.info("Load PnP editor content...")
             self.pnp_editor.load()
+            logger.info("Open the PnP editor page")
             self.select_editor()
         else:
             logger.warning("PnP file not loaded")
