@@ -110,19 +110,22 @@ class PnPEditorData:
         self.__items: list[PnPEditorItem] = []
         self.page_no = 0
 
-    # TODO: return filtered items
-    def items(self):
+    def items_all(self) -> list[PnPEditorItem]:
         return self.__items
+
+    # def items_removed(self) -> list[PnPEditorItem]:
+    #     items_subrange = [item for item in self.__items if item.marker.value == Marker.REMOVED]
+    #     return items_subrange
 
     def set_items(self, items: list[PnPEditorItem]):
         self.__items = items
 
-    def item_offset(self) -> int:
-        """Item offset, resulting from current page"""
+    def items_visible_offset(self) -> int:
+        """Items offset on current page"""
         return self.page_no * PnPEditorData.ITEMS_PER_PAGE
 
-    def items_range(self) -> range:
-        return range(self.item_offset(), self.item_offset() + PnPEditorData.ITEMS_PER_PAGE)
+    def items_visible_range(self) -> range:
+        return range(self.items_visible_offset(), self.items_visible_offset() + PnPEditorData.ITEMS_PER_PAGE)
 
     def item_raw(self, cmp_idx: int) -> PnPEditorItem:
         """Returns an item, starting at 0"""
@@ -130,13 +133,13 @@ class PnPEditorData:
             return self.__items[cmp_idx]
         return None
 
-    def item(self, wgt_idx: int) -> PnPEditorItem:
+    def item_paginated(self, wgt_idx: int) -> PnPEditorItem:
         """Returns an item, taking current page no into account"""
         # widget row index -> component index
-        cmp_idx = wgt_idx + self.item_offset()
+        absolute_idx = wgt_idx + self.items_visible_offset()
 
-        if cmp_idx >= 0 and cmp_idx < len(self.__items):
-            return self.__items[cmp_idx]
+        if absolute_idx >= 0 and absolute_idx < len(self.__items):
+            return self.__items[absolute_idx]
         return None
 
 # -----------------------------------------------------------------------------
@@ -277,7 +280,7 @@ def prepare_editor_data(components: ComponentsDB, project: Project, wip_items: l
         cache = dict()
         for pnpitem in items_iterator:
             __process_pnpitem(pnpitem, components, names_visible, cache)
-            out.items().append(pnpitem)
+            out.items_all().append(pnpitem)
 
     return out
 
@@ -356,8 +359,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
         FOOTPRINT_SIZES = (
             "0402", "0603", "0805",
             "1206", "1210", "1608", "1808",
-            "2220", "2512",
-            "3316"
+            "2220", "2512"
         )
 
         # "SOD923R" -> "SOD923"
@@ -431,7 +433,7 @@ def wip_save(wip_path: str, proj_serialized: dict, editor_data: PnPEditorData):
         }
         components = []
 
-        for i, item in enumerate(editor_data.items()):
+        for i, item in enumerate(editor_data.items_all()):
             record = {
                 'item': item.item,
                 'marker': item.marker.value,
