@@ -362,68 +362,60 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
     ftprint = pnpitem.footprint
     cmnt = pnpitem.comment
 
+    ftprint_found = ""
+
+    FOTPRINTS = (
+        "LED",
+        "SOT23", "SOT223", "SOT363", "SOT95", "SOT",
+        "SOD123", "SOD323", "SOD80", "SOD882", "SOD923", "SOD",
+        "SMA", "SMB", "SMC",
+        "SOIC", "QSOP", "QFP", "SWITCH",
+        "TSSOP"
+    )
+
+    FOOTPRINT_SIZES = (
+        "0402", "0603", "0805",
+        "1206", "1210", "1608", "1808",
+        "2220", "2512"
+    )
+
+    # SOIC127P600X175-8N    -> SOIC
     if True:
-        ftprint_prefix = ""
+        for fp in FOTPRINTS:
+            if fp in ftprint:
+                ftprint_found = fp
+                break
+        fp = None
 
-        FOTPRINTS = (
-            "SOT23", "SOT223", "SOT363", "SOT",
-            "SOD123", "SOD923", "SOD882", "SOD",
-            "LED",
-            "QSOP"
-            "TSSOP",
-        )
+    # specialisation for LEDs
+    # https://www.w3schools.com/python/python_regex.asp
+    # https://docs.python.org/3/library/re.html
+    if ftprint_found == "LED":
+        for fp_sz in FOOTPRINT_SIZES:
+            if re.search(f"LED.*{fp_sz}", ftprint):
+                ftprint_found = "LED " + fp_sz
+                break
 
-        FOOTPRINT_SIZES = (
-            "0402", "0603", "0805",
-            "1206", "1210", "1608", "1808",
-            "2220", "2512"
-        )
+    # 1206_R_1,2k           -> 1206
+    # RES_0603_1608         -> R0603
+    # RESC0805(2012)_L      -> R0805
+    # CAPC0805(2012)100_L   -> C0805
+    # CAP_0805_2012         -> C0805
+    if not ftprint_found:
+        for fp_sz in FOOTPRINT_SIZES:
+            if fp_sz in ftprint:
+                if re.search(f"R.*{fp_sz}", ftprint):
+                    ftprint_found = "R" + fp_sz
+                if re.search(f"C.*{fp_sz}", ftprint):
+                    ftprint_found = "C" + fp_sz
+                else:
+                    ftprint_found = fp_sz
+                break
+        fp_sz = None
 
-        # "SOD923R" -> "SOD923"
-        if True:
-            for fp in FOTPRINTS:
-                if fp in ftprint:
-                    ftprint_prefix = fp
-                    break
-            fp = None
-
-        # specialisation for LEDs
-        # https://www.w3schools.com/python/python_regex.asp
-        # https://docs.python.org/3/library/re.html
-        if ftprint_prefix == "LED":
-            for fp_sz in FOOTPRINT_SIZES:
-                if re.search(f"LED.*{fp_sz}", ftprint):
-                    ftprint_prefix = "LED " + fp_sz
-                    break
-
-        # "1206_R_1,2k" -> "1206"
-        # "CAPC0805(2012)100_L" -> "0805"
-        if not ftprint_prefix:
-            for fp_sz in FOOTPRINT_SIZES:
-                if fp_sz in ftprint:
-                    if   (r_fp_sz := "R" + fp_sz) in ftprint:
-                        ftprint_prefix = r_fp_sz
-                    elif (c_fp_sz := "C" + fp_sz) in ftprint:
-                        ftprint_prefix = c_fp_sz
-                    else:
-                        ftprint_prefix = fp_sz
-                    break
-            fp_sz = None
-
-        # create a proposition list based on a footprint and a comment
-        fltr = ftprint_prefix + " " + cmnt
-        filtered_comp_names = list(item.name for item in components.components_filtered(fltr))
-        if len(filtered_comp_names) > 0:
-            pnpitem.editor_selection = fltr.lower()
-            pnpitem.editor_filter = pnpitem.editor_selection
-            pnpitem.editor_cbx_items = filtered_comp_names
-            pnpitem.marker.value = Marker.FILTER
-            # insert MRU items at the top of the `cbx_items` list
-            components.mru_items.arrange(pnpitem.editor_selection, pnpitem.editor_cbx_items)
-            return
-
-    # create component list proposition based only on the comment
-    fltr = cmnt
+    # create a proposition list based on a footprint and a comment
+    fltr = ftprint_found + " " + cmnt
+    fltr = fltr.strip()
     filtered_comp_names = list(item.name for item in components.components_filtered(fltr))
 
     if len(filtered_comp_names) > 0:
@@ -431,11 +423,12 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
         pnpitem.editor_filter = pnpitem.editor_selection
         pnpitem.editor_cbx_items = filtered_comp_names
         pnpitem.marker.value = Marker.FILTER
+        # insert MRU items at the top of the `cbx_items` list
         components.mru_items.arrange(pnpitem.editor_selection, pnpitem.editor_cbx_items)
         return
 
-    # remove filter and assign all components
-    pnpitem.editor_selection = ""
+    # no match - leave the filter, but assign all components
+    pnpitem.editor_selection = fltr.lower()
     pnpitem.editor_filter = pnpitem.editor_selection
     pnpitem.editor_cbx_items = names_visible
     pnpitem.marker.value = Marker.NOMATCH
