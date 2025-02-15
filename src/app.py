@@ -614,15 +614,31 @@ class PnPEditor(customtkinter.CTkFrame):
             sep_v = tkinter.ttk.Separator(self.frame_toolbar, orient='vertical')
             sep_v.grid(row=0, column=4, pady=2, padx=5, sticky="ns")
 
-            # self.config_pnpedit.radio_var = tkinter.IntVar(value=Config.instance().editor_font_idx)
-            # self.config_pnpedit.rb_font0 = customtkinter.CTkRadioButton(self.config_pnpedit, text="12px",
-            #                                                         variable=self.config_pnpedit.radio_var,
-            #                                                         value=0, command=self.radiobutton_event)
-            # self.config_pnpedit.rb_font0.grid(row=1, column=0, pady=5, padx=5, sticky="w")
-            # self.config_pnpedit.rb_font1 = customtkinter.CTkRadioButton(self.config_pnpedit, text="16px",
-            #                                                         variable=self.config_pnpedit.radio_var,
-            #                                                         value=1, command=self.radiobutton_event)
-            # self.config_pnpedit.rb_font1.grid(row=2, column=0, pady=5, padx=5, sticky="w")
+            #
+            self.radio_var = tkinter.IntVar(value=0)
+            self.rb_show_all = customtkinter.CTkRadioButton(self.frame_toolbar, text="All components",
+                                                                    variable=self.radio_var,
+                                                                    value=0, command=self.radiobutton_event)
+            self.rb_show_all.grid(row=0, column=5, pady=5, padx=5, sticky="")
+            #
+            self.rb_show_notconfigured = customtkinter.CTkRadioButton(self.frame_toolbar, text="Not configured",
+                                                                    variable=self.radio_var,
+                                                                    value=1, command=self.radiobutton_event)
+            self.rb_show_notconfigured.grid(row=0, column=6, pady=5, padx=5, sticky="")
+            #
+            self.rb_show_notconfigured = customtkinter.CTkRadioButton(self.frame_toolbar, text="Configured",
+                                                                    variable=self.radio_var,
+                                                                    value=2, command=self.radiobutton_event)
+            self.rb_show_notconfigured.grid(row=0, column=7, pady=5, padx=5, sticky="")
+            #
+            self.rb_show_notconfigured = customtkinter.CTkRadioButton(self.frame_toolbar, text="Removed",
+                                                                    variable=self.radio_var,
+                                                                    value=3, command=self.radiobutton_event)
+            self.rb_show_notconfigured.grid(row=0, column=8, pady=5, padx=5, sticky="")
+
+            #
+            sep_v = tkinter.ttk.Separator(self.frame_toolbar, orient='vertical')
+            sep_v.grid(row=0, column=9, pady=2, padx=5, sticky="ns")
 
 
         # bottom toolbar
@@ -672,7 +688,7 @@ class PnPEditor(customtkinter.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
 
     def format_pageno(self) -> str:
-        pages_cnt = 1 + len(self.editor_data.items_all()) // self.editor_data.ITEMS_PER_PAGE
+        pages_cnt = 1 + len(self.editor_data.items()) // self.editor_data.ITEMS_PER_PAGE
         pageno_str = f"{1 + self.editor_data.page_no} / {pages_cnt}"
         return pageno_str
 
@@ -683,11 +699,19 @@ class PnPEditor(customtkinter.CTkFrame):
             self.lbl_pageno.configure(text=self.format_pageno())
 
     def button_next_event(self):
-        last_page = len(self.editor_data.items_all()) // self.editor_data.ITEMS_PER_PAGE
+        last_page = len(self.editor_data.items()) // self.editor_data.ITEMS_PER_PAGE
         if self.editor_data.page_no < last_page:
             self.editor_data.page_no += 1
             self.editor_load_data()
             self.lbl_pageno.configure(text=self.format_pageno())
+
+    def radiobutton_event(self):
+        filter_idx = self.radio_var.get()
+        logger.info(f"Selected component filter: {filter_idx}")
+        self.editor_data.set_items_filter(filter_idx)
+        logger.info(f"  Reload the editor...")
+        self.editor_load_data()
+        self.lbl_pageno.configure(text=self.format_pageno())
 
     def create_editor(self):
         self.focused_idx = None
@@ -821,7 +845,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 return
             delta = time.monotonic() - started_at
             delta = f"{delta:.1f}s"
-            logger.info(f"  {len(self.editor_data.items_all())} items prepared in {delta}")
+            logger.info(f"  {len(self.editor_data.items())} items prepared in {delta}")
 
         self.lbl_pageno.configure(text=self.format_pageno())
         self.editor_load_data()
@@ -829,29 +853,29 @@ class PnPEditor(customtkinter.CTkFrame):
     def editor_load_data(self):
         # Components table:
         pnpitem_start_idx = self.editor_data.page_no * self.editor_data.ITEMS_PER_PAGE
-        pnpitem_end_idx =  min(len(self.editor_data.items_all()), pnpitem_start_idx+self.editor_data.ITEMS_PER_PAGE)
-        row_idx = 0
+        pnpitem_end_idx =  min(len(self.editor_data.items()), pnpitem_start_idx+self.editor_data.ITEMS_PER_PAGE)
+        wgt_idx = 0
 
         for pnpitem_idx in range(pnpitem_start_idx, pnpitem_end_idx):
-            pnpitem = self.editor_data.items_all()[pnpitem_idx]
+            pnpitem = self.editor_data.items()[pnpitem_idx]
             # item:
-            ui_helpers.entry_set_text(self.entry_item_list[row_idx], pnpitem.item)
+            ui_helpers.entry_set_text(self.entry_item_list[wgt_idx], pnpitem.item)
             # descr
-            ui_helpers.entry_set_text(self.entry_descr_list[row_idx], pnpitem.descr)
+            ui_helpers.entry_set_text(self.entry_descr_list[wgt_idx], pnpitem.descr)
             # marker:
-            self.lbl_marker_list[row_idx].config(background=pnpitem.marker.color)
+            self.lbl_marker_list[wgt_idx].config(background=pnpitem.marker.color)
             # component list:
-            self.cbx_component_list[row_idx].set(pnpitem.editor_selection)
-            self.cbx_component_list[row_idx].configure(values=pnpitem.editor_cbx_items)
+            self.cbx_component_list[wgt_idx].set(pnpitem.editor_selection)
+            self.cbx_component_list[wgt_idx].configure(values=pnpitem.editor_cbx_items)
             # comp. name length:
-            self.update_componentname_length_lbl(self.lbl_namelength_list[row_idx], pnpitem.editor_selection)
+            self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_idx], pnpitem.editor_selection)
             # rotation:
-            self.cbx_rotation_list[row_idx].set(pnpitem.rotation)
+            self.cbx_rotation_list[wgt_idx].set(pnpitem.rotation)
             #
-            row_idx += 1
+            wgt_idx += 1
 
         # clear unused rows
-        for idx in range(row_idx, pnp_editor_helpers.PnPEditorData.ITEMS_PER_PAGE):
+        for idx in range(wgt_idx, pnp_editor_helpers.PnPEditorData.ITEMS_PER_PAGE):
             ui_helpers.entry_set_text(self.entry_item_list[idx], 0)
             # entry_pnp.configure(state=tkinter.DISABLED)
             ui_helpers.entry_set_text(self.entry_descr_list[idx], "")
@@ -1227,10 +1251,10 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def count_selected(self) -> tuple[int, int]:
         n = 0
-        for item in self.editor_data.items_all():
+        for item in self.editor_data.items():
             if item.marker.value in (Marker.MAN_SEL, Marker.AUTO_SEL, Marker.REMOVED):
                 n += 1
-        return (n, len(self.editor_data.items_all()))
+        return (n, len(self.editor_data.items()))
 
 # -----------------------------------------------------------------------------
 

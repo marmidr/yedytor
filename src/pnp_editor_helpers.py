@@ -108,17 +108,34 @@ class PnPEditorData:
 
     def __init__(self):
         self.__items: list[PnPEditorItem] = []
+        self.__items_filtered = self.__items
         self.page_no = 0
-
-    def items_all(self) -> list[PnPEditorItem]:
-        return self.__items
-
-    # def items_removed(self) -> list[PnPEditorItem]:
-    #     items_subrange = [item for item in self.__items if item.marker.value == Marker.REMOVED]
-    #     return items_subrange
 
     def set_items(self, items: list[PnPEditorItem]):
         self.__items = items
+        self.__items_filtered = self.__items
+        self.page_no = 0
+
+    def items(self) -> list[PnPEditorItem]:
+        return self.__items_filtered
+
+    def set_items_filter(self, filter_idx: int):
+        self.page_no = 0
+
+        if filter_idx == 0:
+            # all
+            self.__items_filtered = self.__items
+        elif filter_idx == 1:
+            # not configured
+            self.__items_filtered = [item for item in self.__items if item.marker.value in (Marker.NOMATCH, Marker.FILTER)]
+        elif filter_idx == 2:
+            # configured
+            self.__items_filtered = [item for item in self.__items if item.marker.value in (Marker.AUTO_SEL, Marker.MAN_SEL)]
+        elif filter_idx == 3:
+            # removed
+            self.__items_filtered = [item for item in self.__items if item.marker.value == Marker.REMOVED]
+        else:
+            logger.warning("Invalid filter index")
 
     def items_visible_offset(self) -> int:
         """Items offset on current page"""
@@ -129,8 +146,8 @@ class PnPEditorData:
 
     def item_raw(self, cmp_idx: int) -> PnPEditorItem:
         """Returns an item, starting at 0"""
-        if cmp_idx >= 0 and cmp_idx < len(self.__items):
-            return self.__items[cmp_idx]
+        if cmp_idx >= 0 and cmp_idx < len(self.__items_filtered):
+            return self.__items_filtered[cmp_idx]
         return None
 
     def item_paginated(self, wgt_idx: int) -> PnPEditorItem:
@@ -138,8 +155,8 @@ class PnPEditorData:
         # widget row index -> component index
         absolute_idx = wgt_idx + self.items_visible_offset()
 
-        if absolute_idx >= 0 and absolute_idx < len(self.__items):
-            return self.__items[absolute_idx]
+        if absolute_idx >= 0 and absolute_idx < len(self.__items_filtered):
+            return self.__items_filtered[absolute_idx]
         return None
 
 # -----------------------------------------------------------------------------
@@ -280,7 +297,7 @@ def prepare_editor_data(components: ComponentsDB, project: Project, wip_items: l
         cache = dict()
         for pnpitem in items_iterator:
             __process_pnpitem(pnpitem, components, names_visible, cache)
-            out.items_all().append(pnpitem)
+            out.items().append(pnpitem)
 
     return out
 
@@ -433,7 +450,7 @@ def wip_save(wip_path: str, proj_serialized: dict, editor_data: PnPEditorData):
         }
         components = []
 
-        for i, item in enumerate(editor_data.items_all()):
+        for i, item in enumerate(editor_data.items()):
             record = {
                 'item': item.item,
                 'marker': item.marker.value,

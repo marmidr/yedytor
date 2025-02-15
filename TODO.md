@@ -65,6 +65,6 @@
 [ ] w niektórych plikach kolumna Description nie wczytuje sie dla każdego elementu
 [ ] PnP Editor:
     [x] paginacja
-    [ ] filtry
+    [x] filtry
     [ ] zastosowanie wyboru komponentu: brać descr pod uwagę?
         bo może być "402 100p" i "402 100p | 50V"
