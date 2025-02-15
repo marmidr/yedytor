@@ -3,6 +3,7 @@ import json
 import logger
 import multiprocessing
 import re
+import typing
 
 from components import ComponentsDB
 from project import Project
@@ -110,62 +111,94 @@ class PnPEditorData:
     ITEMS_PER_PAGE = 200
 
     def __init__(self):
-        self.__items: list[PnPEditorItem] = []
-        self.__items_filtered = self.__items
+        self.__pnp_items: list[PnPEditorItem] = []
+        self.__pnp_items_filtered = self.__pnp_items
         self.page_no = 0
 
     def set_items(self, items: list[PnPEditorItem]):
-        self.__items = items
-        self.__items_filtered = self.__items
+        self.__pnp_items = items
+        self.__pnp_items_filtered = self.__pnp_items
         self.page_no = 0
 
+    def items_all(self) -> list[PnPEditorItem]:
+        """All project items"""
+        return self.__pnp_items
+
     def items_filtered(self) -> list[PnPEditorItem]:
-        return self.__items_filtered
+        """Filtered project items"""
+        return self.__pnp_items_filtered
 
     def set_items_filter(self, filter_idx: int):
         self.page_no = 0
 
         if filter_idx == 0:
             # all
-            self.__items_filtered = self.__items
+            self.__pnp_items_filtered = self.__pnp_items
         elif filter_idx == 1:
             # not configured
-            self.__items_filtered = [item for item in self.__items if item.marker.value in (Marker.NOMATCH, Marker.FILTER)]
+            self.__pnp_items_filtered = [item for item in self.__pnp_items if item.marker.value in (Marker.NOMATCH, Marker.FILTER)]
         elif filter_idx == 2:
             # configured
-            self.__items_filtered = [item for item in self.__items if item.marker.value in (Marker.AUTO_SEL, Marker.MAN_SEL)]
+            self.__pnp_items_filtered = [item for item in self.__pnp_items if item.marker.value in (Marker.AUTO_SEL, Marker.MAN_SEL)]
         elif filter_idx == 3:
             # removed
-            self.__items_filtered = [item for item in self.__items if item.marker.value == Marker.REMOVED]
+            self.__pnp_items_filtered = [item for item in self.__pnp_items if item.marker.value == Marker.REMOVED]
         else:
             logger.warning("Invalid filter index")
 
+    def item_absolute_index(self, pnp_item: PnPEditorItem) -> typing.Union[int, None]:
+        try:
+            idx = self.__pnp_items.index(pnp_item)
+            return idx
+        except:
+            return None
+
+    def item_filtered_paginated_index(self, pnp_item: PnPEditorItem) -> typing.Union[int, None]:
+        try:
+            idx = self.__pnp_items_filtered.index(pnp_item)
+            idx -= self.items_visible_offset()
+            if idx < 0:
+                return None
+            if idx >= PnPEditorData.ITEMS_PER_PAGE:
+                return None
+            return idx
+        except:
+            return None
+
+    def item_absolute_index_from_widget_filtered_paginated_index(self, paginated_idx: int) -> typing.Union[int, None]:
+        item = self.item_filtered_paginated(paginated_idx)
+        try:
+            idx = self.__pnp_items.index(item)
+            return idx
+        except:
+            return None
+
     def items_visible_offset(self) -> int:
-        """Items offset on current page"""
+        """Items offset on the current page"""
         return self.page_no * PnPEditorData.ITEMS_PER_PAGE
 
     def items_visible_range(self) -> range:
         return range(self.items_visible_offset(), self.items_visible_offset() + PnPEditorData.ITEMS_PER_PAGE)
 
-    def item(self, cmp_idx: int) -> PnPEditorItem:
+    def item(self, cmp_idx: int) -> typing.Union[PnPEditorItem, None]:
         """Returns an item, starting at absolute index 0"""
-        if cmp_idx >= 0 and cmp_idx < len(self.__items):
-            return self.__items[cmp_idx]
+        if cmp_idx >= 0 and cmp_idx < len(self.__pnp_items):
+            return self.__pnp_items[cmp_idx]
         return None
 
-    def item_filtered(self, cmp_idx: int) -> PnPEditorItem:
+    def item_filtered(self, cmp_idx: int) -> typing.Union[PnPEditorItem, None]:
         """Returns a filtered item, starting at absolute index 0"""
-        if cmp_idx >= 0 and cmp_idx < len(self.__items_filtered):
-            return self.__items_filtered[cmp_idx]
+        if cmp_idx >= 0 and cmp_idx < len(self.__pnp_items_filtered):
+            return self.__pnp_items_filtered[cmp_idx]
         return None
 
-    def item_filtered_paginated(self, wgt_idx: int) -> PnPEditorItem:
+    def item_filtered_paginated(self, wgt_idx: int) -> typing.Union[PnPEditorItem, None]:
         """Returns a filtered item, taking current page no into account"""
         # widget row index -> component index
         absolute_idx = wgt_idx + self.items_visible_offset()
 
-        if absolute_idx >= 0 and absolute_idx < len(self.__items_filtered):
-            return self.__items_filtered[absolute_idx]
+        if absolute_idx >= 0 and absolute_idx < len(self.__pnp_items_filtered):
+            return self.__pnp_items_filtered[absolute_idx]
         return None
 
 # -----------------------------------------------------------------------------
@@ -403,16 +436,20 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
     # RESC0805(2012)_L      -> R0805
     # CAPC0805(2012)100_L   -> C0805
     # CAP_0805_2012         -> C0805
-    # FIXME: RESC0805 categorized as c0805
     if not ftprint_found:
         for fp_sz in FOOTPRINT_SIZES:
             if fp_sz in ftprint:
-                if re.search(f"R.*{fp_sz}", ftprint):
+                if   re.search(f"RES.*{fp_sz}", ftprint):
                     ftprint_found = "R" + fp_sz
-                if re.search(f"C.*{fp_sz}", ftprint):
+                elif re.search(f"CAP.*{fp_sz}", ftprint):
+                    ftprint_found = "C" + fp_sz
+                elif re.search(f"R.*{fp_sz}", ftprint):
+                    ftprint_found = "R" + fp_sz
+                elif re.search(f"C.*{fp_sz}", ftprint):
                     ftprint_found = "C" + fp_sz
                 else:
                     ftprint_found = fp_sz
+                #
                 break
         fp_sz = None
 

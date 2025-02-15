@@ -615,24 +615,24 @@ class PnPEditor(customtkinter.CTkFrame):
             sep_v.grid(row=0, column=4, pady=2, padx=5, sticky="ns")
 
             #
-            self.radio_var = tkinter.IntVar(value=0)
+            self.radio_filter_var = tkinter.IntVar(value=0)
             self.rb_show_all = customtkinter.CTkRadioButton(self.frame_toolbar, text="All components",
-                                                                    variable=self.radio_var,
+                                                                    variable=self.radio_filter_var,
                                                                     value=0, command=self.radiobutton_event)
             self.rb_show_all.grid(row=0, column=5, pady=5, padx=5, sticky="")
             #
             self.rb_show_notconfigured = customtkinter.CTkRadioButton(self.frame_toolbar, text="Not configured",
-                                                                    variable=self.radio_var,
+                                                                    variable=self.radio_filter_var,
                                                                     value=1, command=self.radiobutton_event)
             self.rb_show_notconfigured.grid(row=0, column=6, pady=5, padx=5, sticky="")
             #
             self.rb_show_notconfigured = customtkinter.CTkRadioButton(self.frame_toolbar, text="Configured",
-                                                                    variable=self.radio_var,
+                                                                    variable=self.radio_filter_var,
                                                                     value=2, command=self.radiobutton_event)
             self.rb_show_notconfigured.grid(row=0, column=7, pady=5, padx=5, sticky="")
             #
             self.rb_show_notconfigured = customtkinter.CTkRadioButton(self.frame_toolbar, text="Removed",
-                                                                    variable=self.radio_var,
+                                                                    variable=self.radio_filter_var,
                                                                     value=3, command=self.radiobutton_event)
             self.rb_show_notconfigured.grid(row=0, column=8, pady=5, padx=5, sticky="")
 
@@ -706,7 +706,7 @@ class PnPEditor(customtkinter.CTkFrame):
             self.lbl_pageno.configure(text=self.format_pageno())
 
     def radiobutton_event(self):
-        filter_idx = self.radio_var.get()
+        filter_idx = self.radio_filter_var.get()
         logger.info(f"Selected component filter: {filter_idx}")
         self.editor_data.set_items_filter(filter_idx)
         self.editor_load_data()
@@ -813,6 +813,7 @@ class PnPEditor(customtkinter.CTkFrame):
     def load(self, wip_items: list[dict] = None):
         self.btn_save.configure(state=tkinter.DISABLED)
         self.wip_items = wip_items
+        self.radio_filter_var.set(0)
 
         if (not glob_proj.pnp_grid) or (glob_proj.pnp_grid.nrows == 0):
             logger.warning("PnP file not loaded")
@@ -916,7 +917,7 @@ class PnPEditor(customtkinter.CTkFrame):
         selected_component: str = event.widget.get().strip()
 
         if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
-            logger.debug(f"CB selected: '{selected_component}' for filter pattern '{pnp_item.editor_filter}'")
+            logger.debug(f"Apply '{selected_component}' to item {pnp_item.id} (filter: '{pnp_item.editor_filter}')")
 
             if selected_component == ComponentsMRU.SPACER_ITEM:
                 logger.debug("  spacer - selection ignored")
@@ -941,25 +942,22 @@ class PnPEditor(customtkinter.CTkFrame):
     def apply_component_to_matching(self, wgt_idx: int, selected_component: str, force: bool = False):
         try:
             # get the selection details:
-            absolute_idx = wgt_idx + self.editor_data.items_visible_offset()
+            absolute_idx = self.editor_data.item_absolute_index_from_widget_filtered_paginated_index(wgt_idx)
+            if absolute_idx is None:
+                logger.error(f"Internal error: pnp item at {wgt_idx} not found")
+                return
+
             comment_ref = glob_proj.pnp_grid.rows()[absolute_idx][glob_proj.pnp_columns.comment_col]
             ftprint_ref = glob_proj.pnp_grid.rows()[absolute_idx][glob_proj.pnp_columns.footprint_col]
+            invalidated_pnp_items = []
 
-            # scan all items and if comment:footprint matches -> apply
-            for i, row in enumerate(glob_proj.pnp_grid.rows()):
-                pnp_item = self.editor_data.item(i)
-
-                if pnp_item is None:
-                    continue
-
-                if i == absolute_idx:
+            # traverse all items and if comment:footprint matches -> apply
+            for pnp_idx, pnp_item in enumerate(self.editor_data.items_all()):
+                if pnp_idx == absolute_idx:
                     # add marker that this is a final value
                     pnp_item.marker.value = Marker.MAN_SEL
-                    wgt_visible_idx = i - self.editor_data.items_visible_offset()
-                    # TODO: in filtered view, wgt_visible_idx is not valid
-                    self.lbl_marker_list[wgt_visible_idx].config(background=pnp_item.marker.color)
-                    self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_visible_idx], selected_component)
-                    # event source widget, so we can skip this one
+                    invalidated_pnp_items.append(pnp_item)
+                    # widget from event source, so we can skip this one
                     continue
 
                 # if already selected, skip this item
@@ -968,27 +966,26 @@ class PnPEditor(customtkinter.CTkFrame):
 
                 if pnp_item.comment == comment_ref and pnp_item.footprint == ftprint_ref:
                     # found: select the same component
-                    logger.debug(f"  Apply '{selected_component}' to item {pnp_item.id}")
+                    logger.debug(f"  Apply '{selected_component}' to item {pnp_item.id} ({pnp_item.comment})")
                     pnp_item.editor_selection = selected_component
-                    wgt_visible = i in self.editor_data.items_visible_range()
-                    # TODO: in filtered view, wgt_visible_idx is not valid
-                    wgt_visible_idx = i - self.editor_data.items_visible_offset()
-
-                    if wgt_visible:
-                        # update widget, if component in visible range
-                        self.cbx_component_list[wgt_visible_idx].set(selected_component)
-                        self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_visible_idx], selected_component)
+                    invalidated_pnp_items.append(pnp_item)
 
                     if len(selected_component) >= 3:
                         # add marker that this is a final value
                         pnp_item.marker.value = Marker.MAN_SEL
-                        if wgt_visible:
-                            self.lbl_marker_list[wgt_visible_idx].config(background=pnp_item.marker.color)
                     else:
                         # too short -> filter or empty
                         pnp_item.marker.value = Marker.NOMATCH
-                        if wgt_visible:
-                            self.lbl_marker_list[wgt_visible_idx].config(background=pnp_item.marker.color)
+
+            pnp_idx = None
+            pnp_item = None
+
+            # update visible editor items
+            for pnp_item in invalidated_pnp_items:
+                if not (wgt_idx := self.editor_data.item_filtered_paginated_index(pnp_item)) is None:
+                    self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
+                    self.cbx_component_list[wgt_idx].set(selected_component)
+                    self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_idx], selected_component)
 
             self.update_selected_status()
         except Exception as e:
