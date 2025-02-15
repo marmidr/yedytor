@@ -22,7 +22,7 @@ def write_yamaha_csv(app, csv_path: str, csv_postfix: str, glob_proj: Project,
     write_errors = 0
 
     try:
-        with open(yamaha_csv_path, "w", encoding="UTF-8") as f:
+        with open(yamaha_csv_path, "w", encoding="utf-8") as f:
             all_components = {}
 
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
@@ -88,7 +88,7 @@ def _write_components_summary(csv_path: str, all_components = dict[str, int]):
     summary_comp_count = Config.instance().summary_comp_count
 
     try:
-        with open(summary_path, "w", encoding="UTF-8") as f:
+        with open(summary_path, "w", encoding="utf-8") as f:
             total_elements = 0
             for c in sorted_components:
                 total_elements = total_elements + all_components[c]

@@ -6,7 +6,6 @@
 # https://github.com/marmidr/yedytor
 
 import logger
-import json
 import os
 import sys
 import time
@@ -89,34 +88,40 @@ class HomeFrame(customtkinter.CTkFrame):
         self.entry_pnp2_path.configure(state=tkinter.DISABLED)
 
         #
-        lbl_board_top_path = customtkinter.CTkLabel(self, text="Board view TOP (optional):")
-        lbl_board_top_path.grid(row=3, column=0, pady=5, padx=5, sticky="w")
+        if True:
+            lbl_board_top_path = customtkinter.CTkLabel(self, text="Board view TOP (optional):")
+            lbl_board_top_path.grid(row=3, column=0, pady=5, padx=5, sticky="w")
 
-        self.var_board_top_path = customtkinter.StringVar(value="")
-        self.entry_board_top_path = customtkinter.CTkEntry(self, textvariable=self.var_board_top_path)
-        self.entry_board_top_path.grid(row=3, column=1, pady=5, padx=5, columnspan=2, sticky="we")
-        self.entry_board_top_path.configure(state=tkinter.DISABLED)
+            self.var_board_top_path = customtkinter.StringVar(value="")
+            self.entry_board_top_path = customtkinter.CTkEntry(self, textvariable=self.var_board_top_path)
+            self.entry_board_top_path.grid(row=3, column=1, pady=5, padx=5, columnspan=2, sticky="we")
+            self.entry_board_top_path.configure(state=tkinter.DISABLED)
 
-        btn_browse_board_top = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_board_top_event)
-        btn_browse_board_top.grid(row=3, column=3, pady=5, padx=5, sticky="e")
+            btn_browse_board_top = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_board_top_event)
+            btn_browse_board_top.grid(row=3, column=3, pady=5, padx=5, sticky="e")
+            btn_browse_board_top.configure(state=tkinter.DISABLED)
 
-        btn_show_board_top = customtkinter.CTkButton(self, text="Show", width=20, command=self.button_show_board_top_event)
-        btn_show_board_top.grid(row=3, column=4, pady=5, padx=5,  sticky="")
+            btn_show_board_top = customtkinter.CTkButton(self, text="Show", width=20, command=self.button_show_board_top_event)
+            btn_show_board_top.grid(row=3, column=4, pady=5, padx=5,  sticky="")
+            btn_show_board_top.configure(state=tkinter.DISABLED)
 
         #
-        lbl_board_bottom_path = customtkinter.CTkLabel(self, text="Board view BOT (optional):")
-        lbl_board_bottom_path.grid(row=4, column=0, pady=5, padx=5, sticky="w")
+        if True:
+            lbl_board_bottom_path = customtkinter.CTkLabel(self, text="Board view BOT (optional):")
+            lbl_board_bottom_path.grid(row=4, column=0, pady=5, padx=5, sticky="w")
 
-        self.var_board_bot_path = customtkinter.StringVar(value="")
-        self.entry_board_bot_path = customtkinter.CTkEntry(self, textvariable=self.var_board_bot_path)
-        self.entry_board_bot_path.grid(row=4, column=1, pady=5, padx=5, columnspan=2, sticky="we")
-        self.entry_board_bot_path.configure(state=tkinter.DISABLED)
+            self.var_board_bot_path = customtkinter.StringVar(value="")
+            self.entry_board_bot_path = customtkinter.CTkEntry(self, textvariable=self.var_board_bot_path)
+            self.entry_board_bot_path.grid(row=4, column=1, pady=5, padx=5, columnspan=2, sticky="we")
+            self.entry_board_bot_path.configure(state=tkinter.DISABLED)
 
-        btn_browse_board_bot = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_board_bot_event)
-        btn_browse_board_bot.grid(row=4, column=3, pady=5, padx=5, sticky="e")
+            btn_browse_board_bot = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_board_bot_event)
+            btn_browse_board_bot.grid(row=4, column=3, pady=5, padx=5, sticky="e")
+            btn_browse_board_bot.configure(state=tkinter.DISABLED)
 
-        btn_show_board_bot = customtkinter.CTkButton(self, text="Show", width=20, command=self.button_show_board_bot_event)
-        btn_show_board_bot.grid(row=4, column=4, pady=5, padx=5, sticky="")
+            btn_show_board_bot = customtkinter.CTkButton(self, text="Show", width=20, command=self.button_show_board_bot_event)
+            btn_show_board_bot.grid(row=4, column=4, pady=5, padx=5, sticky="")
+            btn_show_board_bot.configure(state=tkinter.DISABLED)
 
         #
         sep_h = tkinter.ttk.Separator(self, orient='horizontal')
@@ -280,7 +285,6 @@ class HomeFrame(customtkinter.CTkFrame):
         self.process_input_files(pnp_paths)
 
     def button_browse_wip_event(self):
-        logger.debug("Browse for <pnp>_wip.json")
         # https://docs.python.org/3/library/dialog.html
         wip_path = tkinter.filedialog.askopenfile(
             mode="r",
@@ -296,36 +300,33 @@ class HomeFrame(customtkinter.CTkFrame):
             self.clear_pnp_previews()
             logger.info(f"Selected WiP: {wip_path.name}")
 
-            with open(wip_path.name, "r", encoding="UTF-8") as f:
-                try:
-                    wip = json.load(f)
-                except Exception as e:
-                    logger.error(f"Cannot load JSON file: {e}")
-                    MessageBox(app=self.app, dialog_type="o",
-                               message=f"Cannot load JSON file: \n{e}",
-                               callback=lambda btn: btn)
-                    return
+            wip = pnp_editor_helpers.wip_load(wip_path.name, )
+            if not wip[0]:
+                MessageBox(app=self.app, dialog_type="o",
+                            message=wip[1],
+                            callback=lambda btn: btn)
+                return
 
-                logger.info("Restore project...")
+            logger.info("Restore project...")
 
-                # reset entire project
-                global glob_proj
-                glob_proj = Project()
+            # reset entire project
+            global glob_proj
+            glob_proj = Project()
 
-                try:
-                    glob_proj.loading = True
-                    glob_proj.from_serializable(wip['project'])
-                    glob_proj.wip_path = wip_path.name
+            try:
+                glob_proj.loading = True
+                glob_proj.from_serializable(wip[2]['project'])
+                glob_proj.wip_path = wip_path.name
 
-                    self.app.title(f"{APP_NAME} - {glob_proj.pnp_path} (WiP)")
+                self.app.title(f"{APP_NAME} - {glob_proj.pnp_path} (WiP)")
 
-                    logger.info("Restore PnP editor...")
-                    self.app.get_tab_select_preview_fn()()
-                    self.app.pnp_editor.load(wip['components'])
-                    logger.info("Open the PnP editor page")
-                    self.app.get_tab_select_editor_fn()()
-                finally:
-                    glob_proj.loading = False
+                logger.info("Restore PnP editor...")
+                self.app.get_tab_select_preview_fn()()
+                self.app.pnp_editor.load(wip[2]['components'])
+                logger.info("Open the PnP editor page")
+                self.app.get_tab_select_editor_fn()()
+            finally:
+                glob_proj.loading = False
 
     def process_input_files(self, pnp_paths: list[str]):
         try:
@@ -673,7 +674,7 @@ class PnPEditor(customtkinter.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
 
     def format_pageno(self) -> str:
-        pages_cnt = 1 + len(self.editor_data.items()) // self.editor_data.ROWS_PER_PAGE
+        pages_cnt = 1 + len(self.editor_data.items()) // self.editor_data.ITEMS_PER_PAGE
         pageno_str = f"{1 + self.editor_data.page_no} / {pages_cnt}"
         return pageno_str
 
@@ -684,7 +685,7 @@ class PnPEditor(customtkinter.CTkFrame):
             self.lbl_pageno.configure(text=self.format_pageno())
 
     def button_next_event(self):
-        last_page = len(self.editor_data.items()) // self.editor_data.ROWS_PER_PAGE
+        last_page = len(self.editor_data.items()) // self.editor_data.ITEMS_PER_PAGE
         if self.editor_data.page_no < last_page:
             self.editor_data.page_no += 1
             self.editor_load_data()
@@ -721,7 +722,7 @@ class PnPEditor(customtkinter.CTkFrame):
             lbl.grid(row=0, column=5, padx=6, pady=1, sticky="we")
 
         # Components table:
-        for idx in range(1, pnp_editor_helpers.PnPEditorData.ROWS_PER_PAGE+1):
+        for idx in range(1, pnp_editor_helpers.PnPEditorData.ITEMS_PER_PAGE+1):
             # --- item
             # menuitems="" -> means no menu at all (number of menus to be created is limited)
             entry_item = ui_helpers.EntryWithPPM(
@@ -829,8 +830,8 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def editor_load_data(self):
         # Components table:
-        pnpitem_start_idx = self.editor_data.page_no * self.editor_data.ROWS_PER_PAGE
-        pnpitem_end_idx =  min(len(self.editor_data.items()), pnpitem_start_idx+self.editor_data.ROWS_PER_PAGE)
+        pnpitem_start_idx = self.editor_data.page_no * self.editor_data.ITEMS_PER_PAGE
+        pnpitem_end_idx =  min(len(self.editor_data.items()), pnpitem_start_idx+self.editor_data.ITEMS_PER_PAGE)
         row_idx = 0
 
         for pnpitem_idx in range(pnpitem_start_idx, pnpitem_end_idx):
@@ -852,7 +853,7 @@ class PnPEditor(customtkinter.CTkFrame):
             row_idx += 1
 
         # clear unused rows
-        for idx in range(row_idx, pnp_editor_helpers.PnPEditorData.ROWS_PER_PAGE):
+        for idx in range(row_idx, pnp_editor_helpers.PnPEditorData.ITEMS_PER_PAGE):
             ui_helpers.entry_set_text(self.entry_item_list[idx], 0)
             # entry_pnp.configure(state=tkinter.DISABLED)
             ui_helpers.entry_set_text(self.entry_descr_list[idx], "")
@@ -1185,26 +1186,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     callback=lambda btn: btn)
 
     def save_wip(self, wip_path: str):
-        with open(wip_path, "w", encoding="UTF-8") as f:
-            wip = {
-                'project': glob_proj.to_serializable(),
-                'components': []
-            }
-            components = []
-
-            for i, item in enumerate(self.editor_data.items()):
-                record = {
-                    'item': item.item,
-                    'marker': item.marker.value,
-                    'selection': item.editor_selection,
-                    'rotation': item.rotation,
-                    'descr': item.descr,
-                    # footprint, comment ?
-                }
-                components.append(record)
-
-            wip['components'] = components
-            json.dump(wip, f, indent=2)
+        pnp_editor_helpers.wip_save(wip_path, glob_proj.to_serializable(), self.editor_data)
 
     def button_save_event(self):
         logger.debug("Save PnP")
@@ -1337,7 +1319,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self.mk_components_view()
+        self.create_components_view()
 
         self.frame_buttons = customtkinter.CTkFrame(self)
         self.frame_buttons.grid(row=2, column=0, pady=5, padx=5, sticky="we")
@@ -1389,14 +1371,14 @@ class ComponentsEditor(customtkinter.CTkFrame):
             return
         self.component_filter = filter
         # correct the page index
-        npages = 1 + len(self.get_components()) // self.COMP_PER_PAGE
-        if self.components_pageno >= npages:
-            self.components_pageno = max(0, npages-1)
+        n_pages = 1 + len(self.get_components()) // self.COMP_PER_PAGE
+        if self.components_pageno >= n_pages:
+            self.components_pageno = max(0, n_pages-1)
         # reload view
         self.load_components()
         self.lbl_pageno.configure(text=self.format_pageno())
 
-    def mk_components_view(self):
+    def create_components_view(self):
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
         self.scrollableframe.grid(row=1, column=0, padx=5, pady=5, columnspan=6, sticky="wens")
         self.scrollableframe.grid_columnconfigure(1, weight=2)
@@ -1447,16 +1429,16 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.changed = False
         components = self.get_components()
         # logger.debug(f"DB Editor: {len(components)} components")
-        components_subrange = components[self.components_pageno * self.COMP_PER_PAGE:]
+        components_subrange = components[self.components_pageno * self.COMP_PER_PAGE : ]
 
-        for idx_on_page, component in enumerate(components_subrange):
-            if idx_on_page == self.COMP_PER_PAGE:
+        for wgt_idx, component in enumerate(components_subrange):
+            if wgt_idx == self.COMP_PER_PAGE:
                 break
-            idx_absolute = idx_on_page + (self.components_pageno * self.COMP_PER_PAGE)
-            self.lbls_rowno[idx_on_page].configure(text=f"{idx_absolute+1:04}.")
-            ui_helpers.entry_set_text(self.entrys_name[idx_on_page], component.name)
-            ui_helpers.entry_set_text(self.entrys_alias[idx_on_page], component.aliases)
-            self.vars_hidden[idx_on_page].set(component.hidden)
+            idx_absolute = wgt_idx + (self.components_pageno * self.COMP_PER_PAGE)
+            self.lbls_rowno[wgt_idx].configure(text=f"{idx_absolute+1:04}.")
+            ui_helpers.entry_set_text(self.entrys_name[wgt_idx], component.name)
+            ui_helpers.entry_set_text(self.entrys_alias[wgt_idx], component.aliases)
+            self.vars_hidden[wgt_idx].set(component.hidden)
 
         # clear remaining fields
         for i in range(len(components_subrange), self.COMP_PER_PAGE):
@@ -1480,12 +1462,12 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.changed = True
 
     def store_component_modifications(self):
-        components_subrange = self.get_components()[self.components_pageno * self.COMP_PER_PAGE:]
-        for idx_on_page, component in enumerate(components_subrange):
-            if idx_on_page == self.COMP_PER_PAGE:
+        components_subrange = self.get_components()[self.components_pageno * self.COMP_PER_PAGE : ]
+        for wgt_idx, component in enumerate(components_subrange):
+            if wgt_idx == self.COMP_PER_PAGE:
                 break
-            component.hidden = self.vars_hidden[idx_on_page].get() == 1
-            component.aliases = self.entrys_alias[idx_on_page].get().strip()
+            component.hidden = self.vars_hidden[wgt_idx].get() == 1
+            component.aliases = self.entrys_alias[wgt_idx].get().strip()
 
     def on_component_attr_changed(self, btn: str, go_next: bool):
         if btn == "y":

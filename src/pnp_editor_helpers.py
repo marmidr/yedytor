@@ -1,4 +1,5 @@
 import functools
+import json
 import logger
 import multiprocessing
 import re
@@ -103,7 +104,7 @@ class PnPEditorItem:
 class PnPEditorData:
     """Represents an entire data of the editor"""
 
-    ROWS_PER_PAGE = 200
+    ITEMS_PER_PAGE = 200
 
     def __init__(self):
         self.__items: list[PnPEditorItem] = []
@@ -118,10 +119,10 @@ class PnPEditorData:
 
     def item_offset(self) -> int:
         """Item offset, resulting from current page"""
-        return self.page_no * PnPEditorData.ROWS_PER_PAGE
+        return self.page_no * PnPEditorData.ITEMS_PER_PAGE
 
     def items_range(self) -> range:
-        return range(self.item_offset(), self.item_offset() + PnPEditorData.ROWS_PER_PAGE)
+        return range(self.item_offset(), self.item_offset() + PnPEditorData.ITEMS_PER_PAGE)
 
     def item_raw(self, cmp_idx: int) -> PnPEditorItem:
         """Returns an item, starting at 0"""
@@ -280,6 +281,7 @@ def prepare_editor_data(components: ComponentsDB, project: Project, wip_items: l
 
     return out
 
+
 def __process_pnpitem(pnpitem: PnPEditorItem, components: ComponentsDB, names_visible: list[str], cache: dict) -> PnPEditorItem:
     # cache the component matching results:
     USE_CACHE = True
@@ -327,7 +329,6 @@ def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem
         # if we are here - matching comonent was found
         pnpitem.editor_selection = expected_component
         pnpitem.editor_filter = pnpitem.editor_selection
-        # record['cbx_items'] -> not needed
         pnpitem.marker.value = Marker.AUTO_SEL
         logger.info(f"  Matching component found: {expected_component}")
     except Exception:
@@ -390,7 +391,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
                     break
             fp_sz = None
 
-        # create a proposition list based on a footprint and the comment
+        # create a proposition list based on a footprint and a comment
         fltr = ftprint_prefix + " " + cmnt
         filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
         if len(filtered_comp_names) > 0:
@@ -422,3 +423,37 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
 
 # -----------------------------------------------------------------------------
 
+def wip_save(wip_path: str, proj_serialized: dict, editor_data: PnPEditorData):
+    with open(wip_path, "w", encoding="utf-8") as f:
+        wip = {
+            'project': proj_serialized,
+            'components': []
+        }
+        components = []
+
+        for i, item in enumerate(editor_data.items()):
+            record = {
+                'item': item.item,
+                'marker': item.marker.value,
+                'selection': item.editor_selection,
+                'rotation': item.rotation,
+                'descr': item.descr,
+                # footprint, comment ?
+            }
+            components.append(record)
+
+        wip['components'] = components
+        json.dump(wip, f, indent=2)
+
+
+def wip_load(wip_path: str) -> tuple[bool, str, dict]:
+    with open(wip_path, "r", encoding="utf-8") as f:
+        try:
+            wip = json.load(f)
+        except Exception as e:
+            logger.error(f"Cannot load JSON file: {e}")
+            return (False, f"Cannot load JSON file: \n{e}", {})
+
+        return (True, "", wip)
+
+# -----------------------------------------------------------------------------
