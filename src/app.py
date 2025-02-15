@@ -688,7 +688,7 @@ class PnPEditor(customtkinter.CTkFrame):
         self.grid_columnconfigure(0, weight=1)
 
     def format_pageno(self) -> str:
-        pages_cnt = 1 + len(self.editor_data.items()) // self.editor_data.ITEMS_PER_PAGE
+        pages_cnt = 1 + len(self.editor_data.items_filtered()) // self.editor_data.ITEMS_PER_PAGE
         pageno_str = f"{1 + self.editor_data.page_no} / {pages_cnt}"
         return pageno_str
 
@@ -699,7 +699,7 @@ class PnPEditor(customtkinter.CTkFrame):
             self.lbl_pageno.configure(text=self.format_pageno())
 
     def button_next_event(self):
-        last_page = len(self.editor_data.items()) // self.editor_data.ITEMS_PER_PAGE
+        last_page = len(self.editor_data.items_filtered()) // self.editor_data.ITEMS_PER_PAGE
         if self.editor_data.page_no < last_page:
             self.editor_data.page_no += 1
             self.editor_load_data()
@@ -845,7 +845,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 return
             delta = time.monotonic() - started_at
             delta = f"{delta:.1f}s"
-            logger.info(f"  {len(self.editor_data.items())} items prepared in {delta}")
+            logger.info(f"  {len(self.editor_data.items_filtered())} items prepared in {delta}")
 
         self.lbl_pageno.configure(text=self.format_pageno())
         self.editor_load_data()
@@ -853,13 +853,13 @@ class PnPEditor(customtkinter.CTkFrame):
     def editor_load_data(self):
         # Components table:
         pnpitem_start_idx = self.editor_data.page_no * self.editor_data.ITEMS_PER_PAGE
-        pnpitem_end_idx =  min(len(self.editor_data.items()), pnpitem_start_idx+self.editor_data.ITEMS_PER_PAGE)
+        pnpitem_end_idx =  min(len(self.editor_data.items_filtered()), pnpitem_start_idx+self.editor_data.ITEMS_PER_PAGE)
         wgt_idx = 0
 
         for pnpitem_idx in range(pnpitem_start_idx, pnpitem_end_idx):
-            pnp_item = self.editor_data.items()[pnpitem_idx]
+            pnp_item = self.editor_data.items_filtered()[pnpitem_idx]
             # item:
-            ui_helpers.entry_set_text(self.entry_item_list[wgt_idx], pnp_item.item)
+            ui_helpers.entry_set_text(self.entry_item_list[wgt_idx], pnp_item.summary)
             # descr
             ui_helpers.entry_set_text(self.entry_descr_list[wgt_idx], pnp_item.descr)
             # marker:
@@ -915,7 +915,7 @@ class PnPEditor(customtkinter.CTkFrame):
         wgt_idx = self.cbx_component_list.index(event.widget)
         selected_component: str = event.widget.get().strip()
 
-        if pnp_item := self.editor_data.item_paginated(wgt_idx):
+        if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
             logger.debug(f"CB selected: '{selected_component}' for filter pattern '{pnp_item.editor_filter}'")
 
             if selected_component == ComponentsMRU.SPACER_ITEM:
@@ -942,12 +942,12 @@ class PnPEditor(customtkinter.CTkFrame):
         try:
             # get the selection details:
             absolute_idx = wgt_idx + self.editor_data.items_visible_offset()
-            comment = glob_proj.pnp_grid.rows()[absolute_idx][glob_proj.pnp_columns.comment_col]
-            ftprint = glob_proj.pnp_grid.rows()[absolute_idx][glob_proj.pnp_columns.footprint_col]
+            comment_ref = glob_proj.pnp_grid.rows()[absolute_idx][glob_proj.pnp_columns.comment_col]
+            ftprint_ref = glob_proj.pnp_grid.rows()[absolute_idx][glob_proj.pnp_columns.footprint_col]
 
             # scan all items and if comment:footprint matches -> apply
             for i, row in enumerate(glob_proj.pnp_grid.rows()):
-                pnp_item = self.editor_data.item_raw(i)
+                pnp_item = self.editor_data.item(i)
 
                 if pnp_item is None:
                     continue
@@ -966,10 +966,9 @@ class PnPEditor(customtkinter.CTkFrame):
                 if not force and (pnp_item.marker.value in (Marker.MAN_SEL, Marker.REMOVED)):
                     continue
 
-                if row[glob_proj.pnp_columns.comment_col] == comment and \
-                    row[glob_proj.pnp_columns.footprint_col] == ftprint:
+                if pnp_item.comment == comment_ref and pnp_item.footprint == ftprint_ref:
                     # found: select the same component
-                    logger.debug(f"  Apply '{selected_component}' to item {row[0]} ({pnp_item.editor_filter})")
+                    logger.debug(f"  Apply '{selected_component}' to item {pnp_item.id}")
                     pnp_item.editor_selection = selected_component
                     wgt_visible = i in self.editor_data.items_visible_range()
                     # TODO: in filtered view, wgt_visible_idx is not valid
@@ -1045,7 +1044,6 @@ class PnPEditor(customtkinter.CTkFrame):
         self.apply_component_to_matching(wgt_idx, selected_component, force)
         self.add_component_if_missing(selected_component)
 
-    # TODO: move to PnPEditorData
     def cbx_components_remove_component(self, cbx):
         cbx.focus_force()
         wgt_idx = self.cbx_component_list.index(cbx)
@@ -1053,7 +1051,7 @@ class PnPEditor(customtkinter.CTkFrame):
         # remove double spaces
         selected_component = " ".join(selected_component.split())
 
-        if item := self.editor_data.item_paginated(wgt_idx):
+        if item := self.editor_data.item_filtered_paginated(wgt_idx):
             logger.debug(f"Removing: '{selected_component}'")
             # add marker that this is a deleted entry
             item.marker.value = Marker.REMOVED
@@ -1066,7 +1064,6 @@ class PnPEditor(customtkinter.CTkFrame):
             self.cbx_component_list[wgt_idx].configure(values=item.editor_cbx_items)
             self.update_selected_status()
 
-    # TODO: move to PnPEditorData
     def cbx_components_set_default(self, cbx):
         wgt_idx = self.cbx_component_list.index(cbx)
         row = glob_proj.pnp_grid.rows()[wgt_idx]
@@ -1074,7 +1071,7 @@ class PnPEditor(customtkinter.CTkFrame):
         cmnt = row[glob_proj.pnp_columns.comment_col]
         component_name = ftprint + "_" + cmnt
 
-        if item := self.editor_data.item_paginated(wgt_idx):
+        if item := self.editor_data.item_filtered_paginated(wgt_idx):
             logger.debug(f"Set default <footprint>_<comment>: '{component_name}'")
             item.editor_selection = component_name
             item.marker.value = Marker.FILTER
@@ -1092,7 +1089,7 @@ class PnPEditor(customtkinter.CTkFrame):
             #
             glob_components.mru_items.arrange(filter, filtered_comp_names)
 
-            if pnp_item := self.editor_data.item_paginated(wgt_idx):
+            if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
                 pnp_item.editor_filter = filter
                 pnp_item.editor_cbx_items = filtered_comp_names
                 # set a new combobox items
@@ -1117,7 +1114,7 @@ class PnPEditor(customtkinter.CTkFrame):
         else:
             logger.info("Filter too short: use full list")
 
-            if pnp_item := self.editor_data.item_paginated(wgt_idx):
+            if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
                 pnp_item.editor_cbx_items = self.component_names
                 cbx.configure(values=pnp_item.editor_cbx_items)
 
@@ -1172,7 +1169,7 @@ class PnPEditor(customtkinter.CTkFrame):
         logger.debug(f"Rotation selected: {rot}")
         wgt_idx = self.cbx_rotation_list.index(event.widget)
 
-        if pnp_item := self.editor_data.item_paginated(wgt_idx):
+        if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
             pnp_item.rotation = rot
             self.btn_save.configure(state=tkinter.NORMAL)
 
@@ -1181,7 +1178,7 @@ class PnPEditor(customtkinter.CTkFrame):
         logger.debug(f"Rotation entered: {rot}")
 
         wgt_idx = self.cbx_rotation_list.index(event.widget)
-        if pnp_item := self.editor_data.item_paginated(wgt_idx):
+        if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
             pnp_item.rotation = rot
             self.btn_save.configure(state=tkinter.NORMAL)
 
@@ -1250,10 +1247,10 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def count_selected(self) -> tuple[int, int]:
         n = 0
-        for pnp_item in self.editor_data.items():
+        for pnp_item in self.editor_data.items_filtered():
             if pnp_item.marker.value in (Marker.MAN_SEL, Marker.AUTO_SEL, Marker.REMOVED):
                 n += 1
-        return (n, len(self.editor_data.items()))
+        return (n, len(self.editor_data.items_filtered()))
 
 # -----------------------------------------------------------------------------
 

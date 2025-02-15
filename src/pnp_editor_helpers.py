@@ -77,17 +77,20 @@ class PnPEditorItem:
     """Represents a single row of the PnP editor"""
 
     def __init__(self):
-        # index | name | footprint
-        self.item: str = ""
-        # extra descr, like 5% resistor
+        # index | id | footprint | comment
+        self.summary: str = ""
+        # original unique component id: C15
+        self.id: str = ""
+        # original footprint field
+        self.footprint: str = None
+        # original comment field
+        self.comment: str = None
+        # extra descr, eg "5%" (optional)
         self.descr: str = ""
         # component selection state
         self.marker = Marker()
         # selected component rotation
         self.rotation: str = ""
-        #
-        self.footprint = None
-        self.comment = None
         # filter entered by user / selected from the combo-box
         self.editor_filter: str = ""
         # currently entered/selected component
@@ -116,7 +119,7 @@ class PnPEditorData:
         self.__items_filtered = self.__items
         self.page_no = 0
 
-    def items(self) -> list[PnPEditorItem]:
+    def items_filtered(self) -> list[PnPEditorItem]:
         return self.__items_filtered
 
     def set_items_filter(self, filter_idx: int):
@@ -144,13 +147,19 @@ class PnPEditorData:
     def items_visible_range(self) -> range:
         return range(self.items_visible_offset(), self.items_visible_offset() + PnPEditorData.ITEMS_PER_PAGE)
 
-    def item_raw(self, cmp_idx: int) -> PnPEditorItem:
-        """Returns a filtered item, starting from index 0"""
+    def item(self, cmp_idx: int) -> PnPEditorItem:
+        """Returns an item, starting at absolute index 0"""
+        if cmp_idx >= 0 and cmp_idx < len(self.__items):
+            return self.__items[cmp_idx]
+        return None
+
+    def item_filtered(self, cmp_idx: int) -> PnPEditorItem:
+        """Returns a filtered item, starting at absolute index 0"""
         if cmp_idx >= 0 and cmp_idx < len(self.__items_filtered):
             return self.__items_filtered[cmp_idx]
         return None
 
-    def item_paginated(self, wgt_idx: int) -> PnPEditorItem:
+    def item_filtered_paginated(self, wgt_idx: int) -> PnPEditorItem:
         """Returns a filtered item, taking current page no into account"""
         # widget row index -> component index
         absolute_idx = wgt_idx + self.items_visible_offset()
@@ -203,30 +212,20 @@ class ItemsIterator:
                 wip_cmp = self.__wip_items[self.__idx]
                 self.__idx += 1
 
-                pnpitem = PnPEditorItem()
-                pnpitem.item = wip_cmp['item']
-                pnpitem.marker.value = wip_cmp['marker']
-                pnpitem.editor_selection = wip_cmp['selection']
-                pnpitem.rotation = wip_cmp['rotation']
-                pnpitem.descr = wip_cmp.get('descr', '')
-
-                # TODO: save footprint/comment in WIP
-                item_splitted: list[str] = pnpitem.item.split("|")
-
-                if len(item_splitted) == 3:
-                    # old
-                    # "C42  | SMC_B              | 100u/10V "
-                    pnpitem.footprint = item_splitted[1].strip()
-                    pnpitem.comment = item_splitted[2].strip()
-                elif len(item_splitted) == 4:
-                    # new
-                    # "002 | C11  | WCAP-CSGP_1210_H0.95 | 1nF "
-                    pnpitem.footprint = item_splitted[2].strip()
-                    pnpitem.comment = item_splitted[3].strip()
-                else:
-                    raise RuntimeError(f"Invalid item: '{pnpitem.item}'")
-
-                return pnpitem
+                try:
+                    pnp_item = PnPEditorItem()
+                    # new WiP format: all fields are mandatory
+                    pnp_item.summary =          wip_cmp['summary']
+                    pnp_item.id =               wip_cmp['id']
+                    pnp_item.footprint =        wip_cmp['footprint']
+                    pnp_item.comment =          wip_cmp['comment']
+                    pnp_item.descr =            wip_cmp['descr']
+                    pnp_item.marker.value =     wip_cmp['marker']
+                    pnp_item.editor_selection = wip_cmp['selection']
+                    pnp_item.rotation =         wip_cmp['rotation']
+                    return pnp_item
+                except Exception as e:
+                    raise RuntimeError(f"Failed to load WiP file: {e}")
 
             # print(f"STOP1")
             raise StopIteration
@@ -243,7 +242,7 @@ class ItemsIterator:
                 row = self.__proj_rows[self.__idx]
                 self.__idx += 1
 
-                item = "{idx:0>3} | {id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
+                summary = "{idx:0>3} | {id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
                     idx=self.__idx,
                     id=row[0],
                     id_w=self.__id_max_w,
@@ -252,13 +251,16 @@ class ItemsIterator:
                     cmnt=row[self.__proj.pnp_columns.comment_col]
                 )
 
-                pnpitem = PnPEditorItem()
-                pnpitem.item = item
-                pnpitem.footprint = row[self.__proj.pnp_columns.footprint_col]
-                pnpitem.comment = row[self.__proj.pnp_columns.comment_col]
-                pnpitem.rotation = row[self.__proj.pnp_columns.rot_col]
-                pnpitem.descr = row[self.__proj.pnp_columns.descr_col] if self.__proj.pnp_columns.descr_col >= 0 else ""
-                return pnpitem
+                pnp_item = PnPEditorItem()
+                pnp_item.summary = summary
+                pnp_item.id = row[0]
+                pnp_item.footprint = row[self.__proj.pnp_columns.footprint_col]
+                pnp_item.comment = row[self.__proj.pnp_columns.comment_col]
+                pnp_item.descr = row[self.__proj.pnp_columns.descr_col] if self.__proj.pnp_columns.descr_col >= 0 else ""
+                pnp_item.rotation = row[self.__proj.pnp_columns.rot_col]
+                # pnp_item.marker.value = default
+                # pnp_item.editor_selection = default
+                return pnp_item
 
             # print(f"STOP2")
             raise StopIteration
@@ -297,7 +299,7 @@ def prepare_editor_data(components: ComponentsDB, project: Project, wip_items: l
         cache = dict()
         for pnpitem in items_iterator:
             __process_pnpitem(pnpitem, components, names_visible, cache)
-            out.items().append(pnpitem)
+            out.items_filtered().append(pnpitem)
 
     return out
 
@@ -401,6 +403,7 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
     # RESC0805(2012)_L      -> R0805
     # CAPC0805(2012)100_L   -> C0805
     # CAP_0805_2012         -> C0805
+    # FIXME: RESC0805 categorized as c0805
     if not ftprint_found:
         for fp_sz in FOOTPRINT_SIZES:
             if fp_sz in ftprint:
@@ -443,14 +446,16 @@ def wip_save(wip_path: str, proj_serialized: dict, editor_data: PnPEditorData):
         }
         components = []
 
-        for i, item in enumerate(editor_data.items()):
+        for i, pnp_item in enumerate(editor_data.items_filtered()):
             record = {
-                'item': item.item,
-                'marker': item.marker.value,
-                'selection': item.editor_selection,
-                'rotation': item.rotation,
-                'descr': item.descr,
-                # footprint, comment ?
+                'summary':      pnp_item.summary,
+                'id' :          pnp_item.id,
+                'footprint' :   pnp_item.footprint,
+                'comment' :     pnp_item.comment,
+                'descr':        pnp_item.descr,
+                'marker':       pnp_item.marker.value,
+                'selection':    pnp_item.editor_selection,
+                'rotation':     pnp_item.rotation,
             }
             components.append(record)
 
