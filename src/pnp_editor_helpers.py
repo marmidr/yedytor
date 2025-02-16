@@ -1,52 +1,205 @@
 import functools
+import json
 import logger
 import multiprocessing
+import re
+import typing
 
 from components import ComponentsDB
 from project import Project
 
 # -----------------------------------------------------------------------------
 
-class Markers:
+class Marker:
+    """State of selection of the given somponent"""
+
+    NOMATCH = "NOMATCH"
+    FILTER = "FILTER"
+    AUTO_SEL = "AUTO_SEL"
+    MAN_SEL = "MAN_SEL"
+    REMOVED = "REMOVED"
+    __enums = [NOMATCH, FILTER, AUTO_SEL, MAN_SEL, REMOVED]
+
     CL_NOMATCH = "orange"
     CL_FILTER = "yellow"
     CL_AUTO_SEL = "lime"
     CL_MAN_SEL = "green"
     CL_REMOVED = "black"
+    __colors = [CL_NOMATCH, CL_FILTER, CL_AUTO_SEL, CL_MAN_SEL, CL_REMOVED]
 
-    MARKERS_MAP_INV = {
-        "NOMATCH": CL_NOMATCH,
-        "FILTER": CL_FILTER,
-        "AUTO_SEL": CL_AUTO_SEL,
-        "MAN_SEL": CL_MAN_SEL,
-        "REMOVED": CL_REMOVED
+    ENUM_TO_COLOR = {
+        NOMATCH:    CL_NOMATCH,
+        FILTER:     CL_FILTER,
+        AUTO_SEL:   CL_AUTO_SEL,
+        MAN_SEL:    CL_MAN_SEL,
+        REMOVED:    CL_REMOVED
     }
 
-    MARKERS_MAP = {
-        CL_NOMATCH: "NOMATCH",
-        CL_FILTER: "FILTER",
-        CL_AUTO_SEL: "AUTO_SEL",
-        CL_MAN_SEL: "MAN_SEL",
-        CL_REMOVED: "REMOVED"
+    COLOR_TO_ENUM = {
+        CL_NOMATCH: NOMATCH,
+        CL_FILTER:  FILTER,
+        CL_AUTO_SEL:AUTO_SEL,
+        CL_MAN_SEL: MAN_SEL,
+        CL_REMOVED: REMOVED
     }
+
+    def __init__(self):
+        self.__value = Marker.NOMATCH
+        self.__is_set = False
+
+    @property
+    def value(self) -> str:
+        return self.__value
+
+    @value.setter
+    def value(self, val: str):
+        if val in Marker.__enums:
+            self.__value = val
+            self.__is_set = True
+        else:
+            logger.warning(f"Unknown Marker value: {val}")
+
+    @property
+    def color(self) -> str:
+        return Marker.ENUM_TO_COLOR[self.__value]
+
+    def reset(self):
+        self.__value = Marker.NOMATCH
+        self.__is_set = False
+
+    def is_set(self) -> bool:
+        return self.__is_set
+
 
 # -----------------------------------------------------------------------------
 
-class PnpItem:
+# used for reading/parsing files
+class PnPEditorItem:
+    """Represents a single row of the PnP editor"""
+
     def __init__(self):
-        self.item = ""
-        self.marker = None
-        self.selection = None
-        self.footprint = ""
-        self.comment = ""
-        self.cbx_items = list()
-        self.rotation = ""
-        self.descr = ""
+        # index | id | footprint | comment
+        self.summary: str = ""
+        # original unique component id: C15
+        self.id: str = ""
+        # original footprint field
+        self.footprint: str = None
+        # original comment field
+        self.comment: str = None
+        # extra descr, eg "5%" (optional)
+        self.descr: str = ""
+        # component selection state
+        self.marker = Marker()
+        # selected component rotation
+        self.rotation: str = ""
+        # filter entered by user / selected from the combo-box
+        self.editor_filter: str = ""
+        # currently entered/selected component
+        self.editor_selection: str = ""
+        # list of component combobox items
+        self.editor_cbx_items: list[str] = []
 
     def __repr__(self) -> str:
         if not (self.footprint is None or self.comment is None):
             return self.footprint + "|" + self.comment
         raise RuntimeError("PnpItem without footprint/comment attributes")
+
+
+class PnPEditorData:
+    """Represents an entire data of the editor"""
+
+    ITEMS_PER_PAGE = 200
+
+    def __init__(self):
+        self.__pnp_items: list[PnPEditorItem] = []
+        self.__pnp_items_filtered = self.__pnp_items
+        self.page_no = 0
+
+    def set_items(self, items: list[PnPEditorItem]):
+        self.__pnp_items = items
+        self.__pnp_items_filtered = self.__pnp_items
+        self.page_no = 0
+
+    def items_all(self) -> list[PnPEditorItem]:
+        """All project items"""
+        return self.__pnp_items
+
+    def items_filtered(self) -> list[PnPEditorItem]:
+        """Filtered project items"""
+        return self.__pnp_items_filtered
+
+    def set_items_filter(self, filter_idx: int):
+        self.page_no = 0
+
+        if filter_idx == 0:
+            # all
+            self.__pnp_items_filtered = self.__pnp_items
+        elif filter_idx == 1:
+            # not configured
+            self.__pnp_items_filtered = [item for item in self.__pnp_items if item.marker.value in (Marker.NOMATCH, Marker.FILTER)]
+        elif filter_idx == 2:
+            # configured
+            self.__pnp_items_filtered = [item for item in self.__pnp_items if item.marker.value in (Marker.AUTO_SEL, Marker.MAN_SEL)]
+        elif filter_idx == 3:
+            # removed
+            self.__pnp_items_filtered = [item for item in self.__pnp_items if item.marker.value == Marker.REMOVED]
+        else:
+            logger.warning("Invalid filter index")
+
+    def item_absolute_index(self, pnp_item: PnPEditorItem) -> typing.Union[int, None]:
+        try:
+            idx = self.__pnp_items.index(pnp_item)
+            return idx
+        except:
+            return None
+
+    def item_filtered_paginated_index(self, pnp_item: PnPEditorItem) -> typing.Union[int, None]:
+        try:
+            idx = self.__pnp_items_filtered.index(pnp_item)
+            idx -= self.items_visible_offset()
+            if idx < 0:
+                return None
+            if idx >= PnPEditorData.ITEMS_PER_PAGE:
+                return None
+            return idx
+        except:
+            return None
+
+    def item_absolute_index_from_widget_filtered_paginated_index(self, paginated_idx: int) -> typing.Union[int, None]:
+        item = self.item_filtered_paginated(paginated_idx)
+        try:
+            idx = self.__pnp_items.index(item)
+            return idx
+        except:
+            return None
+
+    def items_visible_offset(self) -> int:
+        """Items offset on the current page"""
+        return self.page_no * PnPEditorData.ITEMS_PER_PAGE
+
+    def items_visible_range(self) -> range:
+        return range(self.items_visible_offset(), self.items_visible_offset() + PnPEditorData.ITEMS_PER_PAGE)
+
+    def item(self, cmp_idx: int) -> typing.Union[PnPEditorItem, None]:
+        """Returns an item, starting at absolute index 0"""
+        if cmp_idx >= 0 and cmp_idx < len(self.__pnp_items):
+            return self.__pnp_items[cmp_idx]
+        return None
+
+    def item_filtered(self, cmp_idx: int) -> typing.Union[PnPEditorItem, None]:
+        """Returns a filtered item, starting at absolute index 0"""
+        if cmp_idx >= 0 and cmp_idx < len(self.__pnp_items_filtered):
+            return self.__pnp_items_filtered[cmp_idx]
+        return None
+
+    def item_filtered_paginated(self, wgt_idx: int) -> typing.Union[PnPEditorItem, None]:
+        """Returns a filtered item, taking current page no into account"""
+        # widget row index -> component index
+        absolute_idx = wgt_idx + self.items_visible_offset()
+
+        if absolute_idx >= 0 and absolute_idx < len(self.__pnp_items_filtered):
+            return self.__pnp_items_filtered[absolute_idx]
+        return None
 
 # -----------------------------------------------------------------------------
 
@@ -85,38 +238,27 @@ class ItemsIterator:
     def __iter__(self):
         return self
 
-    def __next__(self) -> PnpItem:
+    def __next__(self) -> PnPEditorItem:
         # if provided, prefer WiP records over the current project
         if self.__wip_items:
             if self.__idx < len(self.__wip_items):
                 wip_cmp = self.__wip_items[self.__idx]
                 self.__idx += 1
 
-                pnpitem = PnpItem()
-                pnpitem.item = wip_cmp['item']
-                pnpitem.marker = wip_cmp['marker']
-                pnpitem.selection = wip_cmp['selection']
-                pnpitem.footprint = None
-                pnpitem.comment = None
-                pnpitem.rotation = wip_cmp['rotation']
-                pnpitem.descr = wip_cmp.get('descr', '')
-
-                item_splitted: list[str] = pnpitem.item.split("|")
-
-                if len(item_splitted) == 3:
-                    # old
-                    # "C42  | SMC_B              | 100u/10V "
-                    pnpitem.footprint = item_splitted[1].strip()
-                    pnpitem.comment = item_splitted[2].strip()
-                elif len(item_splitted) == 4:
-                    # new
-                    # "002 | C11  | WCAP-CSGP_1210_H0.95 | 1nF "
-                    pnpitem.footprint = item_splitted[2].strip()
-                    pnpitem.comment = item_splitted[3].strip()
-                else:
-                    raise RuntimeError(f"Invalid item: '{pnpitem.item}'")
-
-                return pnpitem
+                try:
+                    pnp_item = PnPEditorItem()
+                    # new WiP format: all fields are mandatory
+                    pnp_item.summary =          wip_cmp['summary']
+                    pnp_item.id =               wip_cmp['id']
+                    pnp_item.footprint =        wip_cmp['footprint']
+                    pnp_item.comment =          wip_cmp['comment']
+                    pnp_item.descr =            wip_cmp['descr']
+                    pnp_item.marker.value =     wip_cmp['marker']
+                    pnp_item.editor_selection = wip_cmp['selection']
+                    pnp_item.rotation =         wip_cmp['rotation']
+                    return pnp_item
+                except Exception as e:
+                    raise RuntimeError(f"Failed to load WiP file: {e}")
 
             # print(f"STOP1")
             raise StopIteration
@@ -133,7 +275,7 @@ class ItemsIterator:
                 row = self.__proj_rows[self.__idx]
                 self.__idx += 1
 
-                item = "{idx:0>3} | {id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
+                summary = "{idx:0>3} | {id:{id_w}} | {ftprint:{fprint_w}} | {cmnt} ".format(
                     idx=self.__idx,
                     id=row[0],
                     id_w=self.__id_max_w,
@@ -142,15 +284,16 @@ class ItemsIterator:
                     cmnt=row[self.__proj.pnp_columns.comment_col]
                 )
 
-                pnpitem = PnpItem()
-                pnpitem.item = item
-                pnpitem.marker = None
-                pnpitem.selection = None
-                pnpitem.footprint = row[self.__proj.pnp_columns.footprint_col]
-                pnpitem.comment = row[self.__proj.pnp_columns.comment_col]
-                pnpitem.rotation = row[self.__proj.pnp_columns.rot_col]
-                pnpitem.descr = row[self.__proj.pnp_columns.descr_col] if self.__proj.pnp_columns.descr_col >= 0 else ""
-                return pnpitem
+                pnp_item = PnPEditorItem()
+                pnp_item.summary = summary
+                pnp_item.id = row[0]
+                pnp_item.footprint = row[self.__proj.pnp_columns.footprint_col]
+                pnp_item.comment = row[self.__proj.pnp_columns.comment_col]
+                pnp_item.descr = row[self.__proj.pnp_columns.descr_col] if self.__proj.pnp_columns.descr_col >= 0 else ""
+                pnp_item.rotation = row[self.__proj.pnp_columns.rot_col]
+                # pnp_item.marker.value = default
+                # pnp_item.editor_selection = default
+                return pnp_item
 
             # print(f"STOP2")
             raise StopIteration
@@ -160,13 +303,13 @@ class ItemsIterator:
 
 # -----------------------------------------------------------------------------
 
-def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: list[dict] = None) -> list[PnpItem]:
+def prepare_editor_data(components: ComponentsDB, project: Project, wip_items: list[dict] = None) -> PnPEditorData:
     # works well with `wip_items`, hangs the app for `project`:
     USE_MULTIPROCESS = False
 
     items_iterator = ItemsIterator(project, wip_items)
     names_visible = components.names_visible()
-    out = []
+    out = PnPEditorData()
 
     if USE_MULTIPROCESS:
         # processes=1 -> 26s
@@ -182,17 +325,19 @@ def prepare_editor_items(components: ComponentsDB, project: Project, wip_items: 
             #
             # best results for chunksize=8:
             it = pool.imap(process_fn, items_iterator, chunksize=8)
-            out = [item for item in it]
+            items = [item for item in it]
+            out.set_items(items)
     else:
         # single thread: 24s
         cache = dict()
         for pnpitem in items_iterator:
             __process_pnpitem(pnpitem, components, names_visible, cache)
-            out.append(pnpitem)
+            out.items_filtered().append(pnpitem)
 
     return out
 
-def __process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible: list[str], cache: dict) -> PnpItem:
+
+def __process_pnpitem(pnpitem: PnPEditorItem, components: ComponentsDB, names_visible: list[str], cache: dict) -> PnPEditorItem:
     # cache the component matching results:
     USE_CACHE = True
 
@@ -200,14 +345,15 @@ def __process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible:
         # for 270 items: 21s -> 8s
         # for 506 items: 41s -> 7s
         if cached := cache.get(repr(pnpitem)):
-            pnpitem.selection = cached['selection']
-            pnpitem.cbx_items = cached['cbx_items']
-            pnpitem.marker    = cached['marker']
+            pnpitem.editor_selection = cached['selection']
+            pnpitem.editor_filter = pnpitem.editor_selection
+            pnpitem.editor_cbx_items = cached['cbx_items']
+            pnpitem.marker.value = cached['marker']
             return pnpitem
 
-    if pnpitem.marker:
+    if pnpitem.marker.is_set():
         # iterating over WiP items
-        if pnpitem.marker == Markers.MARKERS_MAP[Markers.CL_FILTER]:
+        if pnpitem.marker.value == Marker.FILTER:
             __try_find_matching(components, names_visible, pnpitem)
     else:
         # iterating over Project items
@@ -215,16 +361,16 @@ def __process_pnpitem(pnpitem: PnpItem, components: ComponentsDB, names_visible:
 
     if USE_CACHE:
         cached = {
-            'selection' : pnpitem.selection,
-            'cbx_items' : pnpitem.cbx_items,
-            'marker'    : pnpitem.marker,
+            'selection' : pnpitem.editor_selection,
+            'cbx_items' : pnpitem.editor_cbx_items,
+            'marker'    : pnpitem.marker.value,
         }
         cache[repr(pnpitem)] = cached
 
     return pnpitem
 
 
-def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem: PnpItem):
+def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem: PnPEditorItem):
     """
     Try to find exact component using footprint and comment
     """
@@ -236,55 +382,135 @@ def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem
         # raise exception if not found:
         names_visible.index(expected_component)
         # if we are here - matching comonent was found
-        pnpitem.selection = expected_component
-        # record['cbx_items'] -> not needed
-        pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_AUTO_SEL]
+        pnpitem.editor_selection = expected_component
+        pnpitem.editor_filter = pnpitem.editor_selection
+        pnpitem.marker.value = Marker.AUTO_SEL
         logger.info(f"  Matching component found: {expected_component}")
     except Exception:
         __try_find_matching(components, names_visible, pnpitem)
 
 
-def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpitem: PnpItem):
+def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpitem: PnPEditorItem):
     """
     Try to match component from the DB using item footprint nad comment
     """
     ftprint = pnpitem.footprint
     cmnt = pnpitem.comment
-    # "1206_R_1,2k" -> "1206"
-    ftprint_prefix = ftprint.split("_")
 
-    if len(ftprint_prefix) > 0:
-        ftprint_prefix = ftprint_prefix[0]
+    ftprint_found = ""
 
-        # "CAPC0805(2012)100_L" -> "0805"
-        for ftprint_sz in ("0402", "0603", "0805", "1206", "1210", "2512"):
-            if ftprint_sz in ftprint_prefix:
-                ftprint_prefix = ftprint_sz
+    FOTPRINTS = (
+        "DO214",
+        "LED",
+        "SMA", "SMB", "SMC",
+        "SOD123", "SOD323", "SOD80", "SOD882", "SOD923", "SOD",
+        "SOIC", "SWITCH",
+        "SOT23", "SOT223", "SOT363", "SOT95", "SOT",
+        "QSOP", "QFP",
+        "TO252", "TO263", "TSSOP",
+        "WAGO"
+    )
+
+    FOOTPRINT_SIZES = (
+        "0402", "0603", "0805",
+        "1206", "1210", "1608", "1808",
+        "2220", "2512"
+    )
+
+    # SOIC127P600X175-8N    -> SOIC
+    if True:
+        for fp in FOTPRINTS:
+            if fp in ftprint:
+                ftprint_found = fp
+                break
+        fp = None
+
+    # specialisation for LEDs
+    # https://www.w3schools.com/python/python_regex.asp
+    # https://docs.python.org/3/library/re.html
+    if ftprint_found == "LED":
+        for fp_sz in FOOTPRINT_SIZES:
+            if re.search(f"LED.*{fp_sz}", ftprint):
+                ftprint_found = "LED " + fp_sz
                 break
 
-        # create a proposition list based on a footprint and the comment
-        fltr = ftprint_prefix + " " + cmnt
-        filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
-        if len(filtered_comp_names) > 0:
-            pnpitem.selection = fltr.lower()
-            pnpitem.cbx_items = filtered_comp_names
-            pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_FILTER]
-            # insert MRU items at the top of the `cbx_items` list
-            components.mru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
-            return
+    # 1206_R_1,2k           -> 1206
+    # RES_0603_1608         -> R0603
+    # RESC0805(2012)_L      -> R0805
+    # CAPC0805(2012)100_L   -> C0805
+    # CAP_0805_2012         -> C0805
+    if not ftprint_found:
+        for fp_sz in FOOTPRINT_SIZES:
+            if fp_sz in ftprint:
+                if   re.search(f"RES.*{fp_sz}", ftprint):
+                    ftprint_found = "R" + fp_sz
+                elif re.search(f"CAP.*{fp_sz}", ftprint):
+                    ftprint_found = "C" + fp_sz
+                elif re.search(f"R.*{fp_sz}", ftprint):
+                    ftprint_found = "R" + fp_sz
+                elif re.search(f"C.*{fp_sz}", ftprint):
+                    ftprint_found = "C" + fp_sz
+                else:
+                    ftprint_found = fp_sz
+                #
+                break
+        fp_sz = None
 
-    # create component list proposition based only on the comment
-    fltr = cmnt
-    filtered_comp_names = list(item.name for item in components.items_filtered(fltr))
+    # create a proposition list based on a footprint and a comment
+    fltr = ftprint_found + " " + cmnt
+    fltr = fltr.strip()
+    filtered_comp_names = list(item.name for item in components.components_filtered(fltr))
 
     if len(filtered_comp_names) > 0:
-        pnpitem.selection = fltr.lower()
-        pnpitem.cbx_items = filtered_comp_names
-        pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_FILTER]
-        components.mru_items.arrange(pnpitem.selection, pnpitem.cbx_items)
+        pnpitem.editor_selection = fltr.lower()
+        pnpitem.editor_filter = pnpitem.editor_selection
+        pnpitem.editor_cbx_items = filtered_comp_names
+        pnpitem.marker.value = Marker.FILTER
+        # insert MRU items at the top of the `cbx_items` list
+        components.mru_items.arrange(pnpitem.editor_selection, pnpitem.editor_cbx_items)
         return
 
-    # remove filter and assign all components
-    pnpitem.selection = ""
-    pnpitem.cbx_items = names_visible
-    pnpitem.marker = Markers.MARKERS_MAP[Markers.CL_NOMATCH]
+    # no match - leave the filter, but assign all components
+    pnpitem.editor_selection = fltr.lower()
+    pnpitem.editor_filter = pnpitem.editor_selection
+    pnpitem.editor_cbx_items = names_visible
+    pnpitem.marker.value = Marker.NOMATCH
+
+# -----------------------------------------------------------------------------
+
+def wip_save(wip_path: str, proj_serialized: dict, editor_data: PnPEditorData):
+    with open(wip_path, "w", encoding="utf-8") as f:
+        wip = {
+            'project': proj_serialized,
+            'components': []
+        }
+        components = []
+
+        for i, pnp_item in enumerate(editor_data.items_all()):
+            record = {
+                'summary':      pnp_item.summary,
+                'id' :          pnp_item.id,
+                'footprint' :   pnp_item.footprint,
+                'comment' :     pnp_item.comment,
+                'descr':        pnp_item.descr,
+                'marker':       pnp_item.marker.value,
+                'selection':    pnp_item.editor_selection,
+                'rotation':     pnp_item.rotation,
+            }
+            components.append(record)
+
+        wip['components'] = components
+        json.dump(wip, f, indent=2)
+
+
+def wip_load(wip_path: str) -> tuple[bool, str, dict]:
+    with open(wip_path, "r", encoding="utf-8") as f:
+        try:
+            wip = json.load(f)
+        except Exception as e:
+            logger.error(f"Cannot load JSON file: {e}")
+            return (False, f"Cannot load JSON file: \n{e}", {})
+
+        return (True, "", wip)
+
+# -----------------------------------------------------------------------------

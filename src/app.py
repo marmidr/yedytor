@@ -6,7 +6,6 @@
 # https://github.com/marmidr/yedytor
 
 import logger
-import json
 import os
 import sys
 import time
@@ -19,8 +18,9 @@ import db_scanner
 import ui_helpers
 import pnp_editor_helpers
 import output
+import board_view
 
-from pnp_editor_helpers import Markers
+from pnp_editor_helpers import Marker
 from column_selector import ColumnsSelector, ColumnsSelectorResult
 from msg_box import MessageBox
 from tkhtmlview import HTMLLabel
@@ -30,7 +30,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.3.1"
+APP_NAME = "Yedytor v1.4.0"
 APP_DATE = "(c) 2023-2025"
 
 # -----------------------------------------------------------------------------
@@ -72,11 +72,11 @@ class HomeFrame(customtkinter.CTkFrame):
 
         self.var_pnp = customtkinter.StringVar(value="")
         self.entry_pnp_path = customtkinter.CTkEntry(self, textvariable=self.var_pnp)
-        self.entry_pnp_path.grid(row=0, column=1, pady=5, padx=5, columnspan=2, sticky="we")
+        self.entry_pnp_path.grid(row=0, column=1, pady=5, padx=5, columnspan=3, sticky="we")
         self.entry_pnp_path.configure(state=tkinter.DISABLED)
 
-        btn_browse = customtkinter.CTkButton(self, text="Browse...", command=self.button_browse_event)
-        btn_browse.grid(row=0, column=3, pady=5, padx=5, sticky="e")
+        btn_browse_pnp = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_pnp_event)
+        btn_browse_pnp.grid(row=0, column=4, pady=5, padx=5, sticky="e")
 
         #
         lbl_pnp2_path = customtkinter.CTkLabel(self, text="PnP2 (optional):")
@@ -84,16 +84,52 @@ class HomeFrame(customtkinter.CTkFrame):
 
         self.var_pnp2 = customtkinter.StringVar(value="")
         self.entry_pnp2_path = customtkinter.CTkEntry(self, textvariable=self.var_pnp2)
-        self.entry_pnp2_path.grid(row=2, column=1, pady=5, padx=5, sticky="we")
+        self.entry_pnp2_path.grid(row=2, column=1, pady=5, padx=5, columnspan=3, sticky="we")
         self.entry_pnp2_path.configure(state=tkinter.DISABLED)
+
+        # Board view TOP
+        if True:
+            lbl_board_top_path = customtkinter.CTkLabel(self, text="Board view TOP (optional):")
+            lbl_board_top_path.grid(row=3, column=0, pady=5, padx=5, sticky="w")
+
+            self.var_board_top_path = customtkinter.StringVar(value="")
+            self.entry_board_top_path = customtkinter.CTkEntry(self, textvariable=self.var_board_top_path)
+            self.entry_board_top_path.grid(row=3, column=1, pady=5, padx=5, columnspan=2, sticky="we")
+            self.entry_board_top_path.configure(state=tkinter.DISABLED)
+
+            btn_browse_board_top = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_board_top_event)
+            btn_browse_board_top.grid(row=3, column=3, pady=5, padx=5, sticky="e")
+            btn_browse_board_top.configure(state=tkinter.DISABLED)
+
+            btn_show_board_top = customtkinter.CTkButton(self, text="Show", width=20, command=self.button_show_board_top_event)
+            btn_show_board_top.grid(row=3, column=4, pady=5, padx=5,  sticky="")
+            btn_show_board_top.configure(state=tkinter.DISABLED)
+
+        # Board view BOT
+        if True:
+            lbl_board_bottom_path = customtkinter.CTkLabel(self, text="Board view BOT (optional):")
+            lbl_board_bottom_path.grid(row=4, column=0, pady=5, padx=5, sticky="w")
+
+            self.var_board_bot_path = customtkinter.StringVar(value="")
+            self.entry_board_bot_path = customtkinter.CTkEntry(self, textvariable=self.var_board_bot_path)
+            self.entry_board_bot_path.grid(row=4, column=1, pady=5, padx=5, columnspan=2, sticky="we")
+            self.entry_board_bot_path.configure(state=tkinter.DISABLED)
+
+            btn_browse_board_bot = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_board_bot_event)
+            btn_browse_board_bot.grid(row=4, column=3, pady=5, padx=5, sticky="e")
+            btn_browse_board_bot.configure(state=tkinter.DISABLED)
+
+            btn_show_board_bot = customtkinter.CTkButton(self, text="Show", width=20, command=self.button_show_board_bot_event)
+            btn_show_board_bot.grid(row=4, column=4, pady=5, padx=5, sticky="")
+            btn_show_board_bot.configure(state=tkinter.DISABLED)
 
         #
         sep_h = tkinter.ttk.Separator(self, orient='horizontal')
-        sep_h.grid(row=3, column=0, pady=5, padx=5, columnspan=4, sticky="we")
+        sep_h.grid(row=5, column=0, pady=5, padx=5, columnspan=5, sticky="we")
 
         #
         self.wip = customtkinter.CTkFrame(self)
-        self.wip.grid(row=4, column=0, pady=5, padx=5, columnspan=4, sticky="we")
+        self.wip.grid(row=6, column=0, pady=5, padx=5, columnspan=5, sticky="we")
 
         self.wip.lbl_msg = customtkinter.CTkLabel(self.wip, text="Restore previous Work In Progress")
         self.wip.lbl_msg.grid(row=0, column=0, pady=5, padx=5, columnspan=2, sticky="w")
@@ -104,11 +140,11 @@ class HomeFrame(customtkinter.CTkFrame):
 
         #
         sep_h = tkinter.ttk.Separator(self, orient='horizontal')
-        sep_h.grid(row=5, column=0, pady=5, padx=5, columnspan=4, sticky="we")
+        sep_h.grid(row=7, column=0, pady=5, padx=5, columnspan=5, sticky="we")
 
         #
         self.config_pnpedit = customtkinter.CTkFrame(self)
-        self.config_pnpedit.grid(row=6, column=0, pady=5, padx=5, columnspan=1, sticky="we")
+        self.config_pnpedit.grid(row=8, column=0, pady=5, padx=5, columnspan=1, sticky="we")
         self.config_pnpedit.lbl_font = customtkinter.CTkLabel(self.config_pnpedit, text="PnP Editor Font:")
         self.config_pnpedit.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
 
@@ -136,7 +172,7 @@ class HomeFrame(customtkinter.CTkFrame):
 
         #
         self.config_logs = customtkinter.CTkFrame(self)
-        self.config_logs.grid(row=6, column=1, pady=5, padx=5, columnspan=1, sticky="wns")
+        self.config_logs.grid(row=8, column=1, pady=5, padx=5, columnspan=1, sticky="wns")
 
         self.config_logs.lbl_font = customtkinter.CTkLabel(self.config_logs, text="Console:")
         self.config_logs.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
@@ -170,14 +206,52 @@ class HomeFrame(customtkinter.CTkFrame):
             self.var_pnp2.set("")
             self.pnp_view.clear_preview()
             self.pnp_config.entry_first_row_var.set("1")
-            self.pnp_config.progres_set(0)
             self.pnp_config.btn_columns.configure(state=tkinter.DISABLED)
         finally:
             glob_proj.loading = loading_bkp
 
-    def button_browse_event(self):
+    def button_browse_pnp_event(self):
         logger.debug("Browse for PnP")
         self.load_pnp()
+
+    def button_browse_board_top_event(self):
+        logger.debug("Browse for TOP jpeg")
+        image_path = self._filedialog_image("TOP")
+        if os.path.isfile(image_path):
+            logger.info(f"Selected image: {image_path}")
+            self.var_board_top_path.set(image_path)
+            glob_proj.board_top_path = image_path
+            Config.instance().recent_board_top_path = image_path
+            Config.instance().save()
+
+    def button_browse_board_bot_event(self):
+        logger.debug("Browse for BOT jpeg")
+        image_path = self._filedialog_image("BOTTOM")
+        if os.path.isfile(image_path):
+            logger.info(f"Selected image: {image_path}")
+            self.var_board_bot_path.set(image_path)
+            glob_proj.board_bot_path = image_path
+            Config.instance().recent_board_bot_path = image_path
+            Config.instance().save()
+
+    def _filedialog_image(self, layer : str) -> str:
+        # https://docs.python.org/3/library/dialog.html
+        image_path = tkinter.filedialog.askopenfilename(
+            title=f"Select boart {layer} view",
+            initialdir=None,
+            filetypes = [
+                ("Image files", "*.jpg;*.jpeg;*.png;*.bmp")
+            ],
+        )
+        return image_path
+
+    def button_show_board_top_event(self):
+        logger.debug("Show TOP jpeg")
+        board_view.BoardView(app=self.app, image_path=glob_proj.board_top_path)
+
+    def button_show_board_bot_event(self):
+        logger.debug("Show BOTTOM jpeg")
+        board_view.BoardView(app=self.app, image_path=glob_proj.board_bot_path)
 
     def load_pnp(self):
         self.clear_pnp_previews()
@@ -211,7 +285,6 @@ class HomeFrame(customtkinter.CTkFrame):
         self.process_input_files(pnp_paths)
 
     def button_browse_wip_event(self):
-        logger.debug("Browse for <pnp>_wip.json")
         # https://docs.python.org/3/library/dialog.html
         wip_path = tkinter.filedialog.askopenfile(
             mode="r",
@@ -227,36 +300,32 @@ class HomeFrame(customtkinter.CTkFrame):
             self.clear_pnp_previews()
             logger.info(f"Selected WiP: {wip_path.name}")
 
-            with open(wip_path.name, "r", encoding="UTF-8") as f:
-                try:
-                    wip = json.load(f)
-                except Exception as e:
-                    logger.error(f"Cannot load JSON file: {e}")
-                    MessageBox(app=self.app, dialog_type="o",
-                               message=f"Cannot load JSON file: \n{e}",
-                               callback=lambda btn: btn)
-                    return
+            wip = pnp_editor_helpers.wip_load(wip_path.name, )
+            if not wip[0]:
+                MessageBox(app=self.app, dialog_type="o",
+                            message=wip[1],
+                            callback=lambda btn: btn)
+                return
 
-                logger.info("Restore project...")
+            logger.info("Restore project...")
 
-                # reset entire project
-                global glob_proj
-                glob_proj = Project()
+            # reset entire project
+            global glob_proj
+            glob_proj = Project()
 
-                try:
-                    glob_proj.loading = True
-                    glob_proj.from_serializable(wip['project'])
-                    glob_proj.wip_path = wip_path.name
+            try:
+                glob_proj.loading = True
+                glob_proj.from_serializable(wip[2]['project'])
+                glob_proj.wip_path = wip_path.name
 
-                    self.app.title(f"{APP_NAME} - {glob_proj.pnp_path} (WiP)")
+                self.app.title(f"{APP_NAME} - {glob_proj.pnp_path} (WiP)")
 
-                    logger.info("Restore PnP editor...")
-                    self.app.get_tab_select_preview_fn()()
-                    self.app.pnp_editor.load(wip['components'])
-                    logger.info("Open the PnP editor page")
-                    self.app.get_tab_select_editor_fn()()
-                finally:
-                    glob_proj.loading = False
+                logger.info("  Restore PnP editor content...")
+                self.app.pnp_editor.load(wip[2]['components'])
+                logger.info("Open the PnP editor page")
+                self.app.get_tab_select_editor_fn()()
+            finally:
+                glob_proj.loading = False
 
     def process_input_files(self, pnp_paths: list[str]):
         try:
@@ -296,6 +365,12 @@ class HomeFrame(customtkinter.CTkFrame):
         else:
             if len(pnp_paths):
                 logger.error(f"Cannot access the file '{pnp_paths[0]}'")
+
+    def restore_board_preview_paths(self, top_path: str, bot_path: str):
+        glob_proj.board_top_path = top_path
+        glob_proj.board_bot_path = bot_path
+        self.var_board_top_path.set(top_path)
+        self.var_board_bot_path.set(bot_path)
 
     def setup_pnp_config_pane(self):
         self.activate_csv_separator()
@@ -434,26 +509,6 @@ class PnPConfig(customtkinter.CTkFrame):
                                                 command=self.button_goto_editor_event)
         self.btn_goto_editor.grid(row=0, column=8, pady=5, padx=5, sticky="")
 
-        #
-        self.prgrbar_prepare = customtkinter.CTkProgressBar(self)
-        self.prgrbar_prepare.grid(row=0, column=9, pady=5, padx=5, sticky="we")
-        self.prgrbar_prepare.set(0)
-
-    def progres_set(self, progress: float):
-        self.prgrbar_prepare.set(progress)
-        self.update()
-
-    # def progres_determinate(self):
-    #     self.prgrbar_prepare.stop()
-    #     self.prgrbar_prepare.configure(mode="determinate")
-    #     self.prgrbar_prepare.set(0)
-    #     self.update()
-
-    # def progres_indeterminate(self):
-    #     self.prgrbar_prepare.configure(mode="indeterminate")
-    #     self.prgrbar_prepare.start()
-    #     self.update()
-
     def opt_separator_event(self, new_sep: str):
         if glob_proj.loading:
             return
@@ -524,9 +579,9 @@ class PnPConfig(customtkinter.CTkFrame):
             logger.error(f"Cannot save a recent project settings: {e}")
 
         if glob_proj.pnp_grid:
-            logger.debug("Go to Editor page")
-            # refresh editor
+            logger.info("Load PnP editor content...")
             self.pnp_editor.load()
+            logger.info("Open the PnP editor page")
             self.select_editor()
         else:
             logger.warning("PnP file not loaded")
@@ -539,32 +594,78 @@ class PnPEditor(customtkinter.CTkFrame):
         self.app = kwargs.pop('app')
         super().__init__(master, **kwargs)
 
-        self.pgbar_selected = customtkinter.CTkProgressBar(self)
-        self.pgbar_selected.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
-        self.pgbar_selected.set(0)
+        self.editor_data = pnp_editor_helpers.PnPEditorData()
 
-        self.lbl_selected = tkinter.Label(self, text="0 / 0")
-        self.lbl_selected.grid(row=2, column=1, padx=5, pady=5, sticky="w")
+        # toolbar
+        if True:
+            self.frame_toolbar = customtkinter.CTkFrame(self)
+            self.frame_toolbar.grid(row=0, column=0, pady=5, padx=5, columnspan=7, sticky="we")
 
-        sep_v = tkinter.ttk.Separator(self, orient='vertical')
-        sep_v.grid(row=2, column=2, pady=2, padx=5, sticky="ns")
+            # change components page, view contains up to self.COMP_PER_PAGE items
+            self.btn_page_prev = customtkinter.CTkButton(self.frame_toolbar, text="<", command=self.button_prev_event)
+            self.btn_page_prev.grid(row=0, column=1, pady=5, padx=5, sticky="w")
 
-        self.btn_save_wip = customtkinter.CTkButton(self, text="Save for later", command=self.button_save_wip_event)
-        self.btn_save_wip.grid(row=2, column=3, pady=5, padx=5, sticky="e")
+            self.lbl_pageno = customtkinter.CTkLabel(self.frame_toolbar, text=self.format_pageno())
+            self.lbl_pageno.grid(row=0, column=2, pady=5, padx=5, sticky="w")
 
-        sep_v = tkinter.ttk.Separator(self, orient='vertical')
-        sep_v.grid(row=2, column=4, pady=2, padx=5, sticky="ns")
+            self.btn_page_next = customtkinter.CTkButton(self.frame_toolbar, text=">", command=self.button_next_event)
+            self.btn_page_next.grid(row=0, column=3, pady=5, padx=5, sticky="w")
 
-        self.entry_csv_postfix = ui_helpers.EntryWithPPM(self, placeholder_text="< filename postfix >")
-        self.entry_csv_postfix.grid(row=2, column=5, padx=5, pady=2, sticky="we")
+            sep_v = tkinter.ttk.Separator(self.frame_toolbar, orient='vertical')
+            sep_v.grid(row=0, column=4, pady=2, padx=5, sticky="ns")
 
-        self.btn_save = customtkinter.CTkButton(self, text="Save PnP as new CSV", command=self.button_save_event)
-        self.btn_save.grid(row=2, column=6, pady=5, padx=5, sticky="e")
-        self.btn_save.configure(state=tkinter.DISABLED)
+            #
+            self.radio_filter_var = tkinter.IntVar(value=0)
+            self.rb_show_all = customtkinter.CTkRadioButton(self.frame_toolbar, text="All components",
+                                                                    variable=self.radio_filter_var,
+                                                                    value=0, command=self.radiobutton_event)
+            self.rb_show_all.grid(row=0, column=5, pady=5, padx=5, sticky="")
+            #
+            self.rb_show_notconfigured = customtkinter.CTkRadioButton(self.frame_toolbar, text="Not configured",
+                                                                    variable=self.radio_filter_var,
+                                                                    value=1, command=self.radiobutton_event)
+            self.rb_show_notconfigured.grid(row=0, column=6, pady=5, padx=5, sticky="")
+            #
+            self.rb_show_notconfigured = customtkinter.CTkRadioButton(self.frame_toolbar, text="Configured",
+                                                                    variable=self.radio_filter_var,
+                                                                    value=2, command=self.radiobutton_event)
+            self.rb_show_notconfigured.grid(row=0, column=7, pady=5, padx=5, sticky="")
+            #
+            self.rb_show_notconfigured = customtkinter.CTkRadioButton(self.frame_toolbar, text="Removed",
+                                                                    variable=self.radio_filter_var,
+                                                                    value=3, command=self.radiobutton_event)
+            self.rb_show_notconfigured.grid(row=0, column=8, pady=5, padx=5, sticky="")
 
-        #
-        self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+            #
+            sep_v = tkinter.ttk.Separator(self.frame_toolbar, orient='vertical')
+            sep_v.grid(row=0, column=9, pady=2, padx=5, sticky="ns")
+
+
+        # bottom toolbar
+        if True:
+            tbr_row = 3
+            self.pgbar_selected = customtkinter.CTkProgressBar(self)
+            self.pgbar_selected.grid(row=3, column=0, padx=5, pady=5, sticky="ew")
+            self.pgbar_selected.set(0)
+
+            self.lbl_selected = tkinter.Label(self, text="0 / 0")
+            self.lbl_selected.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+
+            sep_v = tkinter.ttk.Separator(self, orient='vertical')
+            sep_v.grid(row=3, column=2, pady=2, padx=5, sticky="ns")
+
+            self.btn_save_wip = customtkinter.CTkButton(self, text="Save for later", command=self.button_save_wip_event)
+            self.btn_save_wip.grid(row=3, column=3, pady=5, padx=5, sticky="e")
+
+            sep_v = tkinter.ttk.Separator(self, orient='vertical')
+            sep_v.grid(row=3, column=4, pady=2, padx=5, sticky="ns")
+
+            self.entry_csv_postfix = ui_helpers.EntryWithPPM(self, placeholder_text="< filename postfix >")
+            self.entry_csv_postfix.grid(row=3, column=5, padx=5, pady=2, sticky="we")
+
+            self.btn_save = customtkinter.CTkButton(self, text="Save PnP as new CSV", command=self.button_save_event)
+            self.btn_save.grid(row=3, column=6, pady=5, padx=5, sticky="e")
+            self.btn_save.configure(state=tkinter.DISABLED)
 
         # define fonts for editor
         self.fonts = (
@@ -581,169 +682,217 @@ class PnPEditor(customtkinter.CTkFrame):
         # apply font to ALL application combobox list
         self.app.option_add('*TCombobox*Listbox.font', self.fonts[Config.instance().editor_font_idx][0])
         self.app.option_add('*TCombobox*Listbox.background', 'LightBlue')
+        # static editor
+        self.create_editor()
+        self.grid_rowconfigure(1, weight=1)
+        self.grid_columnconfigure(0, weight=1)
 
-    def load(self, wip_items: list[dict] = None):
-        self.btn_save.configure(state=tkinter.DISABLED)
+    def format_pageno(self) -> str:
+        pages_cnt = 1 + len(self.editor_data.items_filtered()) // self.editor_data.ITEMS_PER_PAGE
+        pageno_str = f"{1 + self.editor_data.page_no} / {pages_cnt}"
+        return pageno_str
 
-        if hasattr(self, "scrollableframe"):
-            # explicit destruction of old editor
-            self.scrollableframe.destroy()
-            self.scrollableframe = None
+    def button_prev_event(self):
+        if (self.editor_data.page_no > 0):
+            self.editor_data.page_no -= 1
+            self.editor_load_data()
+            self.lbl_pageno.configure(text=self.format_pageno())
 
-        self.scrollableframe = customtkinter.CTkScrollableFrame(self)
-        self.scrollableframe.grid(row=0, column=0, padx=5, pady=1, columnspan=7, sticky="wens")
+    def button_next_event(self):
+        last_page = len(self.editor_data.items_filtered()) // self.editor_data.ITEMS_PER_PAGE
+        if self.editor_data.page_no < last_page:
+            self.editor_data.page_no += 1
+            self.editor_load_data()
+            self.lbl_pageno.configure(text=self.format_pageno())
 
-        self.entry_item_list: list[tkinter.Entry] = []
+    def radiobutton_event(self):
+        filter_idx = self.radio_filter_var.get()
+        logger.info(f"Selected component filter: {filter_idx}")
+        self.editor_data.set_items_filter(filter_idx)
+        self.editor_load_data()
+        logger.info(f"  Editor reloaded")
+        self.lbl_pageno.configure(text=self.format_pageno())
+
+    def create_editor(self):
+        self.focused_idx = None
+
+        self.entry_summary_list: list[tkinter.Entry] = []
         self.entry_descr_list: list[tkinter.Entry] = []
         self.lbl_marker_list = []
         self.cbx_component_list = []
         self.lbl_namelength_list = []
         self.cbx_rotation_list = []
-        self.focused_idx = None
+
+        self.scrollableframe = customtkinter.CTkScrollableFrame(self)
+        self.scrollableframe.grid(row=1, column=0, padx=5, pady=1, columnspan=7, sticky="wens")
+
+        # Header row
+        if True:
+            lbl = tkinter.Label(self.scrollableframe, text="Component ID + Footprint + Value")
+            lbl.grid(row=0, column=0, padx=5, pady=1, sticky="we")
+
+            lbl = tkinter.Label(self.scrollableframe, text="Description")
+            lbl.grid(row=0, column=1, padx=5, pady=1, sticky="we")
+
+            lbl = tkinter.Label(self.scrollableframe, text="✔")
+            lbl.grid(row=0, column=2, padx=5, pady=1, sticky="")
+
+            lbl = tkinter.Label(self.scrollableframe, text="Yamaha DB component")
+            lbl.grid(row=0, column=3, padx=5, pady=1, sticky="we")
+
+            lbl = tkinter.Label(self.scrollableframe, text="Rotation")
+            lbl.grid(row=0, column=5, padx=6, pady=1, sticky="we")
+
+        # Components table:
+        for idx in range(1, pnp_editor_helpers.PnPEditorData.ITEMS_PER_PAGE+1):
+            # --- summary
+            # menuitems="" -> means no menu at all (number of menus to be created is limited)
+            entry_summary = ui_helpers.EntryWithPPM(
+                self.scrollableframe, menuitems="c",
+                font=self.fonts[Config.instance().editor_font_idx][0])
+            entry_summary.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
+            entry_summary.bind("<FocusIn>", self.focus_in)
+            self.entry_summary_list.append(entry_summary)
+
+            # --- descr
+            entry_descr = ui_helpers.EntryWithPPM(
+                self.scrollableframe,
+                font=self.fonts[Config.instance().editor_font_idx][0])
+            entry_descr.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
+            entry_descr.bind("<FocusIn>", self.focus_in)
+            self.entry_descr_list.append(entry_descr)
+
+            # --- selection marker
+            lbl_marker = tkinter.Label(self.scrollableframe, text=" ")
+            lbl_marker.grid(row=idx, column=2, padx=5, pady=1, sticky="")
+            self.lbl_marker_list.append(lbl_marker)
+
+            cbx_component = ui_helpers.ComboboxWithPPM(
+                self.scrollableframe, menuitems="cp@",
+                font=self.fonts[Config.instance().editor_font_idx][0])
+            self.cbx_components_add_context_menu(cbx_component)
+            cbx_component.grid(row=idx, column=3, padx=5, pady=1, sticky="we")
+            cbx_component.bind('<<ComboboxSelected>>', self.cbx_components_selected)
+            # cbx_component.bind('<Key>', self.combobox_key)
+            cbx_component.bind("<Return>", self.cbx_components_return)
+            cbx_component.bind("<MouseWheel>", self.cbx_wheel)
+            cbx_component.bind("<FocusIn>", self.focus_in)
+            self.cbx_component_list.append(cbx_component)
+
+            # --- component name length
+            lbl_length = tkinter.Label(
+                self.scrollableframe,
+                font=self.fonts[Config.instance().editor_font_idx][0])
+            lbl_length.grid(row=idx, column=4, padx=1, pady=1, sticky="e")
+            lbl_length.config(foreground="maroon")
+            self.lbl_namelength_list.append(lbl_length)
+
+            # --- component rotation
+            cbx_rotation = tkinter.ttk.Combobox(
+                self.scrollableframe, width=5,
+                values=("0", "90", "180", "270"),
+                font=self.fonts[Config.instance().editor_font_idx][0])
+            cbx_rotation.grid(row=idx, column=5, padx=5, pady=1, sticky="we")
+            cbx_rotation.bind('<<ComboboxSelected>>', self.cbx_rotation_selected)
+            cbx_rotation.bind("<Return>", self.cbx_rotation_return)
+            cbx_rotation.bind("<MouseWheel>", self.cbx_wheel)
+            cbx_rotation.bind("<FocusIn>", self.focus_in)
+            self.cbx_rotation_list.append(cbx_rotation)
+
+            self.scrollableframe.grid_columnconfigure(0, weight=3)
+            self.scrollableframe.grid_columnconfigure(3, weight=1)
+
+            # to display long descriptions:
+            self.entry_descr_long = ui_helpers.EntryWithPPM(
+                self, menuitems="c", # state=tkinter.DISABLED,
+                placeholder_text="< long description preview >",
+                font=self.fonts[Config.instance().editor_font_idx][0])
+            self.entry_descr_long.grid(row=2, column=0, columnspan=7, padx=15, pady=1, sticky="we")
+            self.update_component_description_long("") # to activate placeholder text
+
+    def load(self, wip_items: list[dict] = None):
+        self.btn_save.configure(state=tkinter.DISABLED)
+        self.wip_items = wip_items
+        self.radio_filter_var.set(0)
 
         if (not glob_proj.pnp_grid) or (glob_proj.pnp_grid.nrows == 0):
             logger.warning("PnP file not loaded")
-        else:
-            # if we are here, user already selected the PnP file first row
-            glob_proj.pnp_grid.firstrow = max(0, glob_proj.pnp_first_row)
-            glob_proj.pnp_grid.firstrow += 1 if glob_proj.pnp_columns.has_column_headers else 0
+            return
 
-            if not self.check_selected_columns():
-                logger.warning("Select proper Footprint and Comment columns before editing")
-            else:
-                self.component_names = glob_components.names_visible()
-                # find the max comment width
-                footprint_max_w = 0
-                id_max_w = 0
+        # if we are here, user already selected the PnP file first row
+        glob_proj.pnp_grid.firstrow = max(0, glob_proj.pnp_first_row)
+        glob_proj.pnp_grid.firstrow += 1 if glob_proj.pnp_columns.has_column_headers else 0
 
-                for row in glob_proj.pnp_grid.rows():
-                    footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_columns.footprint_col]))
-                    id_max_w = max(id_max_w, len(row[0]))
+        if not self.check_selected_columns():
+            logger.warning("Select proper Footprint and Comment columns before editing")
+            return
 
-                logger.info(f"Preparing editor data...")
-                self.app.pnp_config.progres_set(0)
-                started_at = time.monotonic()
-                try:
-                    editor_items = pnp_editor_helpers.prepare_editor_items(glob_components, glob_proj, wip_items)
-                except Exception as e:
-                    logger.error(f"Failed to prepare editor: {e}")
-                    return
-                delta = time.monotonic() - started_at
-                delta = f"{delta:.1f}s"
-                logger.info(f"  {len(editor_items)} items prepared in {delta}")
+        self.component_names = glob_components.names_visible()
 
-                progress_step = len(editor_items) / 20
-                progress_prc = 0
-                idx_threshold = progress_step
+        # find the max comment width
+        footprint_max_w = 0
+        id_max_w = 0
+        for row in glob_proj.pnp_grid.rows():
+            footprint_max_w = max(footprint_max_w, len(row[glob_proj.pnp_columns.footprint_col]))
+            id_max_w = max(id_max_w, len(row[0]))
 
-                # restart time measure
-                logger.info(f"Creating editor ...")
-                started_at = time.monotonic()
+        if True:
+            logger.info(f"Preparing editor data...")
+            started_at = time.monotonic()
+            try:
+                self.editor_data = pnp_editor_helpers.prepare_editor_data(glob_components, glob_proj, self.wip_items)
+            except Exception as e:
+                logger.error(f"Failed to prepare data: {e}")
+                return
+            delta = time.monotonic() - started_at
+            delta = f"{delta:.1f}s"
+            logger.info(f"  {len(self.editor_data.items_filtered())} items prepared in {delta}")
 
-                # Header row
-                if True:
-                    lbl = tkinter.Label(self.scrollableframe, text="Component ID + Footprint + Value")
-                    lbl.grid(row=0, column=0, padx=5, pady=1, sticky="we")
+        self.lbl_pageno.configure(text=self.format_pageno())
+        self.editor_load_data()
 
-                    lbl = tkinter.Label(self.scrollableframe, text="Description")
-                    lbl.grid(row=0, column=1, padx=5, pady=1, sticky="we")
+    def editor_load_data(self):
+        # Components table:
+        pnpitem_start_idx = self.editor_data.items_visible_offset()
+        pnpitem_end_idx = min(len(self.editor_data.items_filtered()), pnpitem_start_idx + self.editor_data.ITEMS_PER_PAGE)
+        wgt_idx = 0 # must be declared outside the loop, as the range may be empty
 
-                    lbl = tkinter.Label(self.scrollableframe, text="✔")
-                    lbl.grid(row=0, column=2, padx=5, pady=1, sticky="")
+        for pnpitem_idx in range(pnpitem_start_idx, pnpitem_end_idx):
+            pnp_item = self.editor_data.items_filtered()[pnpitem_idx]
+            # summary:
+            ui_helpers.entry_set_text(self.entry_summary_list[wgt_idx], pnp_item.summary)
+            # descr
+            ui_helpers.entry_set_text(self.entry_descr_list[wgt_idx], pnp_item.descr)
+            # marker:
+            self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
+            # component list:
+            self.cbx_component_list[wgt_idx].set(pnp_item.editor_selection)
+            self.cbx_component_list[wgt_idx].configure(values=pnp_item.editor_cbx_items)
+            # comp. name length:
+            self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_idx], pnp_item.editor_selection)
+            # rotation:
+            self.cbx_rotation_list[wgt_idx].set(pnp_item.rotation)
+            #
+            wgt_idx += 1
 
-                    lbl = tkinter.Label(self.scrollableframe, text="Yamaha DB component")
-                    lbl.grid(row=0, column=3, padx=5, pady=1, sticky="we")
+        # clear unused rows
+        for idx in range(wgt_idx, pnp_editor_helpers.PnPEditorData.ITEMS_PER_PAGE):
+            ui_helpers.entry_set_text(self.entry_summary_list[idx], 0)
+            # entry_pnp.configure(state=tkinter.DISABLED)
+            ui_helpers.entry_set_text(self.entry_descr_list[idx], "")
+            self.lbl_marker_list[idx].config(background="white")
+            self.cbx_component_list[idx].set("")
+            self.cbx_component_list[idx].configure(values=[])
+            self.lbl_namelength_list[idx].configure(text="")
+            self.cbx_rotation_list[idx].set("")
 
-                    lbl = tkinter.Label(self.scrollableframe, text="Rotation")
-                    lbl.grid(row=0, column=5, padx=6, pady=1, sticky="we")
+        # scroll the list to the top
+        ui_helpers.scrollable_moveto_top(self.scrollableframe)
 
-                # Components table:
-                for idx, pnpitem in enumerate(editor_items):
-                    idx += 1 # because of the header row
-                    # menuitems="" -> means no menu at all (number of menus to be created is limited)
-                    entry_item = ui_helpers.EntryWithPPM(self.scrollableframe, menuitems="c",
-                                                        font=self.fonts[Config.instance().editor_font_idx][0])
-                    entry_item.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
-                    entry_item.bind("<FocusIn>", self.focus_in)
-                    ui_helpers.entry_set_text(entry_item, pnpitem.item)
-                    self.entry_item_list.append(entry_item)
-                    # entry_pnp.configure(state=tkinter.DISABLED)
-
-                    entry_descr = ui_helpers.EntryWithPPM(self.scrollableframe,
-                                                          font=self.fonts[Config.instance().editor_font_idx][0])
-                    entry_descr.grid(row=idx, column=1, padx=5, pady=1, sticky="we")
-                    entry_descr.bind("<FocusIn>", self.focus_in)
-                    ui_helpers.entry_set_text(entry_descr, pnpitem.descr)
-                    self.entry_descr_list.append(entry_descr)
-
-                    lbl_marker = tkinter.Label(self.scrollableframe, text=" ")
-                    lbl_marker.grid(row=idx, column=2, padx=5, pady=1, sticky="")
-                    lbl_marker.config(background=Markers.MARKERS_MAP_INV[pnpitem.marker])
-                    self.lbl_marker_list.append(lbl_marker)
-
-                    # https://docs.python.org/3/library/tkinter.ttk.html?#tkinter.ttk.Combobox
-                    # https://www.pythontutorial.net/tkinter/tkinter-combobox/
-
-                    cbx_component = ui_helpers.ComboboxWithPPM(self.scrollableframe, menuitems="cp@",
-                                                               values=self.component_names,
-                                                               font=self.fonts[Config.instance().editor_font_idx][0])
-                    self.cbx_components_add_context_menu(cbx_component)
-                    cbx_component.grid(row=idx, column=3, padx=5, pady=1, sticky="we")
-                    cbx_component.bind('<<ComboboxSelected>>', self.cbx_components_selected)
-                    # cbx_component.bind('<Key>', self.combobox_key)
-                    cbx_component.bind("<Return>", self.cbx_components_return)
-                    cbx_component.bind("<MouseWheel>", self.cbx_wheel)
-                    cbx_component.bind("<FocusIn>", self.focus_in)
-                    cbx_component.filter = pnpitem.selection # keep the original filter
-                    cbx_component.set(pnpitem.selection)
-                    cbx_component.configure(values=pnpitem.cbx_items)
-                    self.cbx_component_list.append(cbx_component)
-
-                    lbl_length = tkinter.Label(self.scrollableframe,
-                                               font=self.fonts[Config.instance().editor_font_idx][0])
-                    lbl_length.grid(row=idx, column=4, padx=1, pady=1, sticky="e")
-                    lbl_length.config(foreground="maroon")
-                    self.lbl_namelength_list.append(lbl_length)
-                    self.update_componentname_length_lbl(lbl_length, pnpitem.selection)
-
-                    cbx_rotation = tkinter.ttk.Combobox(self.scrollableframe, width=5,
-                                                        values=("0", "90", "180", "270"),
-                                                        font=self.fonts[Config.instance().editor_font_idx][0])
-                    cbx_rotation.grid(row=idx, column=5, padx=5, pady=1, sticky="we")
-                    cbx_rotation.bind('<<ComboboxSelected>>', self.cbx_rotation_selected)
-                    cbx_rotation.bind("<Return>", self.cbx_rotation_return)
-                    cbx_rotation.bind("<MouseWheel>", self.cbx_wheel)
-                    cbx_rotation.bind("<FocusIn>", self.focus_in)
-                    cbx_rotation.set(pnpitem.rotation)
-                    self.cbx_rotation_list.append(cbx_rotation)
-
-                    if idx == int(idx_threshold):
-                        progress_prc += 5
-                        idx_threshold += progress_step
-                        if progress_prc % 10 == 0:
-                            logger.info(f"  {progress_prc:3} %")
-                        self.app.pnp_config.progres_set(progress_prc/100)
-
-                if progress_prc < 100:
-                    progress_prc = 100
-                    self.app.pnp_config.progres_set(1)
-                    logger.info(f"  {progress_prc:3} %")
-
-                delta = time.monotonic() - started_at
-                delta = f"{delta:.1f}s"
-                logger.info(f"Editor for {len(editor_items)} elements created in {delta}")
-                self.scrollableframe.grid_columnconfigure(0, weight=3)
-                self.scrollableframe.grid_columnconfigure(3, weight=1)
-
-                # to display long descriptions:
-                self.entry_descr_long = ui_helpers.EntryWithPPM(self, menuitems="c", # state=tkinter.DISABLED,
-                                                                placeholder_text="< long description preview >",
-                                                                font=self.fonts[Config.instance().editor_font_idx][0])
-                self.entry_descr_long.grid(row=1, column=0, columnspan=7, padx=15, pady=1, sticky="we")
-                self.update_component_description_long("") # to activate placeholder text
-
-            # update progressbar
-            self.update_selected_status()
+        # to activate placeholder text
+        self.update_component_description_long("")
+        # update progressbar
+        self.update_selected_status()
 
     def update_componentname_length_lbl(self, lbl: tkinter.Label, comp_name: str):
         COMPONENT_MAX_LEN = 38
@@ -764,65 +913,89 @@ class PnPEditor(customtkinter.CTkFrame):
            and glob_proj.pnp_columns.comment_col < glob_proj.pnp_grid.ncols
 
     def cbx_components_selected(self, event):
-        filter = event.widget.filter
+        wgt_idx = self.cbx_component_list.index(event.widget)
         selected_component: str = event.widget.get().strip()
-        logger.debug(f"CB selected: '{selected_component}' for filter pattern '{filter}'")
-        if selected_component == ComponentsMRU.SPACER_ITEM:
-            logger.debug("  spacer - selection ignored")
-            # restore filter value
-            event.widget.set(filter)
-            return
-        selected_idx = self.cbx_component_list.index(event.widget)
-        self.apply_component_to_matching(selected_idx, selected_component)
-        # update the MRU
-        glob_components.mru_items.on_select(filter, selected_component)
 
-        # update drop-down list so it contains the new MRU items
-        filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
-        glob_components.mru_items.arrange(filter, filtered_comp_names)
-        event.widget.configure(values=filtered_comp_names)
-        self.btn_save.configure(state=tkinter.NORMAL)
+        if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
+            logger.debug(f"Apply '{selected_component}' to item {pnp_item.id} (filter: '{pnp_item.editor_filter}')")
 
-    def apply_component_to_matching(self, selected_idx: int, selected_component: str, force: bool = False):
+            if selected_component == ComponentsMRU.SPACER_ITEM:
+                logger.debug("  spacer - selection ignored")
+                # restore filter value
+                event.widget.set(pnp_item.editor_filter)
+                return
+
+            self.apply_component_to_matching(wgt_idx, selected_component)
+            # update the MRU
+            glob_components.mru_items.on_select(pnp_item.editor_filter, selected_component)
+
+            # update drop-down list so it contains the new MRU items
+            filtered_comp_names = list(component.name for component in glob_components.components_filtered(pnp_item.editor_filter))
+            glob_components.mru_items.arrange(pnp_item.editor_filter, filtered_comp_names)
+
+            pnp_item.editor_selection = selected_component
+            pnp_item.editor_cbx_items = filtered_comp_names
+            pnp_item.marker.value = Marker.MAN_SEL
+            event.widget.configure(values=pnp_item.editor_cbx_items)
+            self.btn_save.configure(state=tkinter.NORMAL)
+
+    def apply_component_to_matching(self, wgt_idx: int, selected_component: str, force: bool = False):
         try:
             # get the selection details:
-            comment = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_columns.comment_col]
-            ftprint = glob_proj.pnp_grid.rows()[selected_idx][glob_proj.pnp_columns.footprint_col]
+            absolute_idx = self.editor_data.item_absolute_index_from_widget_filtered_paginated_index(wgt_idx)
+            if absolute_idx is None:
+                logger.error(f"Internal error: pnp item at {wgt_idx} not found")
+                return
 
-            # scan all items and if comment:footprint matches -> apply
-            for i, row in enumerate(glob_proj.pnp_grid.rows()):
-                if i == selected_idx:
+            comment_ref = glob_proj.pnp_grid.rows()[absolute_idx][glob_proj.pnp_columns.comment_col]
+            ftprint_ref = glob_proj.pnp_grid.rows()[absolute_idx][glob_proj.pnp_columns.footprint_col]
+            invalidated_pnp_items = []
+
+            # traverse all items and if comment:footprint matches -> apply
+            for pnp_idx, pnp_item in enumerate(self.editor_data.items_all()):
+                if pnp_idx == absolute_idx:
                     # add marker that this is a final value
-                    self.lbl_marker_list[i].config(background=Markers.CL_MAN_SEL)
-                    self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
-                    # event source widget, so we can skip this one
-                    continue
-                marker_bg = self.lbl_marker_list[i].cget("background")
-                # if already selected, skip this item
-                if not force and (marker_bg in (Markers.CL_MAN_SEL, Markers.CL_REMOVED)):
+                    pnp_item.marker.value = Marker.MAN_SEL
+                    invalidated_pnp_items.append(pnp_item)
+                    # widget from event source, so we can skip this one
                     continue
 
-                if row[glob_proj.pnp_columns.comment_col] == comment and \
-                   row[glob_proj.pnp_columns.footprint_col] == ftprint:
+                # if already selected, skip this item
+                if not force and (pnp_item.marker.value in (Marker.MAN_SEL, Marker.REMOVED)):
+                    continue
+
+                if pnp_item.comment == comment_ref and pnp_item.footprint == ftprint_ref:
                     # found: select the same component
-                    logger.debug(f"  Apply '{selected_component}' to item {row[0]}")
-                    self.cbx_component_list[i].set(selected_component)
-                    self.update_componentname_length_lbl(self.lbl_namelength_list[i], selected_component)
+                    logger.debug(f"  Apply '{selected_component}' to item {pnp_item.id} ({pnp_item.comment})")
+                    pnp_item.editor_selection = selected_component
+                    invalidated_pnp_items.append(pnp_item)
 
                     if len(selected_component) >= 3:
                         # add marker that this is a final value
-                        self.lbl_marker_list[i].config(background=Markers.CL_MAN_SEL)
+                        pnp_item.marker.value = Marker.MAN_SEL
                     else:
                         # too short -> filter or empty
-                        self.lbl_marker_list[i].config(background=Markers.CL_NOMATCH)
-            self.update_selected_status()
+                        pnp_item.marker.value = Marker.NOMATCH
+
+            pnp_idx = None
+            pnp_item = None
+
+            # update visible editor items
+            for pnp_item in invalidated_pnp_items:
+                if not (wgt_idx := self.editor_data.item_filtered_paginated_index(pnp_item)) is None:
+                    self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
+                    self.cbx_component_list[wgt_idx].set(selected_component)
+                    self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_idx], selected_component)
+
         except Exception as e:
             logger.warning(f"Applying selection to the matching items failed: {e}")
+        finally:
+            self.update_selected_status()
 
     def add_component_if_missing(self, new_component_name: str):
         new_component_name = new_component_name.strip()
         if glob_components.add_if_not_exists(new_component_name):
-            logger.info(f"New component '{new_component_name}' added to the database")
+            logger.info(f"⭐New component '{new_component_name}' added to the database")
             self.component_names.append(new_component_name)
 
     # def combobox_key(self, event):
@@ -863,71 +1036,88 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def cbx_components_apply_selected_to_all(self, cbx, force: bool):
         cbx.focus_force()
-        selected_idx = self.cbx_component_list.index(cbx)
+        wgt_idx = self.cbx_component_list.index(cbx)
         selected_component: str = cbx.get().strip()
         logger.debug(f"Applying '{selected_component}':")
-        self.apply_component_to_matching(selected_idx, selected_component, force)
+        self.apply_component_to_matching(wgt_idx, selected_component, force)
         self.add_component_if_missing(selected_component)
 
     def cbx_components_remove_component(self, cbx):
         cbx.focus_force()
-        selected_idx = self.cbx_component_list.index(cbx)
-        selected_component: str = self.entry_item_list[selected_idx].get()
+        wgt_idx = self.cbx_component_list.index(cbx)
+        selected_component: str = self.entry_summary_list[wgt_idx].get()
         # remove double spaces
         selected_component = " ".join(selected_component.split())
-        logger.debug(f"Removing: '{selected_component}'")
-        # add marker that this is a deleted entry
-        self.lbl_marker_list[selected_idx].config(background=Markers.CL_REMOVED)
-        # clear selection
-        self.cbx_component_list[selected_idx].configure(values=[])
-        self.cbx_component_list[selected_idx].set("")
-        self.update_selected_status()
+
+        if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
+            logger.debug(f"Removing: '{selected_component}'")
+            # add marker that this is a deleted entry
+            pnp_item.marker.value = Marker.REMOVED
+            pnp_item.editor_selection = ""
+            pnp_item.editor_cbx_items = []
+
+            self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
+            # clear selection
+            self.cbx_component_list[wgt_idx].set(pnp_item.editor_selection)
+            self.cbx_component_list[wgt_idx].configure(values=pnp_item.editor_cbx_items)
+            self.update_selected_status()
 
     def cbx_components_set_default(self, cbx):
-        selected_idx = self.cbx_component_list.index(cbx)
-        row = glob_proj.pnp_grid.rows()[selected_idx]
-        ftprint = row[glob_proj.pnp_columns.footprint_col]
-        cmnt = row[glob_proj.pnp_columns.comment_col]
-        component_name = ftprint + "_" + cmnt
-        logger.debug(f"Set default <ftprnt>_<cmnt>: '{component_name}'")
-        cbx.set(component_name)
-        # mark
-        lbl_marker = self.lbl_marker_list[selected_idx]
-        lbl_marker.config(background=Markers.CL_FILTER)
+        wgt_idx = self.cbx_component_list.index(cbx)
+
+        if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
+            component_name = pnp_item.footprint + "_" + pnp_item.comment
+            logger.debug(f"Set default <footprint>_<comment>: '{component_name}'")
+            pnp_item.editor_selection = component_name
+            pnp_item.marker.value = Marker.FILTER
+
+            cbx.set(component_name)
+            self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
 
     def cbx_components_apply_filter(self, cbx):
         filter: str = cbx.get().strip()
+        wgt_idx = self.cbx_component_list.index(cbx)
 
         if len(filter) >= 2:
-            filtered_comp_names = list(item.name for item in glob_components.items_filtered(filter))
+            filtered_comp_names = list(item.name for item in glob_components.components_filtered(filter))
             logger.info(f"Apply filter '{filter}' -> {len(filtered_comp_names)} matching")
             #
             glob_components.mru_items.arrange(filter, filtered_comp_names)
-            # set a new combobox items
-            cbx.configure(values=filtered_comp_names)
-            cbx.filter = filter
 
-            selected_idx = self.cbx_component_list.index(cbx)
-            try:
-                self.component_names.index(filter)
-                # filter found on component list: add marker that this is a final value
-                self.lbl_marker_list[selected_idx].config(background=Markers.CL_MAN_SEL)
-            except Exception:
-                if len(filtered_comp_names) > 0:
-                    # mark this is a filter, not value
-                    self.lbl_marker_list[selected_idx].config(background=Markers.CL_FILTER)
-                else:
-                    # mark no matching component in database
-                    self.lbl_marker_list[selected_idx].config(background=Markers.CL_NOMATCH)
-                self.update_componentname_length_lbl(self.lbl_namelength_list[selected_idx], filter)
+            if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
+                pnp_item.editor_filter = filter
+                pnp_item.editor_cbx_items = filtered_comp_names
+                # set a new combobox items
+                cbx.configure(values=pnp_item.editor_cbx_items)
+
+                try:
+                    self.component_names.index(filter)
+                    # filter found on component list: add marker that this is a final value
+                    pnp_item.marker.value = Marker.MAN_SEL
+                    self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
+                except Exception:
+                    if len(filtered_comp_names) > 0:
+                        # mark this is a filter, not value
+                        pnp_item.marker.value = Marker.FILTER
+                        self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
+                    else:
+                        # mark no matching component in database
+                        pnp_item.marker.value = Marker.NOMATCH
+                        self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
+
+                    self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_idx], filter)
         else:
             logger.info("Filter too short: use full list")
-            cbx.configure(values=self.component_names)
-            try:
-                selected_idx = self.cbx_component_list.index(cbx)
-                self.lbl_marker_list[selected_idx].config(background=Markers.CL_NOMATCH)
-            except Exception as e:
-                logger.warning(f"{e}")
+
+            if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
+                pnp_item.editor_cbx_items = self.component_names
+                cbx.configure(values=pnp_item.editor_cbx_items)
+
+                try:
+                    pnp_item.marker.value = Marker.NOMATCH
+                    self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
+                except Exception as e:
+                    logger.warning(f"{e}")
 
         self.btn_save.configure(state=tkinter.NORMAL)
 
@@ -940,9 +1130,9 @@ class PnPEditor(customtkinter.CTkFrame):
         # logger.debug(f"focus_in: {event}")
         try:
             # restore normal font on previous item
-            if not self.focused_idx is None and self.focused_idx < len(self.entry_item_list):
+            if not self.focused_idx is None and self.focused_idx < len(self.entry_summary_list):
                 new_font = self.fonts[Config.instance().editor_font_idx][0]
-                self.entry_item_list[self.focused_idx].config(font=new_font)
+                self.entry_summary_list[self.focused_idx].config(font=new_font)
                 self.entry_descr_list[self.focused_idx].config(font=new_font)
                 self.cbx_component_list[self.focused_idx].config(font=new_font)
                 self.cbx_rotation_list[self.focused_idx].config(font=new_font)
@@ -953,13 +1143,13 @@ class PnPEditor(customtkinter.CTkFrame):
                 self.focused_idx = self.cbx_component_list.index(event.widget)
             elif event.widget in self.cbx_rotation_list:
                 self.focused_idx = self.cbx_rotation_list.index(event.widget)
-            elif event.widget in self.entry_item_list:
-                self.focused_idx = self.entry_item_list.index(event.widget)
+            elif event.widget in self.entry_summary_list:
+                self.focused_idx = self.entry_summary_list.index(event.widget)
             elif event.widget in self.entry_descr_list:
                 self.focused_idx = self.entry_descr_list.index(event.widget)
 
             new_font = self.fonts[Config.instance().editor_font_idx][1]
-            self.entry_item_list[self.focused_idx].config(font=new_font)
+            self.entry_summary_list[self.focused_idx].config(font=new_font)
             self.entry_descr_list[self.focused_idx].config(font=new_font)
             self.cbx_component_list[self.focused_idx].config(font=new_font)
             self.cbx_rotation_list[self.focused_idx].config(font=new_font)
@@ -972,12 +1162,20 @@ class PnPEditor(customtkinter.CTkFrame):
     def cbx_rotation_selected(self, event):
         rot: str = event.widget.get().strip()
         logger.debug(f"Rotation selected: {rot}")
-        self.btn_save.configure(state=tkinter.NORMAL)
+        wgt_idx = self.cbx_rotation_list.index(event.widget)
+
+        if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
+            pnp_item.rotation = rot
+            self.btn_save.configure(state=tkinter.NORMAL)
 
     def cbx_rotation_return(self, event):
         rot: str = event.widget.get().strip()
         logger.debug(f"Rotation entered: {rot}")
-        self.btn_save.configure(state=tkinter.NORMAL)
+        wgt_idx = self.cbx_rotation_list.index(event.widget)
+
+        if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
+            pnp_item.rotation = rot
+            self.btn_save.configure(state=tkinter.NORMAL)
 
     def entry_focus_in(self, event):
         logger.debug(f"entry_focus_in: {event}")
@@ -1001,31 +1199,7 @@ class PnPEditor(customtkinter.CTkFrame):
                     callback=lambda btn: btn)
 
     def save_wip(self, wip_path: str):
-        with open(wip_path, "w", encoding="UTF-8") as f:
-            wip = {
-                'project': glob_proj.to_serializable(),
-                'components': []
-            }
-            components = []
-
-            for i, cmp in enumerate(self.entry_item_list):
-                cmp_name = cmp.get()
-                cmp_descr = self.entry_descr_list[i].get()
-                cmp_marker = self.lbl_marker_list[i].cget("background")
-                cmp_selection = self.cbx_component_list[i].get()
-                cmp_rotation = self.cbx_rotation_list[i].get()
-
-                record = {
-                    'item': cmp_name,
-                    'marker': Markers.MARKERS_MAP[cmp_marker],
-                    'selection': cmp_selection,
-                    'rotation': cmp_rotation,
-                    'descr': cmp_descr,
-                }
-                components.append(record)
-
-            wip['components'] = components
-            json.dump(wip, f, indent=2)
+        pnp_editor_helpers.wip_save(wip_path, glob_proj.to_serializable(), self.editor_data)
 
     def button_save_event(self):
         logger.debug("Save PnP")
@@ -1054,9 +1228,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 logger.error(f"WiP file: '{csv_path}' also not found")
                 return
 
-        output.write_yamaha_csv(self.app, csv_path, self.entry_csv_postfix.get(), glob_proj,
-                                self.cbx_component_list, self.cbx_rotation_list,
-                                self.lbl_marker_list, self.entry_descr_list)
+        output.write_yamaha_csv(self.app, csv_path, self.entry_csv_postfix.get(), glob_proj, self.editor_data)
 
     def update_selected_status(self):
         n_selected = self.count_selected()
@@ -1068,11 +1240,10 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def count_selected(self) -> tuple[int, int]:
         n = 0
-        for lbl in self.lbl_marker_list:
-            bg = lbl.cget("background")
-            if bg in (Markers.CL_MAN_SEL, Markers.CL_AUTO_SEL, Markers.CL_REMOVED):
+        for pnp_item in self.editor_data.items_filtered():
+            if pnp_item.marker.value in (Marker.MAN_SEL, Marker.AUTO_SEL, Marker.REMOVED):
                 n += 1
-        return (n, len(self.lbl_marker_list))
+        return (n, len(self.editor_data.items_filtered()))
 
 # -----------------------------------------------------------------------------
 
@@ -1119,7 +1290,7 @@ class ComponentsInfo(customtkinter.CTkFrame):
             # since the user can add it's own components to the working database,
             # we only add a new components do the working db instead of replacing it with the new one
             global glob_components
-            added = glob_components.add_new(new_components.items_all())
+            added = glob_components.add_new(new_components.components_all())
             logger.info(f"Added {added} new components to the database")
             glob_components.save_new(db_directory)
             self.update_components_info()
@@ -1159,7 +1330,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
-        self.mk_components_view()
+        self.create_components_view()
 
         self.frame_buttons = customtkinter.CTkFrame(self)
         self.frame_buttons.grid(row=2, column=0, pady=5, padx=5, sticky="we")
@@ -1194,7 +1365,7 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
         #
         global glob_components
-        if not glob_components or len(glob_components.items_all()) == 0:
+        if not glob_components or len(glob_components.components_all()) == 0:
             logger.info("DB editor: components DB is empty")
         else:
             self.load_components()
@@ -1211,17 +1382,14 @@ class ComponentsEditor(customtkinter.CTkFrame):
             return
         self.component_filter = filter
         # correct the page index
-        npages = 1 + len(self.get_components()) // self.COMP_PER_PAGE
-        if self.components_pageno >= npages:
-            self.components_pageno = max(0, npages-1)
+        n_pages = 1 + len(self.get_components()) // self.COMP_PER_PAGE
+        if self.components_pageno >= n_pages:
+            self.components_pageno = max(0, n_pages-1)
         # reload view
         self.load_components()
         self.lbl_pageno.configure(text=self.format_pageno())
-        # scroll the list to the top
-        cmd = self.scrollableframe._scrollbar.cget("command")
-        cmd('moveto', 0)
 
-    def mk_components_view(self):
+    def create_components_view(self):
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
         self.scrollableframe.grid(row=1, column=0, padx=5, pady=5, columnspan=6, sticky="wens")
         self.scrollableframe.grid_columnconfigure(1, weight=2)
@@ -1261,8 +1429,8 @@ class ComponentsEditor(customtkinter.CTkFrame):
         global glob_components
         # depending on entered filter, returns filtered or entire list of components
         if len(self.component_filter) > 0:
-            return glob_components.items_filtered(self.component_filter)
-        return glob_components.items_all()
+            return glob_components.components_filtered(self.component_filter)
+        return glob_components.components_all()
 
     def format_pageno(self) -> str:
         pageno_str = f"{1 + self.components_pageno} / {1 + len(self.get_components()) // self.COMP_PER_PAGE}"
@@ -1272,16 +1440,16 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.changed = False
         components = self.get_components()
         # logger.debug(f"DB Editor: {len(components)} components")
-        components_subrange = components[self.components_pageno * self.COMP_PER_PAGE:]
+        components_subrange = components[self.components_pageno * self.COMP_PER_PAGE : ]
 
-        for idx_on_page, component in enumerate(components_subrange):
-            if idx_on_page == self.COMP_PER_PAGE:
+        for wgt_idx, component in enumerate(components_subrange):
+            if wgt_idx == self.COMP_PER_PAGE:
                 break
-            idx_absolute = idx_on_page + (self.components_pageno * self.COMP_PER_PAGE)
-            self.lbls_rowno[idx_on_page].configure(text=f"{idx_absolute+1:04}.")
-            ui_helpers.entry_set_text(self.entrys_name[idx_on_page], component.name)
-            ui_helpers.entry_set_text(self.entrys_alias[idx_on_page], component.aliases)
-            self.vars_hidden[idx_on_page].set(component.hidden)
+            idx_absolute = wgt_idx + (self.components_pageno * self.COMP_PER_PAGE)
+            self.lbls_rowno[wgt_idx].configure(text=f"{idx_absolute+1:04}.")
+            ui_helpers.entry_set_text(self.entrys_name[wgt_idx], component.name)
+            ui_helpers.entry_set_text(self.entrys_alias[wgt_idx], component.aliases)
+            self.vars_hidden[wgt_idx].set(component.hidden)
 
         # clear remaining fields
         for i in range(len(components_subrange), self.COMP_PER_PAGE):
@@ -1289,6 +1457,9 @@ class ComponentsEditor(customtkinter.CTkFrame):
             ui_helpers.entry_set_text(self.entrys_name[i], "")
             ui_helpers.entry_set_text(self.entrys_alias[i], "")
             self.vars_hidden[i].set(False)
+
+        # scroll the list to the top
+        ui_helpers.scrollable_moveto_top(self.scrollableframe)
 
     def chkbttn_hidden_event(self):
         self.btn_save.configure(state=tkinter.NORMAL)
@@ -1302,12 +1473,12 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.changed = True
 
     def store_component_modifications(self):
-        components_subrange = self.get_components()[self.components_pageno * self.COMP_PER_PAGE:]
-        for idx_on_page, component in enumerate(components_subrange):
-            if idx_on_page == self.COMP_PER_PAGE:
+        components_subrange = self.get_components()[self.components_pageno * self.COMP_PER_PAGE : ]
+        for wgt_idx, component in enumerate(components_subrange):
+            if wgt_idx == self.COMP_PER_PAGE:
                 break
-            component.hidden = self.vars_hidden[idx_on_page].get() == 1
-            component.aliases = self.entrys_alias[idx_on_page].get().strip()
+            component.hidden = self.vars_hidden[wgt_idx].get() == 1
+            component.aliases = self.entrys_alias[wgt_idx].get().strip()
 
     def on_component_attr_changed(self, btn: str, go_next: bool):
         if btn == "y":
@@ -1401,7 +1572,7 @@ class CtkApp(customtkinter.CTk):
             if os.path.isdir(db_directory):
                 glob_components.load(db_directory)
                 logger.info(f"  Date: {glob_components.db_date}")
-                logger.info(f"  Items: {len(glob_components.items_all())}")
+                logger.info(f"  Items: {len(glob_components.components_all())}")
             else:
                 logger.warning(f"DB folder not found at {db_directory}")
         except Exception as e:
@@ -1439,6 +1610,7 @@ class CtkApp(customtkinter.CTk):
 
         # load the last project
         self.home_frame.process_input_files([Config.instance().recent_pnp_path, Config.instance().recent_pnp2_path])
+        self.home_frame.restore_board_preview_paths(Config.instance().recent_board_top_path, Config.instance().recent_board_bot_path)
 
         # UI ready
         logger.info('Application ready.')
@@ -1463,9 +1635,7 @@ if __name__ == "__main__":
         logger.error("Required Python version 3.9 or later!")
         sys.exit()
     else:
-        logger.info(
-            f"Python version: {sys.version_info.major}.{sys.version_info.minor}"
-        )
+        logger.info(f"Python version: {sys.version_info.major}.{sys.version_info.minor}")
 
     # https://customtkinter.tomschimansky.com/documentation/appearancemode
     customtkinter.set_appearance_mode("light")

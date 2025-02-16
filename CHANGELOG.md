@@ -2,12 +2,20 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
-## 1.3.1 - 2025-02-10
+## 1.4.0 - 2025-02-15
 
 * Added
+  * PnP editor - paginated (200 items/page)
+  * PnP editor - filtered view (All / Configured / Removed)
 * Changed
+  * PnP editor - improved component matching: CC1206x100n -> C1206 (before: 1206)
 * Deprecated
 * Removed
+* Fixed
+  * MRU list is working again
+
+## 1.3.1 - 2025-02-10
+
 * Fixed
   * corrected loading of the WiP files, after component idx was edded to the PnP editor
 
