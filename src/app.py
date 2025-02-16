@@ -716,7 +716,7 @@ class PnPEditor(customtkinter.CTkFrame):
     def create_editor(self):
         self.focused_idx = None
 
-        self.entry_item_list: list[tkinter.Entry] = []
+        self.entry_summary_list: list[tkinter.Entry] = []
         self.entry_descr_list: list[tkinter.Entry] = []
         self.lbl_marker_list = []
         self.cbx_component_list = []
@@ -745,14 +745,14 @@ class PnPEditor(customtkinter.CTkFrame):
 
         # Components table:
         for idx in range(1, pnp_editor_helpers.PnPEditorData.ITEMS_PER_PAGE+1):
-            # --- item
+            # --- summary
             # menuitems="" -> means no menu at all (number of menus to be created is limited)
-            entry_item = ui_helpers.EntryWithPPM(
+            entry_summary = ui_helpers.EntryWithPPM(
                 self.scrollableframe, menuitems="c",
                 font=self.fonts[Config.instance().editor_font_idx][0])
-            entry_item.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
-            entry_item.bind("<FocusIn>", self.focus_in)
-            self.entry_item_list.append(entry_item)
+            entry_summary.grid(row=idx, column=0, padx=5, pady=1, sticky="we")
+            entry_summary.bind("<FocusIn>", self.focus_in)
+            self.entry_summary_list.append(entry_summary)
 
             # --- descr
             entry_descr = ui_helpers.EntryWithPPM(
@@ -853,14 +853,14 @@ class PnPEditor(customtkinter.CTkFrame):
 
     def editor_load_data(self):
         # Components table:
-        pnpitem_start_idx = self.editor_data.page_no * self.editor_data.ITEMS_PER_PAGE
-        pnpitem_end_idx =  min(len(self.editor_data.items_filtered()), pnpitem_start_idx+self.editor_data.ITEMS_PER_PAGE)
-        wgt_idx = 0
+        pnpitem_start_idx = self.editor_data.items_visible_offset()
+        pnpitem_end_idx = min(len(self.editor_data.items_filtered()), pnpitem_start_idx + self.editor_data.ITEMS_PER_PAGE)
+        wgt_idx = 0 # must be declared outside the loop, as the range may be empty
 
         for pnpitem_idx in range(pnpitem_start_idx, pnpitem_end_idx):
             pnp_item = self.editor_data.items_filtered()[pnpitem_idx]
-            # item:
-            ui_helpers.entry_set_text(self.entry_item_list[wgt_idx], pnp_item.summary)
+            # summary:
+            ui_helpers.entry_set_text(self.entry_summary_list[wgt_idx], pnp_item.summary)
             # descr
             ui_helpers.entry_set_text(self.entry_descr_list[wgt_idx], pnp_item.descr)
             # marker:
@@ -877,7 +877,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
         # clear unused rows
         for idx in range(wgt_idx, pnp_editor_helpers.PnPEditorData.ITEMS_PER_PAGE):
-            ui_helpers.entry_set_text(self.entry_item_list[idx], 0)
+            ui_helpers.entry_set_text(self.entry_summary_list[idx], 0)
             # entry_pnp.configure(state=tkinter.DISABLED)
             ui_helpers.entry_set_text(self.entry_descr_list[idx], "")
             self.lbl_marker_list[idx].config(background="white")
@@ -987,9 +987,10 @@ class PnPEditor(customtkinter.CTkFrame):
                     self.cbx_component_list[wgt_idx].set(selected_component)
                     self.update_componentname_length_lbl(self.lbl_namelength_list[wgt_idx], selected_component)
 
-            self.update_selected_status()
         except Exception as e:
             logger.warning(f"Applying selection to the matching items failed: {e}")
+        finally:
+            self.update_selected_status()
 
     def add_component_if_missing(self, new_component_name: str):
         new_component_name = new_component_name.strip()
@@ -1044,37 +1045,34 @@ class PnPEditor(customtkinter.CTkFrame):
     def cbx_components_remove_component(self, cbx):
         cbx.focus_force()
         wgt_idx = self.cbx_component_list.index(cbx)
-        selected_component: str = self.entry_item_list[wgt_idx].get()
+        selected_component: str = self.entry_summary_list[wgt_idx].get()
         # remove double spaces
         selected_component = " ".join(selected_component.split())
 
-        if item := self.editor_data.item_filtered_paginated(wgt_idx):
+        if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
             logger.debug(f"Removing: '{selected_component}'")
             # add marker that this is a deleted entry
-            item.marker.value = Marker.REMOVED
-            item.editor_selection = ""
-            item.editor_cbx_items = []
+            pnp_item.marker.value = Marker.REMOVED
+            pnp_item.editor_selection = ""
+            pnp_item.editor_cbx_items = []
 
-            self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
+            self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
             # clear selection
-            self.cbx_component_list[wgt_idx].set(item.editor_selection)
-            self.cbx_component_list[wgt_idx].configure(values=item.editor_cbx_items)
+            self.cbx_component_list[wgt_idx].set(pnp_item.editor_selection)
+            self.cbx_component_list[wgt_idx].configure(values=pnp_item.editor_cbx_items)
             self.update_selected_status()
 
     def cbx_components_set_default(self, cbx):
         wgt_idx = self.cbx_component_list.index(cbx)
-        row = glob_proj.pnp_grid.rows()[wgt_idx]
-        ftprint = row[glob_proj.pnp_columns.footprint_col]
-        cmnt = row[glob_proj.pnp_columns.comment_col]
-        component_name = ftprint + "_" + cmnt
 
-        if item := self.editor_data.item_filtered_paginated(wgt_idx):
+        if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
+            component_name = pnp_item.footprint + "_" + pnp_item.comment
             logger.debug(f"Set default <footprint>_<comment>: '{component_name}'")
-            item.editor_selection = component_name
-            item.marker.value = Marker.FILTER
+            pnp_item.editor_selection = component_name
+            pnp_item.marker.value = Marker.FILTER
 
             cbx.set(component_name)
-            self.lbl_marker_list[wgt_idx].config(background=item.marker.color)
+            self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
 
     def cbx_components_apply_filter(self, cbx):
         filter: str = cbx.get().strip()
@@ -1132,9 +1130,9 @@ class PnPEditor(customtkinter.CTkFrame):
         # logger.debug(f"focus_in: {event}")
         try:
             # restore normal font on previous item
-            if not self.focused_idx is None and self.focused_idx < len(self.entry_item_list):
+            if not self.focused_idx is None and self.focused_idx < len(self.entry_summary_list):
                 new_font = self.fonts[Config.instance().editor_font_idx][0]
-                self.entry_item_list[self.focused_idx].config(font=new_font)
+                self.entry_summary_list[self.focused_idx].config(font=new_font)
                 self.entry_descr_list[self.focused_idx].config(font=new_font)
                 self.cbx_component_list[self.focused_idx].config(font=new_font)
                 self.cbx_rotation_list[self.focused_idx].config(font=new_font)
@@ -1145,13 +1143,13 @@ class PnPEditor(customtkinter.CTkFrame):
                 self.focused_idx = self.cbx_component_list.index(event.widget)
             elif event.widget in self.cbx_rotation_list:
                 self.focused_idx = self.cbx_rotation_list.index(event.widget)
-            elif event.widget in self.entry_item_list:
-                self.focused_idx = self.entry_item_list.index(event.widget)
+            elif event.widget in self.entry_summary_list:
+                self.focused_idx = self.entry_summary_list.index(event.widget)
             elif event.widget in self.entry_descr_list:
                 self.focused_idx = self.entry_descr_list.index(event.widget)
 
             new_font = self.fonts[Config.instance().editor_font_idx][1]
-            self.entry_item_list[self.focused_idx].config(font=new_font)
+            self.entry_summary_list[self.focused_idx].config(font=new_font)
             self.entry_descr_list[self.focused_idx].config(font=new_font)
             self.cbx_component_list[self.focused_idx].config(font=new_font)
             self.cbx_rotation_list[self.focused_idx].config(font=new_font)
@@ -1173,8 +1171,8 @@ class PnPEditor(customtkinter.CTkFrame):
     def cbx_rotation_return(self, event):
         rot: str = event.widget.get().strip()
         logger.debug(f"Rotation entered: {rot}")
-
         wgt_idx = self.cbx_rotation_list.index(event.widget)
+
         if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
             pnp_item.rotation = rot
             self.btn_save.configure(state=tkinter.NORMAL)

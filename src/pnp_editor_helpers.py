@@ -400,12 +400,15 @@ def __try_find_matching(components: ComponentsDB, names_visible: list[str], pnpi
     ftprint_found = ""
 
     FOTPRINTS = (
+        "DO214",
         "LED",
-        "SOT23", "SOT223", "SOT363", "SOT95", "SOT",
-        "SOD123", "SOD323", "SOD80", "SOD882", "SOD923", "SOD",
         "SMA", "SMB", "SMC",
-        "SOIC", "QSOP", "QFP", "SWITCH",
-        "TSSOP"
+        "SOD123", "SOD323", "SOD80", "SOD882", "SOD923", "SOD",
+        "SOIC", "SWITCH",
+        "SOT23", "SOT223", "SOT363", "SOT95", "SOT",
+        "QSOP", "QFP",
+        "TO252", "TO263", "TSSOP",
+        "WAGO"
     )
 
     FOOTPRINT_SIZES = (

@@ -5,11 +5,10 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 ## 1.4.0 - 2025-02-15
 
 * Added
-  * Board: JPEG/PNG preview of TOP/BOTTOM side
   * PnP editor - paginated (200 items/page)
-  * PnP editor - improved component matching: CC1206x100n -> C1206 (before: 1206)
   * PnP editor - filtered view (All / Configured / Removed)
 * Changed
+  * PnP editor - improved component matching: CC1206x100n -> C1206 (before: 1206)
 * Deprecated
 * Removed
 * Fixed
