@@ -1228,9 +1228,7 @@ class PnPEditor(customtkinter.CTkFrame):
                 logger.error(f"WiP file: '{csv_path}' also not found")
                 return
 
-        output.write_yamaha_csv(self.app, csv_path, self.entry_csv_postfix.get(), glob_proj,
-                                self.cbx_component_list, self.cbx_rotation_list,
-                                self.lbl_marker_list, self.entry_descr_list)
+        output.write_yamaha_csv(self.app, csv_path, self.entry_csv_postfix.get(), glob_proj, self.editor_data)
 
     def update_selected_status(self):
         n_selected = self.count_selected()

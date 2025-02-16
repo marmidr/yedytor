@@ -486,7 +486,7 @@ def wip_save(wip_path: str, proj_serialized: dict, editor_data: PnPEditorData):
         }
         components = []
 
-        for i, pnp_item in enumerate(editor_data.items_filtered()):
+        for i, pnp_item in enumerate(editor_data.items_all()):
             record = {
                 'summary':      pnp_item.summary,
                 'id' :          pnp_item.id,
