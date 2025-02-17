@@ -62,21 +62,21 @@ class MessageBox(customtkinter.CTkToplevel):
         self.attributes('-topmost', True)
 
     def button_yes_event(self):
+        self.destroy()
         # logger.debug("Yes")
         self.callback("y")
-        self.destroy()
 
     def button_no_event(self):
+        self.destroy()
         # logger.debug("No")
         self.callback("n")
-        self.destroy()
 
     def button_cancel_event(self):
+        self.destroy()
         # logger.debug("Cancel")
         self.callback("c")
-        self.destroy()
 
     def button_ok_event(self):
+        self.destroy()
         # logger.debug("Ok")
         self.callback("o")
-        self.destroy()

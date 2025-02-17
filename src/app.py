@@ -643,7 +643,6 @@ class PnPEditor(customtkinter.CTkFrame):
 
         # bottom toolbar
         if True:
-            tbr_row = 3
             self.pgbar_selected = customtkinter.CTkProgressBar(self)
             self.pgbar_selected.grid(row=3, column=0, padx=5, pady=5, sticky="ew")
             self.pgbar_selected.set(0)
