@@ -30,7 +30,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.4.0"
+APP_NAME = "Yedytor v1.4.1"
 APP_DATE = "(c) 2023-2025"
 
 # -----------------------------------------------------------------------------
@@ -596,7 +596,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
         self.editor_data = pnp_editor_helpers.PnPEditorData()
 
-        # toolbar
+        # top toolbar
         if True:
             self.frame_toolbar = customtkinter.CTkFrame(self)
             self.frame_toolbar.grid(row=0, column=0, pady=5, padx=5, columnspan=7, sticky="we")
@@ -1040,6 +1040,7 @@ class PnPEditor(customtkinter.CTkFrame):
         logger.debug(f"Applying '{selected_component}':")
         self.apply_component_to_matching(wgt_idx, selected_component, force)
         self.add_component_if_missing(selected_component)
+        self.btn_save.configure(state=tkinter.NORMAL)
 
     def cbx_components_remove_component(self, cbx):
         cbx.focus_force()
@@ -1060,6 +1061,7 @@ class PnPEditor(customtkinter.CTkFrame):
             self.cbx_component_list[wgt_idx].set(pnp_item.editor_selection)
             self.cbx_component_list[wgt_idx].configure(values=pnp_item.editor_cbx_items)
             self.update_selected_status()
+            self.btn_save.configure(state=tkinter.NORMAL)
 
     def cbx_components_set_default(self, cbx):
         wgt_idx = self.cbx_component_list.index(cbx)
@@ -1072,6 +1074,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
             cbx.set(component_name)
             self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
+            self.btn_save.configure(state=tkinter.NORMAL)
 
     def cbx_components_apply_filter(self, cbx):
         filter: str = cbx.get().strip()
@@ -1204,8 +1207,8 @@ class PnPEditor(customtkinter.CTkFrame):
         logger.debug("Save PnP")
         n_selected = self.count_selected()
         if n_selected[0] == n_selected[1]:
-            self.btn_save.configure(state=tkinter.DISABLED)
             self.save_pnp_to_new_csv_file()
+            self.btn_save.configure(state=tkinter.DISABLED)
         else:
             MessageBox(app=self.app, dialog_type="yn",
                        message=f"Only {n_selected[0]} / {n_selected[1]} "\
@@ -1215,6 +1218,7 @@ class PnPEditor(customtkinter.CTkFrame):
     def msgbox_save_callback(self, btn: str):
         if btn == "y":
             self.save_pnp_to_new_csv_file()
+            self.btn_save.configure(state=tkinter.DISABLED)
 
     def save_pnp_to_new_csv_file(self):
         csv_path = glob_proj.pnp_path

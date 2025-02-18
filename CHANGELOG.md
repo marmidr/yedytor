@@ -2,6 +2,11 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.4.1 - 2025-02-18
+
+* Fixed
+  * UI: Save new CSV button - activation
+
 ## 1.4.0 - 2025-02-15
 
 * Added
