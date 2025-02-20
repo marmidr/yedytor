@@ -30,7 +30,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.4.1"
+APP_NAME = "Yedytor v1.4.2"
 APP_DATE = "(c) 2023-2025"
 
 # -----------------------------------------------------------------------------
@@ -953,6 +953,7 @@ class PnPEditor(customtkinter.CTkFrame):
             # traverse all items and if comment:footprint matches -> apply
             for pnp_idx, pnp_item in enumerate(self.editor_data.items_all()):
                 if pnp_idx == absolute_idx:
+                    pnp_item.editor_selection = selected_component
                     # add marker that this is a final value
                     pnp_item.marker.value = Marker.MAN_SEL
                     invalidated_pnp_items.append(pnp_item)
@@ -1013,7 +1014,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
         menu.add_separator()
         #
-        menu.add_command(label="Update drop-down items (apply filter)",
+        menu.add_command(label="Update drop-down items (Enter ⮐)",
                         command=lambda: self.cbx_components_apply_filter(menu.wgt))
         menu.add_separator()
         #
@@ -1023,7 +1024,7 @@ class PnPEditor(customtkinter.CTkFrame):
         menu.add_command(label="Apply selection to all matching components",
                         command=lambda: self.cbx_components_apply_selected_to_all(menu.wgt, False))
         #
-        menu.add_command(label="Apply+override selection to all matching components",
+        menu.add_command(label="Apply + override selection to all matching components",
                         command=lambda: self.cbx_components_apply_selected_to_all(menu.wgt, True))
         menu.add_separator()
         #

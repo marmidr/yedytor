@@ -2,6 +2,11 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.4.2 - 2025-02-20
+
+* Fixed
+  * PnP editor: Apply + override selection
+
 ## 1.4.1 - 2025-02-18
 
 * Fixed
