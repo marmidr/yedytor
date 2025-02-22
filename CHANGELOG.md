@@ -2,6 +2,14 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.5.0 - 2025-02-22
+
+* Added
+  * PnP editor: filter
+* Changed
+  * Scrollbars made wider
+  * PnP editor: [<] [>] buttons moved to the right
+
 ## 1.4.2 - 2025-02-20
 
 * Fixed

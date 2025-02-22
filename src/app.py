@@ -30,8 +30,10 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.4.2"
+APP_NAME = "Yedytor v1.5.0"
 APP_DATE = "(c) 2023-2025"
+
+SCROLLBAR_SZ = 20
 
 # -----------------------------------------------------------------------------
 
@@ -413,6 +415,8 @@ class PnPView(customtkinter.CTkFrame):
                                                 font=customtkinter.CTkFont(size=12, family="Consolas"),
                                                 activate_scrollbars=True,
                                                 wrap='none')
+        self.textbox._y_scrollbar.configure(width=10)
+        self.textbox._x_scrollbar.configure(height=10)
         self.textbox.grid(row=0, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -493,17 +497,17 @@ class PnPConfig(customtkinter.CTkFrame):
         self.btn_load_pnp_preview.grid(row=0, column=3, pady=5, padx=5, sticky="e")
 
         #
-        sep_v = tkinter.ttk.Separator(self, orient='vertical')
-        sep_v.grid(row=0, column=5, pady=2, padx=5, sticky="ns")
-
-        #
         self.lbl_columns = customtkinter.CTkLabel(self, text="", justify="left")
-        self.lbl_columns.grid(row=0, column=6, pady=5, padx=(15,5), sticky="w")
+        self.lbl_columns.grid(row=0, column=4, pady=5, padx=5, sticky="w")
         self.update_lbl_columns()
         #
         self.btn_columns = customtkinter.CTkButton(self, text="Select\ncolumns...", state=tkinter.DISABLED,
                                                    command=self.button_columns_event)
-        self.btn_columns.grid(row=0, column=7, pady=5, padx=5, sticky="")
+        self.btn_columns.grid(row=0, column=5, pady=5, padx=5, sticky="")
+        #
+        sep_v = tkinter.ttk.Separator(self, orient='vertical')
+        sep_v.grid(row=0, column=6, pady=2, padx=5, sticky="ns")
+        self.grid_columnconfigure(6, weight=1)
         #
         self.btn_goto_editor = customtkinter.CTkButton(self, text="Go to\nEditor →", state=tkinter.DISABLED,
                                                 command=self.button_goto_editor_event)
@@ -600,46 +604,65 @@ class PnPEditor(customtkinter.CTkFrame):
         if True:
             self.frame_toolbar = customtkinter.CTkFrame(self)
             self.frame_toolbar.grid(row=0, column=0, pady=5, padx=5, columnspan=7, sticky="we")
+            self.frame_toolbar.grid_columnconfigure(0, weight=1)
+            col=0
 
-            # change components page, view contains up to self.COMP_PER_PAGE items
-            self.btn_page_prev = customtkinter.CTkButton(self.frame_toolbar, text="<", command=self.button_prev_event)
-            self.btn_page_prev.grid(row=0, column=1, pady=5, padx=5, sticky="w")
+            #
+            self.entry_filter = ui_helpers.EntryWithPPM(self.frame_toolbar, placeholder_text="< filter >")
+            self.entry_filter.grid(row=0, column=col, padx=(10, 5), pady=2, sticky="we")
+            col += 1
 
-            self.lbl_pageno = customtkinter.CTkLabel(self.frame_toolbar, text=self.format_pageno())
-            self.lbl_pageno.grid(row=0, column=2, pady=5, padx=5, sticky="w")
-
-            self.btn_page_next = customtkinter.CTkButton(self.frame_toolbar, text=">", command=self.button_next_event)
-            self.btn_page_next.grid(row=0, column=3, pady=5, padx=5, sticky="w")
-
+            #
             sep_v = tkinter.ttk.Separator(self.frame_toolbar, orient='vertical')
-            sep_v.grid(row=0, column=4, pady=2, padx=5, sticky="ns")
+            sep_v.grid(row=0, column=col, pady=2, padx=5, sticky="ns")
+            col += 1
 
             #
             self.radio_filter_var = tkinter.IntVar(value=0)
             self.rb_show_all = customtkinter.CTkRadioButton(self.frame_toolbar, text="All components",
                                                                     variable=self.radio_filter_var,
                                                                     value=0, command=self.radiobutton_event)
-            self.rb_show_all.grid(row=0, column=5, pady=5, padx=5, sticky="")
+            self.rb_show_all.grid(row=0, column=col, pady=5, padx=5, sticky="")
+            col += 1
+
             #
             self.rb_show_notconfigured = customtkinter.CTkRadioButton(self.frame_toolbar, text="Not configured",
                                                                     variable=self.radio_filter_var,
                                                                     value=1, command=self.radiobutton_event)
-            self.rb_show_notconfigured.grid(row=0, column=6, pady=5, padx=5, sticky="")
+            self.rb_show_notconfigured.grid(row=0, column=col, pady=5, padx=5, sticky="")
+            col += 1
+
             #
             self.rb_show_notconfigured = customtkinter.CTkRadioButton(self.frame_toolbar, text="Configured",
                                                                     variable=self.radio_filter_var,
                                                                     value=2, command=self.radiobutton_event)
-            self.rb_show_notconfigured.grid(row=0, column=7, pady=5, padx=5, sticky="")
+            self.rb_show_notconfigured.grid(row=0, column=col, pady=5, padx=5, sticky="")
+            col += 1
+
             #
             self.rb_show_notconfigured = customtkinter.CTkRadioButton(self.frame_toolbar, text="Removed",
                                                                     variable=self.radio_filter_var,
                                                                     value=3, command=self.radiobutton_event)
-            self.rb_show_notconfigured.grid(row=0, column=8, pady=5, padx=5, sticky="")
+            self.rb_show_notconfigured.grid(row=0, column=col, pady=5, padx=5, sticky="")
+            col += 1
 
             #
             sep_v = tkinter.ttk.Separator(self.frame_toolbar, orient='vertical')
-            sep_v.grid(row=0, column=9, pady=2, padx=5, sticky="ns")
+            sep_v.grid(row=0, column=col, pady=2, padx=5, sticky="ns")
+            col += 1
 
+            # change components page, view contains up to self.COMP_PER_PAGE items
+            self.btn_page_prev = customtkinter.CTkButton(self.frame_toolbar, text="<", command=self.button_prev_event, width=80)
+            self.btn_page_prev.grid(row=0, column=col, pady=5, padx=5, sticky="")
+            col += 1
+
+            self.lbl_pageno = customtkinter.CTkLabel(self.frame_toolbar, text=self.format_pageno())
+            self.lbl_pageno.grid(row=0, column=col, pady=5, padx=5, sticky="")
+            col += 1
+
+            self.btn_page_next = customtkinter.CTkButton(self.frame_toolbar, text=">", command=self.button_next_event, width=80)
+            self.btn_page_next.grid(row=0, column=col, pady=5, padx=5, sticky="")
+            col += 1
 
         # bottom toolbar
         if True:
@@ -655,6 +678,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
             self.btn_save_wip = customtkinter.CTkButton(self, text="Save for later", command=self.button_save_wip_event)
             self.btn_save_wip.grid(row=3, column=3, pady=5, padx=5, sticky="e")
+            self.btn_save_wip.configure(state=tkinter.DISABLED)
 
             sep_v = tkinter.ttk.Separator(self, orient='vertical')
             sep_v.grid(row=3, column=4, pady=2, padx=5, sticky="ns")
@@ -724,6 +748,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
         self.scrollableframe = customtkinter.CTkScrollableFrame(self)
         self.scrollableframe.grid(row=1, column=0, padx=5, pady=1, columnspan=7, sticky="wens")
+        self.scrollableframe._scrollbar.configure(width=SCROLLBAR_SZ)
 
         # Header row
         if True:
@@ -849,6 +874,7 @@ class PnPEditor(customtkinter.CTkFrame):
 
         self.lbl_pageno.configure(text=self.format_pageno())
         self.editor_load_data()
+        self.btn_save_wip.configure(state=tkinter.ACTIVE)
 
     def editor_load_data(self):
         # Components table:
@@ -1399,6 +1425,8 @@ class ComponentsEditor(customtkinter.CTkFrame):
         self.scrollableframe.grid_columnconfigure(1, weight=2)
         self.scrollableframe.grid_columnconfigure(2, weight=1)
         self.scrollableframe.grid_columnconfigure(3, weight=1)
+        self.scrollableframe._scrollbar.configure(width=SCROLLBAR_SZ)
+
         # create all widgets only once, keeping them in arrays
         self.lbls_rowno = []
         self.entrys_name = []
