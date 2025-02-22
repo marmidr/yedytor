@@ -30,7 +30,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.5.0"
+APP_NAME = "Yedytor v1.6.0"
 APP_DATE = "(c) 2023-2025"
 
 SCROLLBAR_SZ = 20
@@ -101,11 +101,11 @@ class HomeFrame(customtkinter.CTkFrame):
 
             btn_browse_board_top = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_board_top_event)
             btn_browse_board_top.grid(row=3, column=3, pady=5, padx=5, sticky="e")
-            btn_browse_board_top.configure(state=tkinter.DISABLED)
+            # btn_browse_board_top.configure(state=tkinter.DISABLED)
 
             btn_show_board_top = customtkinter.CTkButton(self, text="Show", width=20, command=self.button_show_board_top_event)
             btn_show_board_top.grid(row=3, column=4, pady=5, padx=5,  sticky="")
-            btn_show_board_top.configure(state=tkinter.DISABLED)
+            # btn_show_board_top.configure(state=tkinter.DISABLED)
 
         # Board view BOT
         if True:
@@ -119,11 +119,11 @@ class HomeFrame(customtkinter.CTkFrame):
 
             btn_browse_board_bot = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_board_bot_event)
             btn_browse_board_bot.grid(row=4, column=3, pady=5, padx=5, sticky="e")
-            btn_browse_board_bot.configure(state=tkinter.DISABLED)
+            # btn_browse_board_bot.configure(state=tkinter.DISABLED)
 
             btn_show_board_bot = customtkinter.CTkButton(self, text="Show", width=20, command=self.button_show_board_bot_event)
             btn_show_board_bot.grid(row=4, column=4, pady=5, padx=5, sticky="")
-            btn_show_board_bot.configure(state=tkinter.DISABLED)
+            # btn_show_board_bot.configure(state=tkinter.DISABLED)
 
         #
         sep_h = tkinter.ttk.Separator(self, orient='horizontal')
