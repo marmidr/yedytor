@@ -5,7 +5,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 ## 1.5.0 - 2025-02-22
 
 * Added
-  * PnP editor: filter
+  * PnP editor: component filter (searches in the summary and in the descr.)
 * Changed
   * Scrollbars made wider
   * PnP editor: [<] [>] buttons moved to the right

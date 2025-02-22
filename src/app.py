@@ -608,8 +608,13 @@ class PnPEditor(customtkinter.CTkFrame):
             col=0
 
             #
+            self.entry_filter_var = customtkinter.StringVar(value="")
+            self.entry_filter_var.trace_add("write", lambda n, i, m, sv=self.entry_filter_var: self.var_filter_event(sv))
             self.entry_filter = ui_helpers.EntryWithPPM(self.frame_toolbar, placeholder_text="< filter >")
             self.entry_filter.grid(row=0, column=col, padx=(10, 5), pady=2, sticky="we")
+            self.entry_filter.configure(textvariable=self.entry_filter_var)
+            self.entry_filter.bind("<Return>", self.entry_filter_return)
+            self.entry_filter.put_placeholder()
             col += 1
 
             #
@@ -710,6 +715,31 @@ class PnPEditor(customtkinter.CTkFrame):
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
 
+    def var_filter_event(self, sv: customtkinter.StringVar):
+        filter = sv.get().strip()
+        if filter == self.entry_filter.placeholder_text:
+            return
+
+        # the only case that causes automatic reload
+        if not filter and self.editor_data.last_filter_str:
+            logger.debug("Component filter: <none>")
+            self.editor_data.set_items_filter_str("")
+            filter_idx = self.radio_filter_var.get()
+            self.editor_data.set_items_filter_type(filter_idx)
+            self.editor_load_data()
+            logger.info(f"  Editor reloaded")
+            self.lbl_pageno.configure(text=self.format_pageno())
+            # self.entry_filter.put_placeholder()
+
+    def entry_filter_return(self, _event):
+        filter = self.entry_filter_var.get()
+        self.editor_data.set_items_filter_str(filter)
+        filter_idx = self.radio_filter_var.get()
+        self.editor_data.set_items_filter_type(filter_idx)
+        self.editor_load_data()
+        logger.info(f"  Editor reloaded")
+        self.lbl_pageno.configure(text=self.format_pageno())
+
     def format_pageno(self) -> str:
         pages_cnt = 1 + len(self.editor_data.items_filtered()) // self.editor_data.ITEMS_PER_PAGE
         pageno_str = f"{1 + self.editor_data.page_no} / {pages_cnt}"
@@ -731,7 +761,7 @@ class PnPEditor(customtkinter.CTkFrame):
     def radiobutton_event(self):
         filter_idx = self.radio_filter_var.get()
         logger.info(f"Selected component filter: {filter_idx}")
-        self.editor_data.set_items_filter(filter_idx)
+        self.editor_data.set_items_filter_type(filter_idx)
         self.editor_load_data()
         logger.info(f"  Editor reloaded")
         self.lbl_pageno.configure(text=self.format_pageno())
@@ -838,6 +868,9 @@ class PnPEditor(customtkinter.CTkFrame):
         self.btn_save.configure(state=tkinter.DISABLED)
         self.wip_items = wip_items
         self.radio_filter_var.set(0)
+        self.entry_filter_var.set("")
+        self.editor_data.set_items_filter_str("")
+        self.entry_filter.put_placeholder()
 
         if (not glob_proj.pnp_grid) or (glob_proj.pnp_grid.nrows == 0):
             logger.warning("PnP file not loaded")

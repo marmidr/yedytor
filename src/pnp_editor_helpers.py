@@ -4,6 +4,7 @@ import logger
 import multiprocessing
 import re
 import typing
+import fnmatch
 
 from components import ComponentsDB
 from project import Project
@@ -113,7 +114,9 @@ class PnPEditorData:
     def __init__(self):
         self.__pnp_items: list[PnPEditorItem] = []
         self.__pnp_items_filtered = self.__pnp_items
+        self.__filter_str = ""
         self.page_no = 0
+        self.last_filter_str = ""
 
     def set_items(self, items: list[PnPEditorItem]):
         self.__pnp_items = items
@@ -128,7 +131,11 @@ class PnPEditorData:
         """Filtered project items"""
         return self.__pnp_items_filtered
 
-    def set_items_filter(self, filter_idx: int):
+    def set_items_filter_str(self, filter_str: str):
+        self.__filter_str = filter_str.strip().lower()
+        self.last_filter_str = self.__filter_str
+
+    def set_items_filter_type(self, filter_idx: int):
         self.page_no = 0
 
         if filter_idx == 0:
@@ -145,6 +152,15 @@ class PnPEditorData:
             self.__pnp_items_filtered = [item for item in self.__pnp_items if item.marker.value == Marker.REMOVED]
         else:
             logger.warning("Invalid filter index")
+            return
+
+        if self.__filter_str:
+            needle = '*' + '*'.join(self.__filter_str.split(' ')) + '*'
+            items_fnmatch_filtered = []
+            for component in self.__pnp_items_filtered:
+                if fnmatch.fnmatch(f"{component.summary};{component.descr}", needle):
+                    items_fnmatch_filtered.append(component)
+            self.__pnp_items_filtered = items_fnmatch_filtered
 
     def item_absolute_index(self, pnp_item: PnPEditorItem) -> typing.Union[int, None]:
         try:
