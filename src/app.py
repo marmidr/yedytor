@@ -30,7 +30,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.5.0"
+APP_NAME = "Yedytor v1.6.0"
 APP_DATE = "(c) 2023-2025"
 
 SCROLLBAR_SZ = 20
@@ -1079,6 +1079,9 @@ class PnPEditor(customtkinter.CTkFrame):
         #
         menu.add_command(label="Set default: <Footprint>_<Comment>",
                         command=lambda: self.cbx_components_set_default(menu.wgt))
+        menu.add_command(label="Set as NA",
+                        command=lambda: self.cbx_components_set_na(menu.wgt))
+        menu.add_separator()
         #
         menu.add_command(label="Apply selection to all matching components",
                         command=lambda: self.cbx_components_apply_selected_to_all(menu.wgt, False))
@@ -1114,6 +1117,26 @@ class PnPEditor(customtkinter.CTkFrame):
             # add marker that this is a deleted entry
             pnp_item.marker.value = Marker.REMOVED
             pnp_item.editor_selection = ""
+            pnp_item.editor_cbx_items = []
+
+            self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
+            # clear selection
+            self.cbx_component_list[wgt_idx].set(pnp_item.editor_selection)
+            self.cbx_component_list[wgt_idx].configure(values=pnp_item.editor_cbx_items)
+            self.update_selected_status()
+            self.btn_save.configure(state=tkinter.NORMAL)
+
+    def cbx_components_set_na(self, cbx):
+        cbx.focus_force()
+        wgt_idx = self.cbx_component_list.index(cbx)
+        selected_component: str = self.entry_summary_list[wgt_idx].get()
+        # remove double spaces
+        selected_component = " ".join(selected_component.split())
+
+        if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
+            # add marker that this is a deleted entry
+            pnp_item.marker.value = Marker.MAN_SEL
+            pnp_item.editor_selection = "NA"
             pnp_item.editor_cbx_items = []
 
             self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)

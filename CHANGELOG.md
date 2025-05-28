@@ -2,6 +2,11 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.6.0 - 2025-05-28
+
+* Added
+  * PnP editor: menu item "Set as NA"
+
 ## 1.5.0 - 2025-02-22
 
 * Added
