@@ -71,6 +71,41 @@ class Marker:
     def is_set(self) -> bool:
         return self.__is_set
 
+class RefItem:
+    def __init__(self):
+        self.footprint = ""
+        self.comment = ""
+        self.descr = ""
+        self.selection = ""
+
+class RefItems:
+    def __init__(self):
+        self.__items : list[RefItem] = []
+        # this map will help faster matching footprint+comment -> component
+        self.__footprints : dict[str, set[RefItem]] = {}
+
+    def append(self, item : RefItem):
+        self.__items.append(item)
+
+    def count(self) -> int:
+        return len(self.__items)
+
+    def prepare(self):
+        self.__footprints = {}
+        #  create map of footprint : {items}
+        for item in self.__items:
+            if entry := self.__footprints.get(item.footprint):
+                entry.add(item)
+            else:
+                self.__footprints[item.footprint] = {item}
+        # logger.debug(f"  __footprints.len = {len(self.__footprints)}")
+
+    def find(self, footprint: str, comment: str) -> str:
+        if entry := self.__footprints.get(footprint):
+            for item in entry:
+                if item.comment == comment:
+                    return item.selection
+        return None
 
 # -----------------------------------------------------------------------------
 
@@ -319,7 +354,8 @@ class ItemsIterator:
 
 # -----------------------------------------------------------------------------
 
-def prepare_editor_data(components: ComponentsDB, project: Project, wip_items: list[dict] = None) -> PnPEditorData:
+def prepare_editor_data(components: ComponentsDB, project: Project, wip_items: list[dict] = None,
+                        reference: RefItems = None) -> PnPEditorData:
     # works well with `wip_items`, hangs the app for `project`:
     USE_MULTIPROCESS = False
 
@@ -333,7 +369,8 @@ def prepare_editor_data(components: ComponentsDB, project: Project, wip_items: l
         # processes=8 -> 9s
         # https://stackoverflow.com/questions/40283772/python-3-why-does-only-functions-and-partials-work-in-multiprocessing-apply-asy
         cache = dict()
-        process_fn = functools.partial(__process_pnpitem, components=components, names_visible=names_visible, cache=cache)
+        process_fn = functools.partial(__process_pnpitem,
+                                       components=components, names_visible=names_visible, cache=cache, reference=reference)
 
         # https://docs.python.org/3/library/multiprocessing.html#module-multiprocessing.pool
         with multiprocessing.Pool(processes=4) as pool:
@@ -347,13 +384,14 @@ def prepare_editor_data(components: ComponentsDB, project: Project, wip_items: l
         # single thread: 24s
         cache = dict()
         for pnpitem in items_iterator:
-            __process_pnpitem(pnpitem, components, names_visible, cache)
+            __process_pnpitem(pnpitem, components, names_visible, cache, reference)
             out.items_filtered().append(pnpitem)
 
     return out
 
 
-def __process_pnpitem(pnpitem: PnPEditorItem, components: ComponentsDB, names_visible: list[str], cache: dict) -> PnPEditorItem:
+def __process_pnpitem(pnpitem: PnPEditorItem, components: ComponentsDB, names_visible: list[str],
+                      cache: dict, reference: RefItems) -> PnPEditorItem:
     # cache the component matching results:
     USE_CACHE = True
 
@@ -370,10 +408,10 @@ def __process_pnpitem(pnpitem: PnPEditorItem, components: ComponentsDB, names_vi
     if pnpitem.marker.is_set():
         # iterating over WiP items
         if pnpitem.marker.value == Marker.FILTER:
-            __try_find_matching(components, names_visible, pnpitem)
+            __try_find_matching(components, names_visible, pnpitem, None)
     else:
         # iterating over Project items
-        __try_find_exact(components, names_visible, pnpitem)
+        __try_find_exact(components, names_visible, pnpitem, reference)
 
     if USE_CACHE:
         cached = {
@@ -386,7 +424,8 @@ def __process_pnpitem(pnpitem: PnPEditorItem, components: ComponentsDB, names_vi
     return pnpitem
 
 
-def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem: PnPEditorItem):
+def __try_find_exact(components: ComponentsDB, names_visible: list[str],
+                     pnpitem: PnPEditorItem, reference: RefItems = None):
     """
     Try to find exact component using footprint and comment
     """
@@ -394,6 +433,15 @@ def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem
     cmnt = pnpitem.comment
 
     try:
+        if reference:
+            if selection := reference.find(ftprint, cmnt):
+                # match found in the reference project
+                pnpitem.editor_selection = selection
+                pnpitem.editor_filter = pnpitem.editor_selection
+                pnpitem.marker.value = Marker.AUTO_SEL
+                logger.info(f"  Reference component found for {pnpitem.id}: {selection}")
+                return
+
         expected_component = ftprint + "_" + cmnt
         # raise exception if not found:
         names_visible.index(expected_component)
@@ -401,7 +449,7 @@ def __try_find_exact(components: ComponentsDB, names_visible: list[str], pnpitem
         pnpitem.editor_selection = expected_component
         pnpitem.editor_filter = pnpitem.editor_selection
         pnpitem.marker.value = Marker.AUTO_SEL
-        logger.info(f"  Matching component found: {expected_component}")
+        logger.info(f"  Matching component found for {pnpitem.id}: {expected_component}")
     except Exception:
         __try_find_matching(components, names_visible, pnpitem)
 
@@ -531,3 +579,28 @@ def wip_load(wip_path: str) -> tuple[bool, str, dict]:
         return (True, "", wip)
 
 # -----------------------------------------------------------------------------
+
+def ref_load(ref_path: str) -> tuple[bool, str, RefItems]:
+    logger.info("Load a WiP as a reference data:")
+    wip = wip_load(ref_path)
+    if not wip[0]:
+        return wip
+
+    components = wip[2]['components']
+    logger.info("  Create a reference list...")
+    # reference DB contains only selected components:
+    wip_items = [item for item in components if item['marker'] in (Marker.AUTO_SEL, Marker.MAN_SEL)]
+    # build a convenient list of structures
+    ref_items = RefItems()
+
+    for wip_item in wip_items:
+        ref_item = RefItem()
+        ref_item.footprint = wip_item['footprint']
+        ref_item.comment = wip_item['comment']
+        ref_item.descr = wip_item['descr']
+        ref_item.selection = wip_item['selection']
+        ref_items.append(ref_item)
+
+    ref_items.prepare()
+    logger.info(f"  Done ({ref_items.count()} selected components found)")
+    return (True, "", ref_items)

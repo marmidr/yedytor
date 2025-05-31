@@ -2,6 +2,14 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.7.0 - 2025-06-07
+
+* Added
+  * Start page: open a reference project (*wip.json)
+    User can use the previous project WiP file to have make the same components selection automatically
+* Changed
+  * Start page: hidden TOP/BOT preview section
+
 ## 1.6.0 - 2025-05-28
 
 * Added

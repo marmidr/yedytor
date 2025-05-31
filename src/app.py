@@ -30,7 +30,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.6.0"
+APP_NAME = "Yedytor v1.7.0"
 APP_DATE = "(c) 2023-2025"
 
 SCROLLBAR_SZ = 20
@@ -91,6 +91,22 @@ class HomeFrame(customtkinter.CTkFrame):
             self.entry_pnp2_path.grid(row=2, column=1, pady=5, padx=5, columnspan=3, sticky="we")
             self.entry_pnp2_path.configure(state=tkinter.DISABLED)
 
+        # Reference project (previous project, used as a component-selector hint source)
+        if True:
+            #
+            lbl_ref_prj = customtkinter.CTkLabel(self, text="Reference project (wip.json):")
+            lbl_ref_prj.grid(row=3, column=0, pady=5, padx=5, sticky="w")
+
+            #
+            self.var_entry_refprj = customtkinter.StringVar(value="")
+            self.entry_refprj_path = customtkinter.CTkEntry(self, textvariable=self.var_entry_refprj)
+            self.entry_refprj_path.grid(row=3, column=1, pady=5, padx=5, columnspan=3, sticky="we")
+            self.entry_refprj_path.configure(state=tkinter.DISABLED)
+
+            self.btn_browse_refprj = customtkinter.CTkButton(self, width=20, text="Browse...",
+                                                            command=self.button_browse_refprj_event)
+            self.btn_browse_refprj.grid(row=3, column=4, pady=5, padx=5, sticky="e")
+
         # Board view TOP
         if False:
             lbl_board_top_path = customtkinter.CTkLabel(self, text="Board view TOP (optional):")
@@ -126,6 +142,26 @@ class HomeFrame(customtkinter.CTkFrame):
             btn_show_board_bot = customtkinter.CTkButton(self, text="Show", width=20, command=self.button_show_board_bot_event)
             btn_show_board_bot.grid(row=4, column=4, pady=5, padx=5, sticky="")
             btn_show_board_bot.configure(state=tkinter.DISABLED)
+
+        #
+        sep_h = tkinter.ttk.Separator(self, orient='horizontal')
+        sep_h.grid(row=5, column=0, pady=5, padx=5, columnspan=5, sticky="we")
+
+        # WiP
+        if True:
+            self.frm_wip = customtkinter.CTkFrame(self)
+            self.frm_wip.grid(row=6, column=0, pady=5, padx=5, columnspan=5, sticky="we")
+
+            self.frm_wip.lbl_msg = customtkinter.CTkLabel(self.frm_wip, text="Restore previous Work-In-Progress")
+            self.frm_wip.lbl_msg.grid(row=0, column=0, pady=5, padx=5, columnspan=2, sticky="w")
+
+            self.frm_wip.btn_load = customtkinter.CTkButton(self.frm_wip, text="Browse ...",
+                                                        command=self.button_browse_wip_event)
+            self.frm_wip.btn_load.grid(row=0, column=2, pady=5, padx=5, sticky="e")
+
+        #
+        sep_h = tkinter.ttk.Separator(self, orient='horizontal')
+        sep_h.grid(row=7, column=0, pady=5, padx=5, columnspan=5, sticky="we")
 
         #
         sep_h = tkinter.ttk.Separator(self, orient='horizontal')
@@ -205,6 +241,32 @@ class HomeFrame(customtkinter.CTkFrame):
         logger.debug("Browse for PnP")
         self.load_pnp()
 
+    def button_browse_refprj_event(self):
+        refprj_path = tkinter.filedialog.askopenfile(
+            mode="r",
+            title="Open a reference - last project *wip.json file",
+            initialdir=None,
+            filetypes = [
+                ("JSON", "*_wip.json"),
+                ("All files", ".*")
+            ],
+        )
+
+        if refprj_path:
+            logger.info(f"Reference WiP: {refprj_path.name}")
+
+            ref = pnp_editor_helpers.ref_load(refprj_path.name)
+            if not ref[0]:
+                MessageBox(app=self.app, dialog_type="o",
+                            message=ref[1],
+                            callback=lambda btn: btn)
+                return
+
+            self.var_entry_refprj.set(refprj_path.name)
+            glob_proj.refproj_path = refprj_path.name
+            # store for later
+            self.app.pnp_editor.ref_prj = ref[2]
+
     def button_browse_board_top_event(self):
         if False:
             logger.debug("Browse for TOP jpeg")
@@ -228,15 +290,16 @@ class HomeFrame(customtkinter.CTkFrame):
                 Config.instance().save()
 
     def _filedialog_image(self, layer : str) -> str:
-        # https://docs.python.org/3/library/dialog.html
-        image_path = tkinter.filedialog.askopenfilename(
-            title=f"Select boart {layer} view",
-            initialdir=None,
-            filetypes = [
-                ("Image files", "*.jpg;*.jpeg;*.png;*.bmp")
-            ],
-        )
-        return image_path
+        if False:
+            # https://docs.python.org/3/library/dialog.html
+            image_path = tkinter.filedialog.askopenfilename(
+                title=f"Select boart {layer} view",
+                initialdir=None,
+                filetypes = [
+                    ("Image files", "*.jpg;*.jpeg;*.png;*.bmp")
+                ],
+            )
+            return image_path
 
     def button_show_board_top_event(self):
         if False:
@@ -594,6 +657,7 @@ class PnPEditor(customtkinter.CTkFrame):
         super().__init__(master, **kwargs)
 
         self.editor_data = pnp_editor_helpers.PnPEditorData()
+        self.ref_prj = None
 
         # top toolbar
         if True:
@@ -892,7 +956,7 @@ class PnPEditor(customtkinter.CTkFrame):
             logger.info(f"Preparing editor data...")
             started_at = time.monotonic()
             try:
-                self.editor_data = pnp_editor_helpers.prepare_editor_data(glob_components, glob_proj, self.wip_items)
+                self.editor_data = pnp_editor_helpers.prepare_editor_data(glob_components, glob_proj, self.wip_items, self.ref_prj)
             except Exception as e:
                 logger.error(f"Failed to prepare data: {e}")
                 return
