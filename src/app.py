@@ -69,33 +69,35 @@ class HomeFrame(customtkinter.CTkFrame):
         self.grid_columnconfigure(1, weight=1)
         # self.grid_rowconfigure(0, weight=1)
 
-        lbl_pnp_path = customtkinter.CTkLabel(self, text="PnP path:")
-        lbl_pnp_path.grid(row=0, column=0, pady=5, padx=5, sticky="w")
+        # Project PnP file(s)
+        if True:
+            lbl_pnp_path = customtkinter.CTkLabel(self, text="PnP path:")
+            lbl_pnp_path.grid(row=0, column=0, pady=5, padx=5, sticky="w")
 
-        self.var_pnp = customtkinter.StringVar(value="")
-        self.entry_pnp_path = customtkinter.CTkEntry(self, textvariable=self.var_pnp)
-        self.entry_pnp_path.grid(row=0, column=1, pady=5, padx=5, columnspan=3, sticky="we")
-        self.entry_pnp_path.configure(state=tkinter.DISABLED)
+            self.entry_pnp_path_var = customtkinter.StringVar(value="")
+            self.entry_pnp_path = customtkinter.CTkEntry(self, textvariable=self.entry_pnp_path_var)
+            self.entry_pnp_path.grid(row=0, column=1, pady=5, padx=5, columnspan=3, sticky="we")
+            self.entry_pnp_path.configure(state=tkinter.DISABLED)
 
-        btn_browse_pnp = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_pnp_event)
-        btn_browse_pnp.grid(row=0, column=4, pady=5, padx=5, sticky="e")
+            btn_browse_pnp = customtkinter.CTkButton(self, text="Browse...", width=20, command=self.button_browse_pnp_event)
+            btn_browse_pnp.grid(row=0, column=4, pady=5, padx=5, sticky="e")
 
-        #
-        lbl_pnp2_path = customtkinter.CTkLabel(self, text="PnP2 (optional):")
-        lbl_pnp2_path.grid(row=2, column=0, pady=5, padx=5, sticky="w")
+            #
+            lbl_pnp2_path = customtkinter.CTkLabel(self, text="PnP2 (optional):")
+            lbl_pnp2_path.grid(row=2, column=0, pady=5, padx=5, sticky="w")
 
-        self.var_pnp2 = customtkinter.StringVar(value="")
-        self.entry_pnp2_path = customtkinter.CTkEntry(self, textvariable=self.var_pnp2)
-        self.entry_pnp2_path.grid(row=2, column=1, pady=5, padx=5, columnspan=3, sticky="we")
-        self.entry_pnp2_path.configure(state=tkinter.DISABLED)
+            self.entry_pnp2_path_var = customtkinter.StringVar(value="")
+            self.entry_pnp2_path = customtkinter.CTkEntry(self, textvariable=self.entry_pnp2_path_var)
+            self.entry_pnp2_path.grid(row=2, column=1, pady=5, padx=5, columnspan=3, sticky="we")
+            self.entry_pnp2_path.configure(state=tkinter.DISABLED)
 
         # Board view TOP
-        if True:
+        if False:
             lbl_board_top_path = customtkinter.CTkLabel(self, text="Board view TOP (optional):")
             lbl_board_top_path.grid(row=3, column=0, pady=5, padx=5, sticky="w")
 
-            self.var_board_top_path = customtkinter.StringVar(value="")
-            self.entry_board_top_path = customtkinter.CTkEntry(self, textvariable=self.var_board_top_path)
+            self.entry_board_top_path_var = customtkinter.StringVar(value="")
+            self.entry_board_top_path = customtkinter.CTkEntry(self, textvariable=self.entry_board_top_path_var)
             self.entry_board_top_path.grid(row=3, column=1, pady=5, padx=5, columnspan=2, sticky="we")
             self.entry_board_top_path.configure(state=tkinter.DISABLED)
 
@@ -108,12 +110,12 @@ class HomeFrame(customtkinter.CTkFrame):
             btn_show_board_top.configure(state=tkinter.DISABLED)
 
         # Board view BOT
-        if True:
+        if False:
             lbl_board_bottom_path = customtkinter.CTkLabel(self, text="Board view BOT (optional):")
             lbl_board_bottom_path.grid(row=4, column=0, pady=5, padx=5, sticky="w")
 
-            self.var_board_bot_path = customtkinter.StringVar(value="")
-            self.entry_board_bot_path = customtkinter.CTkEntry(self, textvariable=self.var_board_bot_path)
+            self.entry_board_bot_path_var = customtkinter.StringVar(value="")
+            self.entry_board_bot_path = customtkinter.CTkEntry(self, textvariable=self.entry_board_bot_path_var)
             self.entry_board_bot_path.grid(row=4, column=1, pady=5, padx=5, columnspan=2, sticky="we")
             self.entry_board_bot_path.configure(state=tkinter.DISABLED)
 
@@ -127,85 +129,72 @@ class HomeFrame(customtkinter.CTkFrame):
 
         #
         sep_h = tkinter.ttk.Separator(self, orient='horizontal')
-        sep_h.grid(row=5, column=0, pady=5, padx=5, columnspan=5, sticky="we")
+        sep_h.grid(row=9, column=0, pady=5, padx=5, columnspan=5, sticky="we")
 
-        #
-        self.wip = customtkinter.CTkFrame(self)
-        self.wip.grid(row=6, column=0, pady=5, padx=5, columnspan=5, sticky="we")
+        # Configuration panel
+        if True:
+            self.frame_config_pnpedit = customtkinter.CTkFrame(self)
+            self.frame_config_pnpedit.grid(row=10, column=0, pady=5, padx=5, columnspan=1, sticky="we")
+            self.frame_config_pnpedit.lbl_font = customtkinter.CTkLabel(self.frame_config_pnpedit, text="PnP Editor Font:")
+            self.frame_config_pnpedit.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
 
-        self.wip.lbl_msg = customtkinter.CTkLabel(self.wip, text="Restore previous Work In Progress")
-        self.wip.lbl_msg.grid(row=0, column=0, pady=5, padx=5, columnspan=2, sticky="w")
+            self.frame_config_pnpedit.rb_font_var = tkinter.IntVar(value=Config.instance().editor_font_idx)
+            self.frame_config_pnpedit.rb_font0 = customtkinter.CTkRadioButton(self.frame_config_pnpedit, text="12px",
+                                                                    variable=self.frame_config_pnpedit.rb_font_var,
+                                                                    value=0, command=self.radiobutton_event)
+            self.frame_config_pnpedit.rb_font0.grid(row=1, column=0, pady=5, padx=5, sticky="w")
+            self.frame_config_pnpedit.rb_font1 = customtkinter.CTkRadioButton(self.frame_config_pnpedit, text="16px",
+                                                                    variable=self.frame_config_pnpedit.rb_font_var,
+                                                                    value=1, command=self.radiobutton_event)
+            self.frame_config_pnpedit.rb_font1.grid(row=2, column=0, pady=5, padx=5, sticky="w")
 
-        self.wip.btn_load = customtkinter.CTkButton(self.wip, text="Browse ...",
-                                                    command=self.button_browse_wip_event)
-        self.wip.btn_load.grid(row=0, column=2, pady=5, padx=5, sticky="e")
+            #
+            self.frame_config_pnpedit.lbl_summary_cnt = customtkinter.CTkLabel(self.frame_config_pnpedit, text="Summary report:")
+            self.frame_config_pnpedit.lbl_summary_cnt.grid(row=3, column=0, pady=5, padx=5, sticky="w")
 
-        #
-        sep_h = tkinter.ttk.Separator(self, orient='horizontal')
-        sep_h.grid(row=7, column=0, pady=5, padx=5, columnspan=5, sticky="we")
+            self.frame_config_pnpedit.chx_summary_com_count_var = customtkinter.BooleanVar(value=Config.instance().summary_comp_count)
+            self.frame_config_pnpedit.chx_summary_com_count = customtkinter.CTkCheckBox(self.frame_config_pnpedit,
+                                                            text="Number of components",
+                                                            command=self.checkbox_summary_com_count_event,
+                                                            variable=self.frame_config_pnpedit.chx_summary_com_count_var,
+                                                            checkbox_width=18, checkbox_height=18)
+            self.frame_config_pnpedit.chx_summary_com_count.grid(row=4, column=0, pady=5, padx=5, sticky="w")
 
-        #
-        self.config_pnpedit = customtkinter.CTkFrame(self)
-        self.config_pnpedit.grid(row=8, column=0, pady=5, padx=5, columnspan=1, sticky="we")
-        self.config_pnpedit.lbl_font = customtkinter.CTkLabel(self.config_pnpedit, text="PnP Editor Font:")
-        self.config_pnpedit.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
+        # Logs panel
+        if True:
+            self.frame_config_logs = customtkinter.CTkFrame(self)
+            self.frame_config_logs.grid(row=10, column=1, pady=5, padx=5, columnspan=1, sticky="wns")
 
-        self.config_pnpedit.radio_var = tkinter.IntVar(value=Config.instance().editor_font_idx)
-        self.config_pnpedit.rb_font0 = customtkinter.CTkRadioButton(self.config_pnpedit, text="12px",
-                                                                variable=self.config_pnpedit.radio_var,
-                                                                value=0, command=self.radiobutton_event)
-        self.config_pnpedit.rb_font0.grid(row=1, column=0, pady=5, padx=5, sticky="w")
-        self.config_pnpedit.rb_font1 = customtkinter.CTkRadioButton(self.config_pnpedit, text="16px",
-                                                                variable=self.config_pnpedit.radio_var,
-                                                                value=1, command=self.radiobutton_event)
-        self.config_pnpedit.rb_font1.grid(row=2, column=0, pady=5, padx=5, sticky="w")
+            self.frame_config_logs.lbl_font = customtkinter.CTkLabel(self.frame_config_logs, text="Console:")
+            self.frame_config_logs.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
 
-        #
-        self.config_pnpedit.lbl_summary_cnt = customtkinter.CTkLabel(self.config_pnpedit, text="Summary report:")
-        self.config_pnpedit.lbl_summary_cnt.grid(row=3, column=0, pady=5, padx=5, sticky="w")
-
-        self.config_pnpedit.summary_com_count_var = customtkinter.BooleanVar(value=Config.instance().summary_comp_count)
-        self.config_pnpedit.chx_summary_com_count = customtkinter.CTkCheckBox(self.config_pnpedit,
-                                                        text="Number of components",
-                                                        command=self.checkbox_summary_com_count_event,
-                                                        variable=self.config_pnpedit.summary_com_count_var,
-                                                        checkbox_width=18, checkbox_height=18)
-        self.config_pnpedit.chx_summary_com_count.grid(row=4, column=0, pady=5, padx=5, sticky="w")
-
-        #
-        self.config_logs = customtkinter.CTkFrame(self)
-        self.config_logs.grid(row=8, column=1, pady=5, padx=5, columnspan=1, sticky="wns")
-
-        self.config_logs.lbl_font = customtkinter.CTkLabel(self.config_logs, text="Console:")
-        self.config_logs.lbl_font.grid(row=0, column=0, pady=5, padx=5, sticky="w")
-
-        self.config_logs.colorlogs_var = customtkinter.BooleanVar(value=Config.instance().color_logs)
-        self.config_logs.chx_color_logs = customtkinter.CTkCheckBox(self.config_logs,
-                                                        text="Colorful logs",
-                                                        command=self.checkbox_color_logs_event,
-                                                        variable=self.config_logs.colorlogs_var,
-                                                        checkbox_width=18, checkbox_height=18)
-        self.config_logs.chx_color_logs.grid(row=1, column=0, pady=5, padx=5, sticky="w")
+            self.frame_config_logs.chx_color_logs_var = customtkinter.BooleanVar(value=Config.instance().color_logs)
+            self.frame_config_logs.chx_color_logs = customtkinter.CTkCheckBox(self.frame_config_logs,
+                                                            text="Colorful logs",
+                                                            command=self.checkbox_color_logs_event,
+                                                            variable=self.frame_config_logs.chx_color_logs_var,
+                                                            checkbox_width=18, checkbox_height=18)
+            self.frame_config_logs.chx_color_logs.grid(row=1, column=0, pady=5, padx=5, sticky="w")
 
     def radiobutton_event(self):
-        Config.instance().editor_font_idx = self.config_pnpedit.radio_var.get()
+        Config.instance().editor_font_idx = self.frame_config_pnpedit.rb_font_var.get()
         # logger.debug(f"RB event: {self.config_font.editor_font_idx}")
         Config.instance().save()
 
     def checkbox_color_logs_event(self):
-        Config.instance().color_logs = self.config_logs.colorlogs_var.get()
+        Config.instance().color_logs = self.frame_config_logs.chx_color_logs_var.get()
         Config.instance().save()
 
     def checkbox_summary_com_count_event(self):
-        Config.instance().summary_comp_count = self.config_pnpedit.summary_com_count_var.get()
+        Config.instance().summary_comp_count = self.frame_config_pnpedit.chx_summary_com_count_var.get()
         Config.instance().save()
 
     def clear_pnp_previews(self):
         loading_bkp = glob_proj.loading
         try:
             glob_proj.loading = True
-            self.var_pnp.set("")
-            self.var_pnp2.set("")
+            self.entry_pnp_path_var.set("")
+            self.entry_pnp2_path_var.set("")
             self.pnp_view.clear_preview()
             self.pnp_config.entry_first_row_var.set("1")
             self.pnp_config.btn_columns.configure(state=tkinter.DISABLED)
@@ -217,24 +206,26 @@ class HomeFrame(customtkinter.CTkFrame):
         self.load_pnp()
 
     def button_browse_board_top_event(self):
-        logger.debug("Browse for TOP jpeg")
-        image_path = self._filedialog_image("TOP")
-        if os.path.isfile(image_path):
-            logger.info(f"Selected image: {image_path}")
-            self.var_board_top_path.set(image_path)
-            glob_proj.board_top_path = image_path
-            Config.instance().recent_board_top_path = image_path
-            Config.instance().save()
+        if False:
+            logger.debug("Browse for TOP jpeg")
+            image_path = self._filedialog_image("TOP")
+            if os.path.isfile(image_path):
+                logger.info(f"Selected image: {image_path}")
+                self.entry_board_top_path_var.set(image_path)
+                glob_proj.board_top_path = image_path
+                Config.instance().recent_board_top_path = image_path
+                Config.instance().save()
 
     def button_browse_board_bot_event(self):
-        logger.debug("Browse for BOT jpeg")
-        image_path = self._filedialog_image("BOTTOM")
-        if os.path.isfile(image_path):
-            logger.info(f"Selected image: {image_path}")
-            self.var_board_bot_path.set(image_path)
-            glob_proj.board_bot_path = image_path
-            Config.instance().recent_board_bot_path = image_path
-            Config.instance().save()
+        if False:
+            logger.debug("Browse for BOT jpeg")
+            image_path = self._filedialog_image("BOTTOM")
+            if os.path.isfile(image_path):
+                logger.info(f"Selected image: {image_path}")
+                self.entry_board_bot_path_var.set(image_path)
+                glob_proj.board_bot_path = image_path
+                Config.instance().recent_board_bot_path = image_path
+                Config.instance().save()
 
     def _filedialog_image(self, layer : str) -> str:
         # https://docs.python.org/3/library/dialog.html
@@ -248,12 +239,14 @@ class HomeFrame(customtkinter.CTkFrame):
         return image_path
 
     def button_show_board_top_event(self):
-        logger.debug("Show TOP jpeg")
-        board_view.BoardView(app=self.app, image_path=glob_proj.board_top_path)
+        if False:
+            logger.debug("Show TOP jpeg")
+            board_view.BoardView(app=self.app, image_path=glob_proj.board_top_path)
 
     def button_show_board_bot_event(self):
-        logger.debug("Show BOTTOM jpeg")
-        board_view.BoardView(app=self.app, image_path=glob_proj.board_bot_path)
+        if False:
+            logger.debug("Show BOTTOM jpeg")
+            board_view.BoardView(app=self.app, image_path=glob_proj.board_bot_path)
 
     def load_pnp(self):
         self.clear_pnp_previews()
@@ -302,7 +295,7 @@ class HomeFrame(customtkinter.CTkFrame):
             self.clear_pnp_previews()
             logger.info(f"Selected WiP: {wip_path.name}")
 
-            wip = pnp_editor_helpers.wip_load(wip_path.name, )
+            wip = pnp_editor_helpers.wip_load(wip_path.name)
             if not wip[0]:
                 MessageBox(app=self.app, dialog_type="o",
                             message=wip[1],
@@ -351,8 +344,9 @@ class HomeFrame(customtkinter.CTkFrame):
                 glob_proj.loading = loading_backup
                 glob_proj.pnp_path = pnp_paths[0]
                 glob_proj.pnp2_path = pnp_paths[1] if len(pnp_paths) > 1 else ""
-                self.var_pnp.set(glob_proj.pnp_path)
-                self.var_pnp2.set(glob_proj.pnp2_path)
+                #
+                self.entry_pnp_path_var.set(glob_proj.pnp_path)
+                self.entry_pnp2_path_var.set(glob_proj.pnp2_path)
                 self.setup_pnp_config_pane()
                 # reset the CSV filename postfix
                 self.pnp_editor.entry_csv_postfix.set_text("")
@@ -369,10 +363,11 @@ class HomeFrame(customtkinter.CTkFrame):
                 logger.error(f"Cannot access the file '{pnp_paths[0]}'")
 
     def restore_board_preview_paths(self, top_path: str, bot_path: str):
-        glob_proj.board_top_path = top_path
-        glob_proj.board_bot_path = bot_path
-        self.var_board_top_path.set(top_path)
-        self.var_board_bot_path.set(bot_path)
+        if False:
+            glob_proj.board_top_path = top_path
+            glob_proj.board_bot_path = bot_path
+            self.entry_board_top_path_var.set(top_path)
+            self.entry_board_bot_path_var.set(bot_path)
 
     def setup_pnp_config_pane(self):
         self.activate_csv_separator()
@@ -1345,16 +1340,17 @@ class ComponentsInfo(customtkinter.CTkFrame):
         self.lblhtml_dbsummary = HTMLLabel(self, wrap='none', height=5)
         self.lblhtml_dbsummary.grid(row=0, column=0, padx=5, pady=5, sticky="wens")
 
-        frame_buttons = customtkinter.CTkFrame(self)
-        frame_buttons.grid(row=0, column=1, sticky="")
+        if True:
+            frame_buttons = customtkinter.CTkFrame(self)
+            frame_buttons.grid(row=0, column=1, sticky="")
 
-        btn_tou_scanner = customtkinter.CTkButton(frame_buttons, text="Tou scanner...",
-                                                  command=self.btn_tou_scanner_event)
-        btn_tou_scanner.grid(row=0, column=0, pady=5, padx=5, sticky="")
+            btn_tou_scanner = customtkinter.CTkButton(frame_buttons, text="Tou scanner...",
+                                                    command=self.btn_tou_scanner_event)
+            btn_tou_scanner.grid(row=0, column=0, pady=5, padx=5, sticky="")
 
-        btn_lib_scanner = customtkinter.CTkButton(frame_buttons, text="DevLib scanner...",
-                                                  command=self.btn_devlib_scanner_event)
-        btn_lib_scanner.grid(row=1, column=0, pady=5, padx=5, sticky="")
+            btn_lib_scanner = customtkinter.CTkButton(frame_buttons, text="DevLib scanner...",
+                                                    command=self.btn_devlib_scanner_event)
+            btn_lib_scanner.grid(row=1, column=0, pady=5, padx=5, sticky="")
 
         self.grid_columnconfigure(0, weight=1)
         # self.grid_rowconfigure(0, weight=1)
@@ -1418,27 +1414,29 @@ class ComponentsEditor(customtkinter.CTkFrame):
 
         self.create_components_view()
 
-        self.frame_buttons = customtkinter.CTkFrame(self)
-        self.frame_buttons.grid(row=2, column=0, pady=5, padx=5, sticky="we")
-        self.frame_buttons.grid_columnconfigure(3, weight=1)
+        # Top toolbar
+        if True:
+            self.frame_buttons = customtkinter.CTkFrame(self)
+            self.frame_buttons.grid(row=2, column=0, pady=5, padx=5, sticky="we")
+            self.frame_buttons.grid_columnconfigure(3, weight=1)
 
-        self.entry_filter_var = customtkinter.StringVar(value="")
-        self.entry_filter_var.trace_add("write", lambda n, i, m, sv=self.entry_filter_var: self.var_filter_event(sv))
-        self.entry_filter = ui_helpers.EntryWithPPM(self.frame_buttons, width=40, placeholder_text="Filter; use * ?")
-        self.entry_filter.grid(row=0, column=0, padx=5, pady=5, sticky="we")
-        # textvariable added later to avoid trace event while setting a placeholder text
-        self.entry_filter.configure(textvariable=self.entry_filter_var)
-        self.entry_filter.put_placeholder()
+            self.entry_filter_var = customtkinter.StringVar(value="")
+            self.entry_filter_var.trace_add("write", lambda n, i, m, sv=self.entry_filter_var: self.var_filter_event(sv))
+            self.entry_filter = ui_helpers.EntryWithPPM(self.frame_buttons, width=40, placeholder_text="Filter; use * ?")
+            self.entry_filter.grid(row=0, column=0, padx=5, pady=5, sticky="we")
+            # textvariable added later to avoid trace event while setting a placeholder text
+            self.entry_filter.configure(textvariable=self.entry_filter_var)
+            self.entry_filter.put_placeholder()
 
-        # change components page, view contains up to self.COMP_PER_PAGE items
-        self.btn_page_prev = customtkinter.CTkButton(self.frame_buttons, text="<", command=self.button_prev_event)
-        self.btn_page_prev.grid(row=0, column=1, pady=5, padx=5, sticky="w")
+            # change components page, view contains up to self.COMP_PER_PAGE items
+            self.btn_page_prev = customtkinter.CTkButton(self.frame_buttons, text="<", command=self.button_prev_event)
+            self.btn_page_prev.grid(row=0, column=1, pady=5, padx=5, sticky="w")
 
-        self.lbl_pageno = customtkinter.CTkLabel(self.frame_buttons, text=self.format_pageno())
-        self.lbl_pageno.grid(row=0, column=2, pady=5, padx=5, sticky="w")
+            self.lbl_pageno = customtkinter.CTkLabel(self.frame_buttons, text=self.format_pageno())
+            self.lbl_pageno.grid(row=0, column=2, pady=5, padx=5, sticky="w")
 
-        self.btn_page_next = customtkinter.CTkButton(self.frame_buttons, text=">", command=self.button_next_event)
-        self.btn_page_next.grid(row=0, column=3, pady=5, padx=5, sticky="w")
+            self.btn_page_next = customtkinter.CTkButton(self.frame_buttons, text=">", command=self.button_next_event)
+            self.btn_page_next.grid(row=0, column=3, pady=5, padx=5, sticky="w")
 
         #
         sep_v = tkinter.ttk.Separator(self.frame_buttons, orient='vertical')
@@ -1698,7 +1696,7 @@ class CtkApp(customtkinter.CTk):
 
         # load the last project
         self.home_frame.process_input_files([Config.instance().recent_pnp_path, Config.instance().recent_pnp2_path])
-        self.home_frame.restore_board_preview_paths(Config.instance().recent_board_top_path, Config.instance().recent_board_bot_path)
+        # self.home_frame.restore_board_preview_paths(Config.instance().recent_board_top_path, Config.instance().recent_board_bot_path)
 
         # UI ready
         logger.info('Application ready.')

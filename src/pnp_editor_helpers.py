@@ -520,6 +520,7 @@ def wip_save(wip_path: str, proj_serialized: dict, editor_data: PnPEditorData):
 
 
 def wip_load(wip_path: str) -> tuple[bool, str, dict]:
+    """Returns: [true on success, err description if fail, result if success]"""
     with open(wip_path, "r", encoding="utf-8") as f:
         try:
             wip = json.load(f)
