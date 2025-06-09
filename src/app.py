@@ -30,7 +30,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.7.0"
+APP_NAME = "Yedytor v1.7.1"
 APP_DATE = "(c) 2023-2025"
 
 SCROLLBAR_SZ = 20
@@ -98,8 +98,8 @@ class HomeFrame(customtkinter.CTkFrame):
             lbl_ref_prj.grid(row=3, column=0, pady=5, padx=5, sticky="w")
 
             #
-            self.var_entry_refprj = customtkinter.StringVar(value="")
-            self.entry_refprj_path = customtkinter.CTkEntry(self, textvariable=self.var_entry_refprj)
+            self.entry_refprj_path_var = customtkinter.StringVar(value="")
+            self.entry_refprj_path = customtkinter.CTkEntry(self, textvariable=self.entry_refprj_path_var)
             self.entry_refprj_path.grid(row=3, column=1, pady=5, padx=5, columnspan=3, sticky="we")
             self.entry_refprj_path.configure(state=tkinter.DISABLED)
 
@@ -252,20 +252,29 @@ class HomeFrame(customtkinter.CTkFrame):
             ],
         )
 
-        if refprj_path:
-            logger.info(f"Reference WiP: {refprj_path.name}")
+        if refprj_path and os.path.isfile(refprj_path.name):
+            Config.instance().recent_refprj_path = refprj_path.name
+            Config.instance().save()
+            self.process_refprj_file(refprj_path.name)
+        else:
+            logger.warning("Invalid file type selected")
 
-            ref = pnp_editor_helpers.ref_load(refprj_path.name)
-            if not ref[0]:
-                MessageBox(app=self.app, dialog_type="o",
-                            message=ref[1],
-                            callback=lambda btn: btn)
-                return
-
-            self.var_entry_refprj.set(refprj_path.name)
-            glob_proj.refproj_path = refprj_path.name
-            # store for later
-            self.app.pnp_editor.ref_prj = ref[2]
+    def process_refprj_file(self, refprj_path: str):
+        if refprj_path and os.path.isfile(refprj_path):
+            logger.info(f"Reference WiP: {refprj_path}")
+            try:
+                ref = pnp_editor_helpers.ref_load(refprj_path)
+                if not ref[0]:
+                    MessageBox(app=self.app, dialog_type="o",
+                                message=ref[1],
+                                callback=lambda btn: btn)
+                    return
+                self.entry_refprj_path_var.set(refprj_path)
+                glob_proj.refproj_path = refprj_path
+                # store for later
+                self.app.pnp_editor.ref_prj = ref[2]
+            except Exception as e:
+                logger.error(f"Cannot open file: {e}")
 
     def button_browse_board_top_event(self):
         if False:
@@ -340,7 +349,12 @@ class HomeFrame(customtkinter.CTkFrame):
                         callback=lambda btn: btn)
                 return
 
-        self.process_input_files(pnp_paths)
+        self.process_pnp_files(pnp_paths)
+        Config.instance().recent_pnp_path = pnp_paths
+        # after new prj loaded, reset the old ference WiP path
+        self.entry_refprj_path_var.set("")
+        Config.instance().recent_refprj_path = ""
+        Config.instance().save()
 
     def button_browse_wip_event(self):
         # https://docs.python.org/3/library/dialog.html
@@ -385,7 +399,7 @@ class HomeFrame(customtkinter.CTkFrame):
             finally:
                 glob_proj.loading = False
 
-    def process_input_files(self, pnp_paths: list[str]):
+    def process_pnp_files(self, pnp_paths: list[str]):
         try:
             glob_proj.loading = True
             self._process_input_files(pnp_paths)
@@ -418,9 +432,6 @@ class HomeFrame(customtkinter.CTkFrame):
 
             except Exception as e:
                 logger.error(f"Cannot open file: {e}")
-
-            Config.instance().recent_pnp_path = pnp_paths
-            Config.instance().save()
         else:
             if len(pnp_paths):
                 logger.error(f"Cannot access the file '{pnp_paths[0]}'")
@@ -1759,7 +1770,8 @@ class CtkApp(customtkinter.CTk):
         tab_preview.grid_rowconfigure(0, weight=1)
 
         # load the last project
-        self.home_frame.process_input_files([Config.instance().recent_pnp_path, Config.instance().recent_pnp2_path])
+        self.home_frame.process_pnp_files([Config.instance().recent_pnp_path, Config.instance().recent_pnp2_path])
+        self.home_frame.process_refprj_file(Config.instance().recent_refprj_path)
         # self.home_frame.restore_board_preview_paths(Config.instance().recent_board_top_path, Config.instance().recent_board_bot_path)
 
         # UI ready
