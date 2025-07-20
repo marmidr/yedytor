@@ -2,6 +2,11 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.8.0 - 2025-07-20
+
+* Added
+  * Able to load an old WiP.json file format as a reference project
+
 ## 1.7.0 - 2025-06-07
 
 * Added

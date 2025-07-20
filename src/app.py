@@ -30,7 +30,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.7.1"
+APP_NAME = "Yedytor v1.8.0"
 APP_DATE = "(c) 2023-2025"
 
 SCROLLBAR_SZ = 20

@@ -593,13 +593,26 @@ def ref_load(ref_path: str) -> tuple[bool, str, RefItems]:
     # build a convenient list of structures
     ref_items = RefItems()
 
-    for wip_item in wip_items:
-        ref_item = RefItem()
-        ref_item.footprint = wip_item['footprint']
-        ref_item.comment = wip_item['comment']
-        ref_item.descr = wip_item['descr']
-        ref_item.selection = wip_item['selection']
-        ref_items.append(ref_item)
+    try:
+        for wip_item in wip_items:
+            ref_item = RefItem()
+            if 'summary' in wip_item.keys():
+                # new format
+                ref_item.footprint = wip_item['footprint']
+                ref_item.comment = wip_item['comment']
+            else:
+                # old format
+                # "item": "R226 | 0805                    | 1K/0,125W ",
+                subitems = wip_item['item'].split('|')
+                ref_item.footprint = subitems[1].strip()
+                ref_item.comment = subitems[2].strip()
+
+            ref_item.descr = wip_item['descr']
+            ref_item.selection = wip_item['selection']
+            ref_items.append(ref_item)
+    except Exception as e:
+        logger.error(f"Error while parsing the JSON data: {e}")
+        return (False, f"Error while parsing the JSON data: {e}", None)
 
     ref_items.prepare()
     logger.info(f"  Done ({ref_items.count()} selected components found)")
