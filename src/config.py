@@ -6,15 +6,19 @@ import logger
 
 # global config
 class Config:
+    """
+    Singleton class for managing application configuration using configparser.
+    Handles reading, writing, and accessing configuration options for the application.
+    """
     CONFIG_FILE_NAME = "yedytor.ini"
-    __instance = None
+    _instance = None
 
     @staticmethod
     def instance():
         """Returns singleton object"""
-        if Config.__instance is None:
-            Config.__instance = Config()
-        return Config.__instance
+        if Config._instance is None:
+            Config._instance = Config()
+        return Config._instance
 
     def __init__(self):
         # https://docs.python.org/3/library/configparser.html

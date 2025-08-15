@@ -75,17 +75,17 @@ class ComponentsMRU:
         self.__db_folder = db_folder
         mru_file_path = os.path.join(self.__db_folder, "mru.csv")
         if os.path.isfile(mru_file_path):
-            self.__load_csv(mru_file_path)
+            self._load_csv(mru_file_path)
         else:
             # check if the old-name file exists
             lru_file_path = os.path.join(self.__db_folder, "lru.csv")
             if os.path.isfile(lru_file_path):
-                self.__load_csv(lru_file_path)
+                self._load_csv(lru_file_path)
 
     def save_changes(self):
         self.mru.sort()
         mru_file_path = os.path.join(self.__db_folder, "mru.csv")
-        self.__save_csv(mru_file_path)
+        self._save_csv(mru_file_path)
         # remove old file
         lrupath = os.path.join(self.__db_folder, "lru.csv")
         if os.path.isfile(lrupath):
@@ -150,7 +150,7 @@ class ComponentsMRU:
                 self.dirty = True
                 break
 
-    def __iterate_reader(self, csv_file):
+    def _iterate_reader(self, csv_file):
         reader = csv.reader(csv_file, delimiter="\t")
         self.mru.clear()
         for row in reader:
@@ -158,17 +158,17 @@ class ComponentsMRU:
             if len(row_cells) > 0:
                 self.mru.append(ComponentMRU(row_cells[0], row_cells[1:]))
 
-    def __load_csv(self, path: str):
+    def _load_csv(self, path: str):
         if os.path.exists(path):
             try:
                 f = open(path, "r", encoding="utf-8")
-                self.__iterate_reader(f)
+                self._iterate_reader(f)
             except Exception as e:
                 logger.error(f"  MRU: not an UTF-8 encoding")
         else:
                 logger.warning(f"  MRU file not found")
 
-    def __save_csv(self, path: str):
+    def _save_csv(self, path: str):
         with open(path, "w", encoding="utf-8") as f:
             for mru_item in self.mru:
                 # only items with not-empty MRU list
@@ -238,7 +238,7 @@ class ComponentsDB:
                 self.db_date = "?, ?"
 
             # read csv file
-            self.__load_csv(last_db_path)
+            self._load_csv(last_db_path)
             self.db_file_path = last_db_path
 
             # read the MRU
@@ -251,7 +251,7 @@ class ComponentsDB:
         else:
             logger.warning(f"No DB files found in {db_folder}")
 
-    def __iterate_reader(self, csv_file):
+    def _iterate_reader(self, csv_file):
         reader = csv.reader(csv_file, delimiter="\t")
         self.__components.clear()
         for row in reader:
@@ -262,15 +262,15 @@ class ComponentsDB:
                                           hidden=hidd,
                                           aliases=al))
 
-    def __load_csv(self, path: str):
+    def _load_csv(self, path: str):
         try:
             f = open(path, "r", encoding="utf-8")
-            self.__iterate_reader(f)
+            self._iterate_reader(f)
         except Exception as e:
             logger.warning(f"  Not an UTF-8 encoding - opening in legacy ANSI mode")
             # for backward-compatibility, to open older DB file not saved as UTF-8
             f = open(path, "r", encoding="ansi")
-            self.__iterate_reader(f)
+            self._iterate_reader(f)
 
     def add_new(self, new_components: list[Component]) -> int:
         """Iterate over new_items to add components not existing in current db"""
@@ -285,7 +285,7 @@ class ComponentsDB:
 
         return added
 
-    def __save_csv(self, db_file_path: str):
+    def _save_csv(self, db_file_path: str):
         with open(db_file_path, "w", encoding="utf-8") as f:
             for component in self.__components:
                 hidden="x" if component.hidden else "_"
@@ -297,7 +297,7 @@ class ComponentsDB:
         now = time.strftime(self.FILENAME_DATE_FMT)
         db_file_path = os.path.join(db_folder, f"components__{now}.csv")
         try:
-            self.__save_csv(db_file_path)
+            self._save_csv(db_file_path)
             self.db_file_path = db_file_path
         except Exception as e:
             logger.error(f"Error saving to file '{db_file_path}: {e}'")
@@ -306,7 +306,7 @@ class ComponentsDB:
         """Save local DB to the same file"""
         self.__components.sort()
         try:
-            self.__save_csv(self.db_file_path)
+            self._save_csv(self.db_file_path)
             self.dirty = False
         except Exception as e:
             logger.error(f"Error saving changes to file '{self.db_file_path}: {e}'")
