@@ -408,7 +408,7 @@ def __process_pnpitem(pnpitem: PnPEditorItem, components: ComponentsDB, names_vi
     if pnpitem.marker.is_set():
         # iterating over WiP items
         if pnpitem.marker.value == Marker.FILTER:
-            __try_find_matching(components, names_visible, pnpitem, None)
+            __try_find_matching(components, names_visible, pnpitem)
     else:
         # iterating over Project items
         __try_find_exact(components, names_visible, pnpitem, reference)

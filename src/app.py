@@ -30,7 +30,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.8.1"
+APP_NAME = "Yedytor v1.9.0"
 APP_DATE = "(c) 2023-2025"
 
 SCROLLBAR_SZ = 20
@@ -1147,10 +1147,14 @@ class PnPEditor(customtkinter.CTkFrame):
                         command=lambda: self.cbx_components_apply_filter(menu.wgt))
         menu.add_separator()
         #
+        menu.add_command(label="Set default: <Comment>",
+                        command=lambda: self.cbx_components_set_comment(menu.wgt))
         menu.add_command(label="Set default: <Footprint>_<Comment>",
-                        command=lambda: self.cbx_components_set_default(menu.wgt))
+                        command=lambda: self.cbx_components_set_footprint_comment(menu.wgt))
         menu.add_command(label="Set as NA",
-                        command=lambda: self.cbx_components_set_na(menu.wgt))
+                        command=lambda: self.cbx_components_set_special(menu.wgt, "NA"))
+        menu.add_command(label="Set as THT",
+                        command=lambda: self.cbx_components_set_special(menu.wgt, "THT"))
         menu.add_separator()
         #
         menu.add_command(label="Apply selection to all matching components",
@@ -1196,7 +1200,7 @@ class PnPEditor(customtkinter.CTkFrame):
             self.update_selected_status()
             self.btn_save.configure(state=tkinter.NORMAL)
 
-    def cbx_components_set_na(self, cbx):
+    def cbx_components_set_special(self, cbx, value: str):
         cbx.focus_force()
         wgt_idx = self.cbx_component_list.index(cbx)
         selected_component: str = self.entry_summary_list[wgt_idx].get()
@@ -1206,7 +1210,7 @@ class PnPEditor(customtkinter.CTkFrame):
         if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
             # add marker that this is a deleted entry
             pnp_item.marker.value = Marker.MAN_SEL
-            pnp_item.editor_selection = "NA"
+            pnp_item.editor_selection = value
             pnp_item.editor_cbx_items = []
 
             self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
@@ -1216,12 +1220,25 @@ class PnPEditor(customtkinter.CTkFrame):
             self.update_selected_status()
             self.btn_save.configure(state=tkinter.NORMAL)
 
-    def cbx_components_set_default(self, cbx):
+    def cbx_components_set_footprint_comment(self, cbx):
         wgt_idx = self.cbx_component_list.index(cbx)
 
         if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
             component_name = pnp_item.footprint + "_" + pnp_item.comment
             logger.debug(f"Set default <footprint>_<comment>: '{component_name}'")
+            pnp_item.editor_selection = component_name
+            pnp_item.marker.value = Marker.FILTER
+
+            cbx.set(component_name)
+            self.lbl_marker_list[wgt_idx].config(background=pnp_item.marker.color)
+            self.btn_save.configure(state=tkinter.NORMAL)
+
+    def cbx_components_set_comment(self, cbx):
+        wgt_idx = self.cbx_component_list.index(cbx)
+
+        if pnp_item := self.editor_data.item_filtered_paginated(wgt_idx):
+            component_name = pnp_item.comment
+            logger.debug(f"Set default <comment>: '{component_name}'")
             pnp_item.editor_selection = component_name
             pnp_item.marker.value = Marker.FILTER
 

@@ -2,6 +2,14 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.9.0 - 2025-08-28
+
+* Added
+  * PnP editor: menu item "Set as THT"
+  * PnP editor: menu item "Set default: <Comment>"
+* Fixed
+  * loading WiP file (function: too many arguments)
+
 ## 1.8.0 - 2025-07-20
 
 * Added

@@ -22,6 +22,9 @@ class MessageBox(customtkinter.CTkToplevel):
         assert "dialog_type" in kwargs
         self.dialog_type = kwargs.pop("dialog_type")
 
+        # TODO: get title from param
+        # self.title("Yedytor Popup")
+
         assert "message" in kwargs
         self.message = kwargs.pop("message")
 
