@@ -59,11 +59,8 @@ def read_xls_sheet(path: str) -> TextGrid:
             # change multiline cells into single-line
             cell_val = cell_val.replace("\n", " ⏎ ")
             row_cells.append(cell_val.strip())
-
-        if not __check_row_valid(row_cells):
-            break
-
-        tg.rows_raw().append(row_cells)
+        if __check_row_valid(row_cells):
+            tg.rows_raw().append(row_cells)
 
     tg.nrows = len(tg.rows_raw())
     tg.ncols = sheet.ncols

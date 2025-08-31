@@ -58,11 +58,9 @@ def read_ods_sheet(path: str) -> TextGrid:
                     for _ in range(repeated):
                         row_cells.append(cell)
 
-                if not __check_row_valid(row_cells):
-                    break
-
-                max_cols = max(max_cols, len(row_cells))
-                tg.rows_raw().append(row_cells)
+                if __check_row_valid(row_cells):
+                    max_cols = max(max_cols, len(row_cells))
+                    tg.rows_raw().append(row_cells)
 
             tg.nrows = len(tg.rows_raw())
             tg.ncols = max_cols

@@ -6,6 +6,7 @@ See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
 * Added
   * PnP preview: last row specified by the user
+  * Loaders does no longer break the iteration on an empty line; they just skips it
 
 ## 1.9.0 - 2025-08-28
 
