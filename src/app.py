@@ -30,7 +30,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.9.0"
+APP_NAME = "Yedytor v1.10.0"
 APP_DATE = "(c) 2023-2025"
 
 SCROLLBAR_SZ = 20
@@ -449,11 +449,13 @@ class HomeFrame(customtkinter.CTkFrame):
 
         if recent_sett := Config.instance().read_settings(glob_proj.pnp_path):
             self.pnp_config.entry_first_row_var.set(str(int(recent_sett["pnp_first_row"]) + 1))
+            self.pnp_config.entry_last_row_var.set(str(int(recent_sett["pnp_last_row"]) + 1))
             self.pnp_config.opt_separator_var.set(recent_sett["pnp_separator"])
             self.pnp_config.btn_goto_editor.configure(state=tkinter.NORMAL)
             # load the columns selection from the history
             last_colsel_result.deserialize(recent_sett["pnp_columns"])
             glob_proj.pnp_first_row = int(recent_sett["pnp_first_row"])
+            glob_proj.pnp_last_row = int(recent_sett["pnp_last_row"])
             glob_proj.pnp_separator = recent_sett["pnp_separator"]
             glob_proj.pnp2_path = recent_sett["pnp2_path"]
         else:
@@ -510,7 +512,7 @@ class PnPView(customtkinter.CTkFrame):
             raise FileNotFoundError(f"File '{path2}' does not exists")
 
         glob_proj.load_from_file(path, path2)
-        pnp_txt_grid = glob_proj.pnp_grid.format_grid(glob_proj.pnp_first_row)
+        pnp_txt_grid = glob_proj.pnp_grid.format_grid(glob_proj.pnp_first_row, glob_proj.pnp_last_row)
         self.textbox.insert("0.0", pnp_txt_grid)
         glob_proj.pnp_grid_dirty = False
 
@@ -556,27 +558,36 @@ class PnPConfig(customtkinter.CTkFrame):
         self.entry_first_row_var.trace_add("write", lambda n, i, m,
                                            sv=self.entry_first_row_var: self.var_first_row_event(sv))
         self.entry_first_row = customtkinter.CTkEntry(self, width=60,
-                                                      placeholder_text="first row",
+                                                      placeholder_text="first",
                                                       textvariable=self.entry_first_row_var)
         self.entry_first_row.grid(row=0, column=2, padx=5, pady=5, sticky="w")
 
         #
+        self.entry_last_row_var = customtkinter.StringVar(value="")
+        self.entry_last_row_var.trace_add("write", lambda n, i, m,
+                                           sv=self.entry_last_row_var: self.var_last_row_event(sv))
+        self.entry_last_row = customtkinter.CTkEntry(self, width=60,
+                                                      placeholder_text="last",
+                                                      textvariable=self.entry_last_row_var)
+        self.entry_last_row.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+
+        #
         self.btn_load_pnp_preview = customtkinter.CTkButton(self, text="Reload PnP",
                                                 command=self.button_load_pnp_preview_event)
-        self.btn_load_pnp_preview.grid(row=0, column=3, pady=5, padx=5, sticky="e")
+        self.btn_load_pnp_preview.grid(row=0, column=4, pady=5, padx=5, sticky="e")
 
         #
         self.lbl_columns = customtkinter.CTkLabel(self, text="", justify="left")
-        self.lbl_columns.grid(row=0, column=4, pady=5, padx=5, sticky="w")
+        self.lbl_columns.grid(row=0, column=5, pady=5, padx=5, sticky="w")
         self.update_lbl_columns()
         #
         self.btn_columns = customtkinter.CTkButton(self, text="Select\ncolumns...", state=tkinter.DISABLED,
                                                    command=self.button_columns_event)
-        self.btn_columns.grid(row=0, column=5, pady=5, padx=5, sticky="")
+        self.btn_columns.grid(row=0, column=6, pady=5, padx=5, sticky="")
         #
         sep_v = tkinter.ttk.Separator(self, orient='vertical')
-        sep_v.grid(row=0, column=6, pady=2, padx=5, sticky="ns")
-        self.grid_columnconfigure(6, weight=1)
+        sep_v.grid(row=0, column=7, pady=2, padx=5, sticky="ns")
+        self.grid_columnconfigure(7, weight=1)
         #
         self.btn_goto_editor = customtkinter.CTkButton(self, text="Go to\nEditor →", state=tkinter.DISABLED,
                                                 command=self.button_goto_editor_event)
@@ -601,6 +612,26 @@ class PnPConfig(customtkinter.CTkFrame):
                 self.button_load_pnp_preview_event()
             except Exception as e:
                 logger.error(f"  Invalid row number: {e}")
+        else:
+            glob_proj.pnp_first_row = 0
+            logger.info(f"  PnP 1st row: <empty>")
+            self.button_load_pnp_preview_event()
+
+    def var_last_row_event(self, sv: customtkinter.StringVar):
+        if glob_proj.loading:
+            return
+
+        if (new_last_row := sv.get().strip()) != "":
+            try:
+                glob_proj.pnp_last_row = int(new_last_row) - 1
+                logger.info(f"  PnP last row: {glob_proj.pnp_last_row+1}")
+                self.button_load_pnp_preview_event()
+            except Exception as e:
+                logger.error(f"  Invalid row number: {e}")
+        else:
+            glob_proj.pnp_last_row = -1
+            logger.info(f"  PnP last row: <empty>")
+            self.button_load_pnp_preview_event()
 
     def button_load_pnp_preview_event(self):
         logger.debug("Load PnP...")
@@ -643,9 +674,12 @@ class PnPConfig(customtkinter.CTkFrame):
     def button_goto_editor_event(self):
         try:
             Config.instance().write_settings(
-                glob_proj.pnp_path, glob_proj.pnp_separator,
+                glob_proj.pnp_path,
+                glob_proj.pnp_separator,
                 glob_proj.pnp_first_row,
-                glob_proj.pnp_columns.serialize(), glob_proj.pnp2_path
+                glob_proj.pnp_last_row,
+                glob_proj.pnp_columns.serialize(),
+                glob_proj.pnp2_path
             )
             Config.instance().save()
         except Exception as e:
@@ -949,6 +983,8 @@ class PnPEditor(customtkinter.CTkFrame):
         # if we are here, user already selected the PnP file first row
         glob_proj.pnp_grid.firstrow = max(0, glob_proj.pnp_first_row)
         glob_proj.pnp_grid.firstrow += 1 if glob_proj.pnp_columns.has_column_headers else 0
+        glob_proj.pnp_grid.lastrow = max(0, glob_proj.pnp_last_row)
+        glob_proj.pnp_grid.lastrow += 1 if glob_proj.pnp_columns.has_column_headers else 0
 
         if not self.check_selected_columns():
             logger.warning("Select proper Footprint and Comment columns before editing")

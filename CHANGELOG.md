@@ -2,6 +2,11 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.10.0 - 2025-08-31
+
+* Added
+  * PnP preview: last row specified by the user
+
 ## 1.9.0 - 2025-08-28
 
 * Added

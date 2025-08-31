@@ -9,6 +9,7 @@ class TextGrid:
         self.nrows = 0
         self.ncols = 0
         self.firstrow = 0
+        self.lastrow = 0
         self.__rows: list[list[str]] = []
 
     def to_serializable(self) -> dict:
@@ -16,6 +17,7 @@ class TextGrid:
             'nrows': self.nrows,
             'ncols': self.ncols,
             'firstrow': self.firstrow,
+            'lastrow': self.lastrow,
             'rows': self.__rows
         }
         return ret
@@ -25,6 +27,7 @@ class TextGrid:
             self.nrows = inp['nrows']
             self.ncols = inp['ncols']
             self.firstrow = inp['firstrow']
+            self.lastrow = inp['lastrow']
             self.__rows = inp['rows']
         except Exception as e:
             logger.error(f"Load from serialized data: {e}")
@@ -54,13 +57,13 @@ class TextGrid:
                     col_max_w[c_idx] = max(col_max_w[c_idx], cell_w)
         return col_max_w
 
-    def format_grid(self, first_row: int, last_row: int = -1) -> str:
+    def format_grid(self, first_row: int, last_row: int = 0) -> str:
         """
         Create spreadsheet-like grid from the content
         """
         columns_width = self.get_columns_width(first_row)
         grid_formatted = ""
-        last_row = len(self.__rows) if last_row == -1 else last_row
+        last_row = len(self.__rows) if last_row <= 0 else last_row
         for r_idx, row in enumerate(self.__rows):
             if r_idx >= first_row and r_idx <= last_row:
                 row_formatted = "{:0>3} | ".format(r_idx+1)
@@ -83,6 +86,8 @@ class TextGrid:
 
     def rows(self) -> list[list[str]]:
         """Returns the rows subset, skipping X first rows"""
+        if self.lastrow > 0 and self.lastrow < len(self.__rows):
+            return self.__rows[self.firstrow:self.lastrow]
         return self.__rows[self.firstrow:]
 
     def rows_raw(self) -> list[list[str]]:

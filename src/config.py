@@ -137,11 +137,13 @@ class Config:
         new_en = str(enable)
         self.get_section("common")["summary_comp_count"] = new_en
 
-    def write_settings(self, pnp_path: str, pnp_separator: str, pnp_first_row: int, pnp_columns: str, pnp2_path: str = ""):
+    def write_settings(self, pnp_path: str, pnp_separator: str,
+                       pnp_first_row: int, pnp_last_row: int,
+                       pnp_columns: str, pnp2_path: str = ""):
         """Store a current project settings"""
         if pnp_path:
             pnp_path_key = pnp_path.replace(" ", "_").replace(":", "")
-            sett = pnp_separator + "; " + str(pnp_first_row) + "; " + pnp_columns + "; " + pnp2_path
+            sett = pnp_separator + "; " + str(pnp_first_row) + "; " + pnp_columns + "; " + pnp2_path + "; " + str(pnp_last_row)
             self.get_section("recent")[pnp_path_key] = sett
 
     def read_settings(self, pnp_path: str) -> dict:
@@ -152,15 +154,17 @@ class Config:
             if recent_sett:
                 recent_sett = recent_sett.split(";")
                 # safety padding
-                while len(recent_sett) < 4:
+                while len(recent_sett) < 5:
                     recent_sett.append("")
 
                 ret = {
                     "pnp_separator" : recent_sett[0].strip(),
                     "pnp_first_row" : recent_sett[1].strip(),
                     "pnp_columns"   : recent_sett[2].strip(),
-                    "pnp2_path"     : recent_sett[3].strip()
+                    "pnp2_path"     : recent_sett[3].strip(),
+                    "pnp_last_row"  : recent_sett[4].strip()
                 }
+                ret["pnp_last_row"] = ret["pnp_last_row"] if ret["pnp_last_row"].isdigit() else "-1"
                 return ret
             else:
                 return None

@@ -19,6 +19,7 @@ class Project:
         self.pnp_grid: text_grid.TextGrid = None
         self.pnp_grid_dirty = False
         self.pnp_first_row = 0
+        self.pnp_last_row = 0
         self.pnp_columns = ColumnsSelectorResult()
         # self.wip_path = None
         # self.board_top_path = None
@@ -34,6 +35,7 @@ class Project:
             'pnp2_path': self.pnp2_path,
             'pnp_separator': self.pnp_separator,
             'pnp_first_row': self.pnp_first_row,
+            'pnp_last_row': self.pnp_last_row,
             'pnp_columns': self.pnp_columns.serialize(),
             'refproj_path': self.refproj_path,
             'pnp_grid': grid,
@@ -47,6 +49,7 @@ class Project:
             self.pnp2_path = inp['pnp2_path']
             self.pnp_separator = inp['pnp_separator']
             self.pnp_first_row = inp['pnp_first_row']
+            self.pnp_last_row = inp.get('pnp_last_row', 0)
             self.pnp_columns.deserialize(inp['pnp_columns'])
             self.refproj_path = inp.get('refproj_path', '')
             self.pnp_grid = text_grid.TextGrid()
