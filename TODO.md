@@ -68,3 +68,4 @@
     [x] filtry
     [ ] zastosowanie wyboru komponentu: brać descr pod uwagę?
         bo może być "402 100p" i "402 100p | 50V"
+[x] nie wczytuje starej konfiguracji

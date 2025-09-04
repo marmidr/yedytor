@@ -249,8 +249,11 @@ class ColumnsSelector(customtkinter.CTkToplevel):
 
         # extract column index
         def extract_idx(inp: str) -> int:
-            parsed = int(inp.split(sep=". ")[0])
-            return parsed-1
+            idx_str = inp.split(sep=". ")[0]
+            if idx_str:
+                parsed = int(idx_str)
+                return parsed-1
+            return -1
         #
         result.id_col = extract_idx(result.id_col)
         result.comment_col = extract_idx(result.comment_col)

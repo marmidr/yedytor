@@ -149,6 +149,8 @@ class Config:
     def read_settings(self, pnp_path: str) -> dict:
         """Load a recent project settings"""
         if pnp_path:
+            # FIXED: key saved implicitly to lower case - while reading, convert to lower case too
+            pnp_path = pnp_path.lower()
             pnp_path_key = pnp_path.replace(" ", "_").replace(":", "")
             recent_sett = self.get_section("recent").get(pnp_path_key, fallback="")
             if recent_sett:

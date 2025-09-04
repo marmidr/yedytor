@@ -2,6 +2,11 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.10.1 - 2025-09-04
+
+* Fixed
+  * loading of last project configuration
+
 ## 1.10.0 - 2025-08-31
 
 * Added

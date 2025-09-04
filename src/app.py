@@ -30,7 +30,7 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.10.0"
+APP_NAME = "Yedytor v1.10.1"
 APP_DATE = "(c) 2023-2025"
 
 SCROLLBAR_SZ = 20
@@ -984,7 +984,7 @@ class PnPEditor(customtkinter.CTkFrame):
         glob_proj.pnp_grid.firstrow = max(0, glob_proj.pnp_first_row)
         glob_proj.pnp_grid.firstrow += 1 if glob_proj.pnp_columns.has_column_headers else 0
         glob_proj.pnp_grid.lastrow = max(0, glob_proj.pnp_last_row)
-        glob_proj.pnp_grid.lastrow += 1 if glob_proj.pnp_columns.has_column_headers else 0
+        glob_proj.pnp_grid.lastrow += 1 if (glob_proj.pnp_grid.lastrow > 0 and glob_proj.pnp_columns.has_column_headers) else 0
 
         if not self.check_selected_columns():
             logger.warning("Select proper Footprint and Comment columns before editing")
