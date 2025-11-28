@@ -1,8 +1,9 @@
 #
-# 2025-01-19
+# 2025-11-28
 #
 
 import logger
+import datetime
 
 # https://linuxhint.com/read-excel-file-python/
 # https://openpyxl.readthedocs.io/en/stable/tutorial.html
@@ -25,8 +26,8 @@ def read_xlsx_sheet(path: str) -> TextGrid:
     assert path is not None
     logger.info(f"Reading file '{path}'")
     # Define variable to load the wookbook
-    wookbook = openpyxl.load_workbook(path)
-    sheet = wookbook.active
+    workbook = openpyxl.load_workbook(path)
+    sheet = workbook.active
     tg = TextGrid()
 
     # Iterate the loop to read the cell values
@@ -35,11 +36,14 @@ def read_xlsx_sheet(path: str) -> TextGrid:
         for cell in row:
             if cell is None:
                 cell = ""
-            elif isinstance(cell, float) or isinstance(cell, int):
-                if isinstance(cell, float) and int(cell) == float(cell):
-                    # prevent the conversion of '100' to '100.0'
-                    cell = int(cell)
-                cell = repr(cell)
+            else:
+                if isinstance(cell, float) or isinstance(cell, int):
+                    if isinstance(cell, float) and int(cell) == float(cell):
+                        # prevent the conversion of '100' to '100.0'
+                        cell = int(cell)
+                    cell = repr(cell)
+                elif isinstance(cell, datetime.datetime):
+                    cell = str(cell)
             # change multiline cells into single-line
             cell = cell.replace("\n", " ⏎ ")
             row_cells.append(cell.strip())

@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: debug app",
+            "name": "Python: debug Yedytor",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}\\src\\app.py",
