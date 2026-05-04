@@ -55,7 +55,7 @@ class Project:
             self.pnp_grid = text_grid.TextGrid()
             self.pnp_grid.from_serializable(inp['pnp_grid'])
         except Exception as e:
-            logger.error(f"Load from serialized data: {e}")
+            logger.error(f"Load project from serialized data: {e}")
 
     def get_name(self) -> str:
         return os.path.basename(self.pnp_path)

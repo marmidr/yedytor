@@ -2,6 +2,11 @@
 
 See the [keepachangelog.com description](https://keepachangelog.com/en/1.0.0/).
 
+## 1.10.2 - 2026-05-04
+
+* Fixed
+  * loading of older *_wip.json files (missing field)
+
 ## 1.10.1 - 2025-09-04
 
 * Fixed

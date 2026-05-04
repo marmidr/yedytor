@@ -27,10 +27,10 @@ class TextGrid:
             self.nrows = inp['nrows']
             self.ncols = inp['ncols']
             self.firstrow = inp['firstrow']
-            self.lastrow = inp['lastrow']
+            self.lastrow = inp.get('lastrow', 0)
             self.__rows = inp['rows']
         except Exception as e:
-            logger.error(f"Load from serialized data: {e}")
+            logger.error(f"Load text grid from serialized data: {e}")
 
     @staticmethod
     def format_cell(cell) -> str:

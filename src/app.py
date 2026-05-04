@@ -2,7 +2,7 @@
 #
 # PnP files editor, using a footprint components defined in the Yamaha .Tou files.
 #
-# (c) 2023-2025 Mariusz Midor
+# (c) 2023-2026 Mariusz Midor
 # https://github.com/marmidr/yedytor
 
 import logger
@@ -30,8 +30,8 @@ from project import Project
 
 # -----------------------------------------------------------------------------
 
-APP_NAME = "Yedytor v1.10.1"
-APP_DATE = "(c) 2023-2025"
+APP_NAME = "Yedytor v1.10.2"
+APP_DATE = "(c) 2023-2026"
 
 SCROLLBAR_SZ = 20
 
@@ -380,6 +380,7 @@ class HomeFrame(customtkinter.CTkFrame):
                 return
 
             logger.info("Restore project...")
+            # self.entry_pnp_path_var.set("")
 
             # reset entire project
             global glob_proj
